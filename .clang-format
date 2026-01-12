@@ -1,0 +1,76 @@
+BasedOnStyle: Microsoft
+IndentWidth: 4
+ColumnLimit: 110
+SpacesBeforeTrailingComments: 2
+
+# Allows
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: Inline
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# Line breaks
+BreakBeforeBinaryOperators: NonAssignment
+BreakConstructorInitializers: AfterColon
+BreakBeforeBraces: Custom
+BreakBeforeTemplateCloser: true
+BracedInitializerIndentWidth: 4
+BreakBinaryOperations: RespectPrecedence
+BreakAfterAttributes: Always
+
+# Bin-packs
+BinPackArguments: false
+BinPackParameters: false
+PackConstructorInitializers: Never
+AlwaysBreakTemplateDeclarations: Yes
+ExperimentalAutoDetectBinPacking: false
+
+# Alignments
+AlignConsecutiveBitFields: true
+AlignConsecutiveAssignments: false
+AlignArrayOfStructures: Left # Currently Broken
+AlignConsecutiveDeclarations: false
+PointerAlignment: Left
+AlignOperands: DontAlign
+AlignAfterOpenBracket: BlockIndent
+
+ReflowComments: Always
+
+BraceWrapping:
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: false
+  BeforeWhile: true
+  IndentBraces: false
+
+ContinuationIndentWidth: 4
+Cpp11BracedListStyle: true
+
+EmptyLineAfterAccessModifier: Always
+EmptyLineBeforeAccessModifier: Always
+
+UseTab: ForContinuationAndIndentation
+NamespaceIndentation: All
+FixNamespaceComments: false
+
+# Penalties
+PenaltyBreakAssignment: 0
+PenaltyBreakBeforeMemberAccess: 100
+PenaltyIndentedWhitespace: 10
+PenaltyBreakScopeResolution: 1000
+# Standard: auto
