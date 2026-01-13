@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <memory>
 #include <ranges>
 #include <span>
 
@@ -20,7 +21,7 @@ namespace util
 	/// @return Byte span representing the object's memory
 	///
 	template <typename T>
-	std::span<const std::byte> as_bytes(const T& object) noexcept
+	std::span<const std::byte> object_as_bytes(const T& object) noexcept
 	{
 		auto ptr = reinterpret_cast<const std::byte*>(std::addressof(object));
 		return {ptr, sizeof(T)};
@@ -60,19 +61,38 @@ namespace util
 	/// @brief Converts a byte span back to a span of the specified type
 	/// @note Uses assertions internally to ensure size and alignment are correct. Check carefully before use.
 	///
-	/// @tparam T Target type, add `const` for a const span
+	/// @tparam T Target type, should be const
 	/// @param bytes Byte span to convert
 	/// @return Span of the target type representing the byte span's memory
 	///
 	template <typename T>
-	std::span<T> from_bytes(
-		std::span<std::conditional_t<std::is_const_v<T>, const std::byte, std::byte>> bytes
-	) noexcept
+		requires(std::same_as<T, const std::remove_extent_t<T>>)
+	std::span<const T> from_bytes(std::span<const std::byte> bytes) noexcept
 	{
 		assert(bytes.size() % sizeof(T) == 0);
 		assert(reinterpret_cast<uintptr_t>(bytes.data()) % alignof(T) == 0);
 
-		auto ptr = reinterpret_cast<const T*>(bytes.data());
+		auto ptr = reinterpret_cast<const T*>(std::assume_aligned<alignof(T)>(bytes.data()));
+		auto size = bytes.size() / sizeof(T);
+		return {ptr, size};
+	}
+
+	///
+	/// @brief Converts a byte span back to a span of the specified type
+	/// @note Uses assertions internally to ensure size and alignment are correct. Check carefully before use.
+	///
+	/// @tparam T Target type, should be non-const
+	/// @param bytes Byte span to convert
+	/// @return Span of the target type representing the byte span's memory
+	///
+	template <typename T>
+		requires(std::same_as<T, std::remove_extent_t<T>>)
+	std::span<T> from_writable_bytes(std::span<std::byte> bytes) noexcept
+	{
+		assert(bytes.size() % sizeof(T) == 0);
+		assert(reinterpret_cast<uintptr_t>(bytes.data()) % alignof(T) == 0);
+
+		auto ptr = reinterpret_cast<T*>(std::assume_aligned<alignof(T)>(bytes.data()));
 		auto size = bytes.size() / sizeof(T);
 		return {ptr, size};
 	}

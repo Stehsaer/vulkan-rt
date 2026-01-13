@@ -34,7 +34,11 @@ add_requires(
 	"vulkan-memory-allocator 3.3.0"
 )
 
-add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_INTRINSICS")
+add_defines(
+	"GLM_FORCE_DEPTH_ZERO_TO_ONE", 
+	"GLM_ENABLE_EXPERIMENTAL", 
+	"GLM_FORCE_INTRINSICS"
+)
 add_defines("TINYGLTF_NOEXCEPTION")
 add_defines(
 	"VULKAN_HPP_NO_EXCEPTIONS", 

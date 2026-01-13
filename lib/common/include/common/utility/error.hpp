@@ -14,6 +14,11 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
+// IWYU pragma: begin_exports
+#include "common/formatter/vec.hpp"
+#include "common/formatter/vulkan.hpp"
+// IWYU pragma: end_exports
+
 ///
 /// @brief Struct representing an error with a trace of its propagation
 ///
