@@ -34,7 +34,7 @@ function _get_tools()
 		slangc = find_program("slangc", {check="--help"}),
 	}
 
-	assert(tools.slangc, "Slang compiler not found")
+	assert(tools.slangc, "Slang compiler not found, see README")
 
 	return tools
 end
