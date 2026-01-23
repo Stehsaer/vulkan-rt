@@ -1,8 +1,8 @@
-#include "vulkan-window/window.hpp"
+#include "vulkan-context/window.hpp"
 
 #include <SDL3/SDL_vulkan.h>
 
-namespace vulkan_window
+namespace vulkan_context
 {
 	SDL_WindowFlags WindowInfo::get_flags() const noexcept
 	{

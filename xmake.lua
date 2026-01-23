@@ -36,8 +36,7 @@ add_requires(
 
 add_defines(
 	"GLM_FORCE_DEPTH_ZERO_TO_ONE", 
-	"GLM_ENABLE_EXPERIMENTAL", 
-	"GLM_FORCE_INTRINSICS"
+	"GLM_ENABLE_EXPERIMENTAL"
 )
 add_defines("TINYGLTF_NOEXCEPTION")
 add_defines(

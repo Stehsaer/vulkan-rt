@@ -1,29 +1,44 @@
-static float2 positions[3] = float2[](float2(0.0, -0.5), float2(0.5, 0.5), float2(-0.5, 0.5));
+struct VertexIn
+{
+	[vk::location(0)]
+	float2 position;
 
-static float3 colors[3] = float3[](float3(1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0), float3(0.0, 0.0, 1.0));
+	[vk::location(1)]
+	float2 uv;
+};
 
 struct VertexOut
 {
 	float4 position : SV_Position;
-	float3 color;
+
+	[vk::location(0)]
+	float2 uv;
 };
 
-struct PixelIn
+struct FragIn
 {
-	float3 color;
+	[vk::location(0)]
+	float2 uv;
 };
+
+struct FragTextures
+{
+	Sampler2D<float4> texture0;
+};
+
+layout(set = 0) ParameterBlock<FragTextures> textures;
 
 [shader("vertex")]
-VertexOut main_vertex(uint vertex_id: SV_VertexID)
+VertexOut main_vertex(VertexIn input)
 {
 	VertexOut out;
-	out.position = float4(positions[vertex_id], 0.0, 1.0);
-	out.color = colors[vertex_id];
+	out.position = float4(input.position, 0.0, 1.0);
+	out.uv = input.uv;
 	return out;
 }
 
 [shader("fragment")]
-float4 main_fragment(PixelIn input)
+float4 main_fragment(FragIn input)
 {
-	return float4(input.color, 1.0);
+	return textures.texture0.Sample(input.uv);
 }

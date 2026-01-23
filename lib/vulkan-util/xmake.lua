@@ -11,4 +11,4 @@ target("vulkan-util")
 		"vulkan-memory-allocator-hpp", 
 		{public=true}
 	)
-	add_deps("common", {public=true})
+	add_deps("common", "vma-hpp", {public=true})

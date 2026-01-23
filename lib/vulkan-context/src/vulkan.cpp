@@ -1,4 +1,4 @@
-#include "vulkan-window/vulkan.hpp"
+#include "vulkan-context/vulkan.hpp"
 
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_vulkan.h>
@@ -10,9 +10,9 @@
 #include <set>
 #include <vulkan/vulkan_raii.hpp>
 
-#include "vulkan-window/window.hpp"
+#include "vulkan-context/window.hpp"
 
-namespace vulkan_window
+namespace vulkan_context
 {
 	static std::vector<std::string> operator-(const std::set<std::string>& a, const std::set<std::string>& b)
 	{
@@ -272,11 +272,9 @@ namespace vulkan_window
 		/* Detect Queues */
 
 		const auto graphics_index = find_queue_family_index(phy_device, vk::QueueFlagBits::eGraphics);
-		const auto transfer_index = find_queue_family_index(phy_device, vk::QueueFlagBits::eTransfer);
 		const auto compute_index = find_queue_family_index(phy_device, vk::QueueFlagBits::eCompute);
 
 		if (!graphics_index) return Error("No queue family supports graphics operations");
-		if (!transfer_index) return Error("No queue family supports transfer operations");
 		if (!compute_index) return Error("No queue family supports compute operations");
 
 		uint32_t present_index;
@@ -297,8 +295,7 @@ namespace vulkan_window
 			present_index = *find;
 		}
 
-		const std::set<uint32_t> unique_queue_indices =
-			{*graphics_index, *transfer_index, *compute_index, present_index};
+		const std::set<uint32_t> unique_queue_indices = {*graphics_index, *compute_index, present_index};
 
 		const float queue_priority = 1.0f;
 
@@ -344,12 +341,10 @@ namespace vulkan_window
 
 		const DeviceQueues queues{
 			.graphics = queues_map.at(*graphics_index),
-			.transfer = queues_map.at(*transfer_index),
 			.compute = queues_map.at(*compute_index),
 			.present = queues_map.at(present_index),
 
 			.graphics_index = *graphics_index,
-			.transfer_index = *transfer_index,
 			.compute_index = *compute_index,
 			.present_index = present_index
 		};

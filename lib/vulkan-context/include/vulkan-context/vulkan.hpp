@@ -11,7 +11,7 @@
 #include "common/utility/error.hpp"
 #include "vulkan-util/linked-struct.hpp"
 
-namespace vulkan_window
+namespace vulkan_context
 {
 	///
 	/// @brief Containing basic application info for Vulkan instance creation
@@ -96,12 +96,10 @@ namespace vulkan_window
 	struct DeviceQueues
 	{
 		std::shared_ptr<vk::raii::Queue> graphics;
-		std::shared_ptr<vk::raii::Queue> transfer;
 		std::shared_ptr<vk::raii::Queue> compute;
 		std::shared_ptr<vk::raii::Queue> present;
 
 		uint32_t graphics_index;
-		uint32_t transfer_index;
 		uint32_t compute_index;
 		uint32_t present_index;
 	};

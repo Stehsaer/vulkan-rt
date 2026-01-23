@@ -1,6 +1,6 @@
-#include "vulkan-window/swapchain.hpp"
+#include "vulkan-context/swapchain.hpp"
 
-namespace vulkan_window
+namespace vulkan_context
 {
 	static std::expected<vk::raii::ImageView, Error> view_from_swapchain_img(
 		const vk::raii::Device& device,

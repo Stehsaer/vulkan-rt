@@ -7,9 +7,9 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "common/utility/error.hpp"
-#include "vulkan-window/vulkan.hpp"
+#include "vulkan-context/vulkan.hpp"
 
-namespace vulkan_window
+namespace vulkan_context
 {
 	// Struct holding a swapchain image and its view
 	struct SwapchainImage

@@ -1,11 +1,11 @@
-#include "vulkan-window.hpp"
-#include "vulkan-window/swapchain.hpp"
+#include "vulkan-context.hpp"
+#include "vulkan-context/swapchain.hpp"
 
-std::expected<VulkanWindow, Error> VulkanWindow::create(const CreateInfo& create_info) noexcept
+std::expected<VulkanContext, Error> VulkanContext::create(const CreateInfo& create_info) noexcept
 {
 	/* Create Window */
 
-	auto window_expected = vulkan_window::impl::create_window(create_info.window_info);
+	auto window_expected = vulkan_context::impl::create_window(create_info.window_info);
 	if (!window_expected) return window_expected.error().forward("Create window failed");
 	auto window = std::move(*window_expected);
 
@@ -16,25 +16,25 @@ std::expected<VulkanWindow, Error> VulkanWindow::create(const CreateInfo& create
 	/* Create Vulkan Instance */
 
 	auto instance_expected =
-		vulkan_window::impl::create_instance(context, create_info.app_info, create_info.features);
+		vulkan_context::impl::create_instance(context, create_info.app_info, create_info.features);
 	if (!instance_expected) return instance_expected.error().forward("Create vulkan instance failed");
 	auto instance = std::move(*instance_expected);
 
 	/* Create Surface */
 
-	auto surface_expected = vulkan_window::impl::create_surface(instance, *window);
+	auto surface_expected = vulkan_context::impl::create_surface(instance, *window);
 	if (!surface_expected) return surface_expected.error().forward("Create surface failed");
 	auto surface = std::move(*surface_expected);
 
 	/* Pick Physical Device */
 
-	auto phy_device_expected = vulkan_window::impl::pick_physical_device(instance, create_info.features);
+	auto phy_device_expected = vulkan_context::impl::pick_physical_device(instance, create_info.features);
 	if (!phy_device_expected) return phy_device_expected.error().forward("Pick physical device failed");
 	auto phy_device = std::move(*phy_device_expected);
 
 	/* Create Logical Device and Queues */
 
-	auto device_expected = vulkan_window::impl::create_logical_device(
+	auto device_expected = vulkan_context::impl::create_logical_device(
 		phy_device,
 		vk::SurfaceKHR(*surface),
 		create_info.features
@@ -45,12 +45,18 @@ std::expected<VulkanWindow, Error> VulkanWindow::create(const CreateInfo& create
 	/* Select Swapchain Layout */
 
 	auto swapchain_layout_expected =
-		vulkan_window::impl::select_swapchain_layout(phy_device, vk::SurfaceKHR(*surface), queues);
+		vulkan_context::impl::select_swapchain_layout(phy_device, vk::SurfaceKHR(*surface), queues);
 	if (!swapchain_layout_expected)
 		return swapchain_layout_expected.error().forward("Select swapchain layout failed");
 	auto swapchain_layout = std::move(*swapchain_layout_expected);
 
-	return VulkanWindow(
+	/* Create Memory Allocator */
+
+	auto allocator_expected = vma::Allocator::create(instance, phy_device, device);
+	if (!allocator_expected) return allocator_expected.error().forward("Create allocator failed");
+	auto allocator = std::move(*allocator_expected);
+
+	return VulkanContext(
 		std::move(window),
 		std::move(context),
 		std::move(instance),
@@ -58,11 +64,12 @@ std::expected<VulkanWindow, Error> VulkanWindow::create(const CreateInfo& create
 		std::move(phy_device),
 		std::move(device),
 		std::move(queues),
-		std::move(swapchain_layout)
+		std::move(swapchain_layout),
+		std::move(allocator)
 	);
 }
 
-std::expected<vulkan_window::SwapchainAcquireResult, Error> VulkanWindow::acquire_swapchain_image(
+std::expected<vulkan_context::SwapchainAcquireResult, Error> VulkanContext::acquire_swapchain_image(
 	std::optional<vk::Semaphore> signal_semaphore,
 	std::optional<vk::Fence> signal_fence,
 	uint64_t timeout
@@ -72,7 +79,7 @@ std::expected<vulkan_window::SwapchainAcquireResult, Error> VulkanWindow::acquir
 	{
 		if (!swapchain)
 		{
-			auto swapchain_expected = vulkan_window::SwapchainInstance::create(
+			auto swapchain_expected = vulkan_context::SwapchainInstance::create(
 				phy_device,
 				device,
 				vk::SurfaceKHR(*surface),
@@ -94,7 +101,7 @@ std::expected<vulkan_window::SwapchainAcquireResult, Error> VulkanWindow::acquir
 			case vk::Result::eSuboptimalKHR:
 			{
 				device.waitIdle();
-				auto swapchain_expected = vulkan_window::SwapchainInstance::create(
+				auto swapchain_expected = vulkan_context::SwapchainInstance::create(
 					phy_device,
 					device,
 					vk::SurfaceKHR(*surface),
@@ -118,7 +125,7 @@ std::expected<vulkan_window::SwapchainAcquireResult, Error> VulkanWindow::acquir
 	}
 }
 
-std::expected<void, Error> VulkanWindow::present_swapchain_image(
+std::expected<void, Error> VulkanContext::present_swapchain_image(
 	uint32_t image_index,
 	std::optional<vk::Semaphore> wait_semaphore
 ) noexcept
@@ -146,7 +153,7 @@ std::expected<void, Error> VulkanWindow::present_swapchain_image(
 	case vk::Result::eErrorOutOfDateKHR:
 	case vk::Result::eSuboptimalKHR:
 	{
-		auto swapchain_expected = vulkan_window::SwapchainInstance::create(
+		auto swapchain_expected = vulkan_context::SwapchainInstance::create(
 			phy_device,
 			device,
 			vk::SurfaceKHR(*surface),

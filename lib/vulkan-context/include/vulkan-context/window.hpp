@@ -9,7 +9,7 @@
 
 #include <common/utility/error.hpp>
 
-namespace vulkan_window
+namespace vulkan_context
 {
 	///
 	/// @brief Info for creating an SDL window

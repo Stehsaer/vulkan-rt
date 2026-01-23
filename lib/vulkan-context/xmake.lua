@@ -1,4 +1,4 @@
-target("vulkan-window")
+target("vulkan-context")
 	set_kind("static")
 
 	add_includedirs("include", {public = true})
@@ -6,4 +6,4 @@ target("vulkan-window")
 	add_files("src/**.cpp")
 
 	add_packages("vulkan-hpp", "libsdl3", "glm", {public=true})
-	add_deps("common", "vulkan-util", {public=true})
+	add_deps("common", "vulkan-util", "vma-hpp", {public=true})

@@ -2,105 +2,22 @@
 #include <common/formatter/vec.hpp>
 #include <common/formatter/vulkan.hpp>
 #include <common/utility/error.hpp>
-
 #include <iostream>
 #include <optional>
 #include <print>
 #include <ranges>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan_structs.hpp>
 
-#include "shader/first_shader.hpp"
+#include "descriptor-layouts.hpp"
+#include "pipeline.hpp"
+#include "resources.hpp"
+#include "vulkan-context.hpp"
 #include "vulkan-util/cycle.hpp"
 #include "vulkan-util/image-barrier.hpp"
-#include "vulkan-util/linked-struct.hpp"
-#include "vulkan-util/shader.hpp"
-#include "vulkan-window.hpp"
 
-static std::expected<vk::raii::Pipeline, Error> create_graphics_pipeline(const VulkanWindow& window) noexcept
-{
-	auto shader_module_expected = vkutil::create_shader(window.device, shader::first_shader);
-	if (!shader_module_expected) return shader_module_expected.error().forward("Create shader module failed");
-	auto shader_module = std::move(*shader_module_expected);
-
-	const auto vertex_stage_info = vk::PipelineShaderStageCreateInfo{
-		.stage = vk::ShaderStageFlagBits::eVertex,
-		.module = *shader_module,
-		.pName = "main_vertex"
-	};
-	const auto fragment_stage_info = vk::PipelineShaderStageCreateInfo{
-		.stage = vk::ShaderStageFlagBits::eFragment,
-		.module = *shader_module,
-		.pName = "main_fragment"
-	};
-	const auto shader_stages = std::to_array({vertex_stage_info, fragment_stage_info});
-
-	const auto dynamic_states = std::to_array({vk::DynamicState::eViewport, vk::DynamicState::eScissor});
-	const auto dynamic_state_info = vk::PipelineDynamicStateCreateInfo().setDynamicStates(dynamic_states);
-
-	const auto input_assembly_info = vk::PipelineInputAssemblyStateCreateInfo{
-		.topology = vk::PrimitiveTopology::eTriangleList,
-		.primitiveRestartEnable = vk::False
-	};
-
-	const auto vertex_input_info = vk::PipelineVertexInputStateCreateInfo{};
-
-	const auto viewport_info = vk::PipelineViewportStateCreateInfo{
-		.viewportCount = 1,
-		.pViewports = nullptr,
-		.scissorCount = 1,
-		.pScissors = nullptr,
-	};
-
-	const auto rasterization_info =
-		vk::PipelineRasterizationStateCreateInfo{.cullMode = vk::CullModeFlagBits::eNone, .lineWidth = 1.0};
-	const auto multisample_info =
-		vk::PipelineMultisampleStateCreateInfo{.rasterizationSamples = vk::SampleCountFlagBits::e1};
-
-	const auto swapchain_attachment_blend_state = vk::PipelineColorBlendAttachmentState{
-		.blendEnable = vk::False,
-		.colorWriteMask = vk::ColorComponentFlagBits::eR
-			| vk::ColorComponentFlagBits::eG
-			| vk::ColorComponentFlagBits::eB
-			| vk::ColorComponentFlagBits::eA
-	};
-	const auto color_attachment_blend_states = std::to_array({swapchain_attachment_blend_state});
-	const auto color_blend_info =
-		vk::PipelineColorBlendStateCreateInfo{}.setAttachments(color_attachment_blend_states);
-
-	const auto attachment_formats = std::to_array({window.swapchain_layout.surface_format.format});
-	const auto pipeline_rendering_info =
-		vk::PipelineRenderingCreateInfo().setColorAttachmentFormats(attachment_formats);
-
-	const auto pipelineLayoutInfo = vk::PipelineLayoutCreateInfo{};
-
-	auto pipeline_layout_expected = window.device.createPipelineLayout(pipelineLayoutInfo);
-	if (!pipeline_layout_expected) return Error("Create pipeline layout failed");
-	auto pipeline_layout = std::move(*pipeline_layout_expected);
-
-	vkutil::LinkedStruct<vk::GraphicsPipelineCreateInfo> graphics_create_info =
-		vk::GraphicsPipelineCreateInfo{
-			.pNext = &pipeline_rendering_info,
-			.pVertexInputState = &vertex_input_info,
-			.pInputAssemblyState = &input_assembly_info,
-			.pViewportState = &viewport_info,
-			.pRasterizationState = &rasterization_info,
-			.pMultisampleState = &multisample_info,
-			.pColorBlendState = &color_blend_info,
-			.pDynamicState = &dynamic_state_info,
-			.layout = *pipeline_layout
-		}
-			.setStages(shader_stages);
-	graphics_create_info.push(
-		vk::PipelineRenderingCreateInfo{}.setColorAttachmentFormats(attachment_formats)
-	);
-
-	auto pipeline_expected = window.device.createGraphicsPipeline(nullptr, graphics_create_info.get());
-	if (!pipeline_expected) return Error("Create graphics pipeline failed");
-	return std::move(*pipeline_expected);
-}
-
-struct FrameObjects
+struct PerFrameObject
 {
 	vk::raii::CommandBuffer command_buffer;
 
@@ -108,8 +25,8 @@ struct FrameObjects
 	vk::raii::Semaphore render_finished_semaphore;
 	vk::raii::Semaphore image_available_semaphore;
 
-	static std::expected<FrameObjects, Error> create(
-		const VulkanWindow& vulkan,
+	static std::expected<PerFrameObject, Error> create(
+		const VulkanContext& vulkan,
 		vk::raii::CommandBuffer command_buffer
 	) noexcept
 	{
@@ -122,7 +39,7 @@ struct FrameObjects
 		auto present_complete_semaphore_expected = vulkan.device.createSemaphore({});
 		if (!present_complete_semaphore_expected) return Error("Create present complete semaphore failed");
 
-		return FrameObjects{
+		return PerFrameObject{
 			.command_buffer = std::move(command_buffer),
 			.draw_fence = std::move(*fence_expected),
 			.render_finished_semaphore = std::move(*render_finished_semaphore_expected),
@@ -137,24 +54,35 @@ int main()
 	{
 		/* Context */
 
-		const auto create_info = VulkanWindow::CreateInfo{
+		const auto create_info = VulkanContext::CreateInfo{
 			.window_info = {.title = "Vulkan Gltf RT", .initial_size = {800, 600}},
 			.app_info =
 				{.application_name = "Vulkan Gltf RT", .application_version = VK_MAKE_VERSION(0, 1, 0)},
 			.features = {.validation = true},
 		};
 
-		auto vulkan_expected = VulkanWindow::create(create_info);
+		auto vulkan_expected = VulkanContext::create(create_info);
 		if (!vulkan_expected) vulkan_expected.error().throw_self("Create context failed");
 		auto vulkan = std::move(*vulkan_expected);
 
+		/* Resources */
+
+		auto descriptor_set_layout_expected = DescriptorLayouts::create(vulkan.device);
+		if (!descriptor_set_layout_expected)
+			descriptor_set_layout_expected.error().throw_self("Create descriptor set layout failed");
+		auto descriptor_set_layout = std::move(*descriptor_set_layout_expected);
+
+		auto resources_expected = Resources::create(vulkan, descriptor_set_layout.main_layout);
+		if (!resources_expected) resources_expected.error().throw_self("Create resources failed");
+		auto resources = std::move(*resources_expected);
+
 		/* Pipeline */
 
-		auto pipeline_expected = create_graphics_pipeline(vulkan);
-		if (!pipeline_expected) pipeline_expected.error().throw_self("Create graphics pipeline failed");
-		auto graphics_pipeline = std::move(*pipeline_expected);
+		auto pipeline_expected = Pipeline::create(vulkan, descriptor_set_layout.main_layout);
+		if (!pipeline_expected) pipeline_expected.error().throw_self("Create pipeline failed");
+		auto pipeline = std::move(*pipeline_expected);
 
-		/* Command Pool */
+		/* Command Pool & Buffer */
 
 		auto command_pool_expected = vulkan.device.createCommandPool(
 			{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
@@ -163,8 +91,6 @@ int main()
 		if (!command_pool_expected)
 			Error(command_pool_expected.error(), "Create command pool failed").throw_self();
 		auto command_pool = std::move(*command_pool_expected);
-
-		/* Command Buffer */
 
 		auto command_buffers_expected = vulkan.device.allocateCommandBuffers({
 			.commandPool = *command_pool,
@@ -177,15 +103,16 @@ int main()
 
 		/* Render Objects */
 
-		auto object_list_expected =
+		auto per_frame_objects_expected =
 			command_buffers
 			| std::views::transform([&vulkan](auto& command_buffer) {
-				  return FrameObjects::create(vulkan, std::move(command_buffer));
+				  return PerFrameObject::create(vulkan, std::move(command_buffer));
 			  })
 			| std::ranges::to<std::vector>()
 			| Error::collect_vec("Create frame objects failed");
-		if (!object_list_expected) object_list_expected.error().throw_self();
-		auto object_cycle = vkutil::Cycle<FrameObjects>::create(std::move(*object_list_expected));
+		if (!per_frame_objects_expected) per_frame_objects_expected.error().throw_self();
+		auto per_frame_objects =
+			vkutil::Cycle<PerFrameObject>::create(std::move(*per_frame_objects_expected));
 
 		bool quit = false;
 		while (!quit)
@@ -207,8 +134,8 @@ int main()
 
 			vulkan.queues.graphics->waitIdle();
 
-			object_cycle.cycle();
-			const auto& current_frame_object = object_cycle.current();
+			per_frame_objects.cycle();
+			const auto& current_frame_object = per_frame_objects.current();
 
 			/* Wait For Fence */
 
@@ -224,7 +151,7 @@ int main()
 			/* Acquire Swapchain */
 
 			const auto acquire_expected =
-				vulkan.acquire_swapchain_image(object_cycle.prev().image_available_semaphore);
+				vulkan.acquire_swapchain_image(per_frame_objects.prev().image_available_semaphore);
 			if (!acquire_expected) acquire_expected.error().throw_self("Acquire swapchain image failed");
 			const auto& [extent, index, swapchain_image] = *acquire_expected;
 
@@ -267,12 +194,23 @@ int main()
 					}
 						.setColorAttachments(attachment_info_list);
 
+				const auto vertex_buffer_lists = std::to_array<vk::Buffer>({resources.vertex_buffer});
+				const auto vertex_buffer_offsets = std::to_array<vk::DeviceSize>({0});
+
 				command_buffer.beginRendering(rendering_info);
 				{
-					command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *graphics_pipeline);
+					command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.pipeline);
 					command_buffer.setViewport(0, {viewport});
 					command_buffer.setScissor(0, {scissor});
-					command_buffer.draw(3, 1, 0, 0);
+					command_buffer.bindVertexBuffers(0, vertex_buffer_lists, vertex_buffer_offsets);
+					command_buffer.bindDescriptorSets(
+						vk::PipelineBindPoint::eGraphics,
+						*pipeline.layout,
+						0,
+						{*resources.main_descriptor_set},
+						{}
+					);
+					command_buffer.draw(6, 1, 0, 0);
 				}
 				command_buffer.endRendering();
 
@@ -287,7 +225,7 @@ int main()
 			/* Submit */
 
 			const auto graphic_submit_wait_semaphores =
-				std::to_array({*object_cycle.prev().image_available_semaphore});
+				std::to_array({*per_frame_objects.prev().image_available_semaphore});
 			const auto graphic_submit_signal_semaphores =
 				std::to_array({*current_frame_object.render_finished_semaphore});
 			const auto graphic_submit_command_buffers = std::to_array({*command_buffer});

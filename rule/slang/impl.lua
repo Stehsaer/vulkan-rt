@@ -91,12 +91,15 @@ function _compile_spv(tools, files, debug)
 	local optimization_flags = debug and {"-O0", "-g"} or {"-O3"}
 
 	os.vrunv(tools.slangc, {
-		files.source,
 		"-target", "spirv",
-		"-profile", "spirv_1_4",
+		"-profile", "spirv_1_4+SPV_KHR_non_semantic_info",
 		"-emit-spirv-directly",
 		"-o", files.spv,
 		"-depfile", files.spv .. ".d",
+		"-matrix-layout-column-major",
+		"-fvk-invert-y",
+		"--",
+		files.source,
 	})
 end
 
