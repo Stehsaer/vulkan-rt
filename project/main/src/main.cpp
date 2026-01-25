@@ -1,7 +1,7 @@
 #include <SDL3/SDL_events.h>
 #include <common/formatter/vec.hpp>
 #include <common/formatter/vulkan.hpp>
-#include <common/utility/error.hpp>
+#include <common/util/error.hpp>
 #include <iostream>
 #include <optional>
 #include <print>
@@ -13,9 +13,9 @@
 #include "descriptor-layouts.hpp"
 #include "pipeline.hpp"
 #include "resources.hpp"
-#include "vulkan-context.hpp"
-#include "vulkan-util/cycle.hpp"
-#include "vulkan-util/image-barrier.hpp"
+#include "vulkan/context.hpp"
+#include "vulkan/util/cycle.hpp"
+#include "vulkan/util/image-barrier.hpp"
 
 struct PerFrameObject
 {
@@ -26,7 +26,7 @@ struct PerFrameObject
 	vk::raii::Semaphore image_available_semaphore;
 
 	static std::expected<PerFrameObject, Error> create(
-		const VulkanContext& vulkan,
+		const vulkan::Context& vulkan,
 		vk::raii::CommandBuffer command_buffer
 	) noexcept
 	{
@@ -54,14 +54,14 @@ int main()
 	{
 		/* Context */
 
-		const auto create_info = VulkanContext::CreateInfo{
+		const auto create_info = vulkan::Context::CreateInfo{
 			.window_info = {.title = "Vulkan Gltf RT", .initial_size = {800, 600}},
 			.app_info =
 				{.application_name = "Vulkan Gltf RT", .application_version = VK_MAKE_VERSION(0, 1, 0)},
 			.features = {.validation = true},
 		};
 
-		auto vulkan_expected = VulkanContext::create(create_info);
+		auto vulkan_expected = vulkan::Context::create(create_info);
 		if (!vulkan_expected) vulkan_expected.error().throw_self("Create context failed");
 		auto vulkan = std::move(*vulkan_expected);
 
@@ -112,7 +112,7 @@ int main()
 			| Error::collect_vec("Create frame objects failed");
 		if (!per_frame_objects_expected) per_frame_objects_expected.error().throw_self();
 		auto per_frame_objects =
-			vkutil::Cycle<PerFrameObject>::create(std::move(*per_frame_objects_expected));
+			vulkan::util::Cycle<PerFrameObject>::create(std::move(*per_frame_objects_expected));
 
 		bool quit = false;
 		while (!quit)
@@ -160,7 +160,7 @@ int main()
 			command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 			{
 				const auto acquire_image_barriers =
-					std::to_array({vkutil::image_barrier::swapchain_acquire(swapchain_image.image)});
+					std::to_array({vulkan::util::image_barrier::swapchain_acquire(swapchain_image.image)});
 				command_buffer.pipelineBarrier2(
 					vk::DependencyInfo{}.setImageMemoryBarriers(acquire_image_barriers)
 				);
@@ -215,7 +215,7 @@ int main()
 				command_buffer.endRendering();
 
 				const auto present_image_barriers =
-					std::to_array({vkutil::image_barrier::swapchain_present(swapchain_image.image)});
+					std::to_array({vulkan::util::image_barrier::swapchain_present(swapchain_image.image)});
 				command_buffer.pipelineBarrier2(
 					vk::DependencyInfo{}.setImageMemoryBarriers(present_image_barriers)
 				);

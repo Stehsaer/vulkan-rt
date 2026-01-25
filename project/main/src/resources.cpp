@@ -1,7 +1,7 @@
 #include "resources.hpp"
 #include "image/raw-image.hpp"
 #include "vertex.hpp"
-#include "vulkan-util/uploader.hpp"
+#include "vulkan/util/uploader.hpp"
 
 namespace
 {
@@ -24,7 +24,7 @@ extern "C"
 }
 
 std::expected<Resources, Error> Resources::create(
-	const VulkanContext& context,
+	const vulkan::Context& context,
 	vk::DescriptorSetLayout main_set_layout
 ) noexcept
 {
@@ -34,7 +34,7 @@ std::expected<Resources, Error> Resources::create(
 			.usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
 			.sharingMode = vk::SharingMode::eExclusive
 		},
-		vma::MemoryUsage::GpuOnly
+		vulkan::alloc::MemoryUsage::GpuOnly
 	);
 	if (!buffer_expected) return buffer_expected.error().forward("Create vertex buffer failed");
 	auto buffer = std::move(*buffer_expected);
@@ -58,7 +58,8 @@ std::expected<Resources, Error> Resources::create(
 		.sharingMode = vk::SharingMode::eExclusive,
 		.initialLayout = vk::ImageLayout::eUndefined
 	};
-	auto image_expected = context.allocator.create_image(image_create_info, vma::MemoryUsage::GpuOnly);
+	auto image_expected =
+		context.allocator.create_image(image_create_info, vulkan::alloc::MemoryUsage::GpuOnly);
 	if (!image_expected) return image_expected.error().forward("Create image failed");
 	auto image = std::move(*image_expected);
 
@@ -144,10 +145,10 @@ std::expected<Resources, Error> Resources::create(
 		{}
 	);
 
-	vkutil::Uploader
+	vulkan::util::Uploader
 		uploader(context.device, *context.queues.graphics, context.queues.graphics_index, context.allocator);
 
-	const auto image_upload_task = vkutil::Uploader::ImageUploadParam{
+	const auto image_upload_task = vulkan::util::Uploader::ImageUploadParam{
 		.dst_image = image,
 		.data = util::as_bytes(image_data->data),
 		.buffer_row_length = size.width,
@@ -163,8 +164,10 @@ std::expected<Resources, Error> Resources::create(
 		.dst_layout = vk::ImageLayout::eShaderReadOnlyOptimal
 	};
 
-	const auto buffer_upload_task =
-		vkutil::Uploader::BufferUploadParam{.dst_buffer = buffer, .data = util::as_bytes(vertex_buffer_data)};
+	const auto buffer_upload_task = vulkan::util::Uploader::BufferUploadParam{
+		.dst_buffer = buffer,
+		.data = util::as_bytes(vertex_buffer_data)
+	};
 
 	if (const auto result = uploader.upload_image(image_upload_task); !result)
 		return result.error().forward("Add image upload task failed");

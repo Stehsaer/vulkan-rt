@@ -1,5 +1,5 @@
 #include "image/raw-image.hpp"
-#include "common/utility/error.hpp"
+#include "common/util/error.hpp"
 
 #include <stb_image.h>
 

@@ -1,11 +1,11 @@
 #include "pipeline.hpp"
 #include "shader/first_shader.hpp"
 #include "vertex.hpp"
-#include "vulkan-util/linked-struct.hpp"
-#include "vulkan-util/shader.hpp"
+#include "vulkan/util/linked-struct.hpp"
+#include "vulkan/util/shader.hpp"
 
 std::expected<Pipeline, Error> Pipeline::create(
-	const VulkanContext& context,
+	const vulkan::Context& context,
 	vk::DescriptorSetLayout main_set_layout
 ) noexcept
 {
@@ -14,7 +14,7 @@ std::expected<Pipeline, Error> Pipeline::create(
 	if (!pipeline_layout_expected) return Error("Create pipeline layout failed");
 	auto pipeline_layout = std::move(*pipeline_layout_expected);
 
-	auto shader_module_expected = vkutil::create_shader(context.device, shader::first_shader);
+	auto shader_module_expected = vulkan::util::create_shader(context.device, shader::first_shader);
 	if (!shader_module_expected) return shader_module_expected.error().forward("Create shader module failed");
 	auto shader_module = std::move(*shader_module_expected);
 
@@ -89,7 +89,7 @@ std::expected<Pipeline, Error> Pipeline::create(
 	const auto pipeline_rendering_info =
 		vk::PipelineRenderingCreateInfo().setColorAttachmentFormats(attachment_formats);
 
-	vkutil::LinkedStruct<vk::GraphicsPipelineCreateInfo> graphics_create_info =
+	vulkan::util::LinkedStruct<vk::GraphicsPipelineCreateInfo> graphics_create_info =
 		vk::GraphicsPipelineCreateInfo{
 			.pNext = &pipeline_rendering_info,
 			.pVertexInputState = &vertex_input_info,

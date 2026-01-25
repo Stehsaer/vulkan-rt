@@ -1,6 +1,4 @@
--- lib::common
--- A common utility library
-target("common")
+target("lib.common")
 	set_kind("static")
 
 	add_includedirs("include", {public = true})

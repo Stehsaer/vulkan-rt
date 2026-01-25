@@ -1,14 +1,14 @@
 #pragma once
 
-#include "vma.hpp"
-#include "vulkan-context.hpp"
+#include "vulkan/alloc.hpp"
+#include "vulkan/context.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
 
 struct Resources
 {
-	vma::Buffer vertex_buffer;
-	vma::Image texture;
+	vulkan::alloc::Buffer vertex_buffer;
+	vulkan::alloc::Image texture;
 	vk::raii::ImageView texture_view;
 	vk::raii::Sampler texture_sampler;
 
@@ -16,7 +16,7 @@ struct Resources
 	vk::raii::DescriptorSet main_descriptor_set;
 
 	static std::expected<Resources, Error> create(
-		const VulkanContext& context,
+		const vulkan::Context& context,
 		vk::DescriptorSetLayout main_set_layout
 	) noexcept;
 };

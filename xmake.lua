@@ -46,5 +46,6 @@ add_defines(
 )
 
 includes("lib")
+includes("vulkan")
 includes("project")
 includes("rule")

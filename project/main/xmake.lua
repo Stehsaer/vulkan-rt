@@ -2,7 +2,13 @@ target("main")
 	set_kind("binary")
 
 	add_rules("compile.slang")
-	add_deps("vulkan-context", "common", "vulkan-util", "vma-hpp", "image")
+	add_deps(
+		"lib.common",
+		"lib.image",
+		"vulkan.util",
+		"vulkan.alloc",
+		"vulkan.context"
+	)
 	
 	add_files("src/**.cpp")
 	add_includedirs("include")

@@ -2,12 +2,12 @@ includes("package/*.lua")
 
 add_requires("stb_dxt", "bc7enc")
 
-target("image")
+target("lib.image")
 	set_kind("static")
 
 	add_files("src/*.cpp", "src/stb.c")
 	add_includedirs("include", {public = true})
-	add_deps("common")
+	add_deps("lib.common")
 	
 	add_packages("stb", "glm", {public = true})
 	add_packages("stb_dxt", "bc7enc")

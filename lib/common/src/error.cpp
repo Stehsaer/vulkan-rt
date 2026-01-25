@@ -1,4 +1,4 @@
-#include "common/utility/error.hpp"
+#include "common/util/error.hpp"
 
 #include <SDL3/SDL.h>
 #include <format>

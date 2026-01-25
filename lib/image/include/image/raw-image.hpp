@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/utility/error.hpp"
-#include "common/utility/span-util.hpp"
+#include "common/util/error.hpp"
+#include "common/util/span-util.hpp"
 #include "image/common.hpp"
 
 #include <cstddef>
