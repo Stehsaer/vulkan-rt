@@ -1,8 +1,8 @@
 #pragma once
 
-#include "context-impl/swapchain.hpp"
-#include "context-impl/vulkan.hpp"
-#include "context-impl/window.hpp"
+#include "context/swapchain.hpp"
+#include "context/vulkan.hpp"
+#include "context/window.hpp"
 #include "vulkan/alloc.hpp"
 
 #include <limits>

@@ -81,12 +81,8 @@ namespace vulkan
 			const vk::PhysicalDeviceFeatures& available
 		) noexcept;
 
-		static constexpr auto mandatory_device_extensions = std::to_array(
-			{vk::KHRSwapchainExtensionName,
-			 vk::KHRSpirv14ExtensionName,
-			 vk::KHRSynchronization2ExtensionName,
-			 vk::KHRCreateRenderpass2ExtensionName}
-		);
+		static constexpr auto mandatory_device_extensions =
+			std::to_array({vk::KHRSwapchainExtensionName, vk::KHRSynchronization2ExtensionName});
 	};
 
 	///
@@ -138,37 +134,4 @@ namespace vulkan
 		vk::Instance instance;
 		vk::SurfaceKHR surface;
 	};
-
-	namespace impl
-	{
-		static constexpr uint32_t api_version = vk::ApiVersion14;
-
-		std::expected<vk::raii::Instance, Error> create_instance(
-			const vk::raii::Context& context,
-			const AppInfo& app_info,
-			const Features& features
-		) noexcept;
-
-		std::expected<std::unique_ptr<SurfaceWrapper>, Error> create_surface(
-			const vk::raii::Instance& instance,
-			SDL_Window* window
-		) noexcept;
-
-		std::expected<vk::raii::PhysicalDevice, Error> pick_physical_device(
-			const vk::raii::Instance& instance,
-			const Features& features
-		) noexcept;
-
-		std::expected<std::tuple<vk::raii::Device, DeviceQueues>, Error> create_logical_device(
-			const vk::raii::PhysicalDevice& phy_device,
-			const VkSurfaceKHR& surface,
-			const Features& features
-		) noexcept;
-
-		std::expected<SwapchainLayout, Error> select_swapchain_layout(
-			const vk::raii::PhysicalDevice& phy_device,
-			const VkSurfaceKHR& surface,
-			const DeviceQueues& queues
-		) noexcept;
-	}
 }

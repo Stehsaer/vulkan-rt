@@ -7,7 +7,7 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "common/util/error.hpp"
-#include "vulkan/context-impl/vulkan.hpp"
+#include "vulkan/context/vulkan.hpp"
 
 namespace vulkan
 {

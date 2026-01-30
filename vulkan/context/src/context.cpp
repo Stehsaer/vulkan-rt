@@ -1,5 +1,6 @@
-#include "vulkan/context-impl/swapchain.hpp"
 #include "vulkan/context.hpp"
+#include "impl.hpp"
+#include "vulkan/context/swapchain.hpp"
 
 namespace vulkan
 {
@@ -7,7 +8,7 @@ namespace vulkan
 	{
 		/* Create Window */
 
-		auto window_expected = vulkan::impl::create_window(create_info.window_info);
+		auto window_expected = context::impl::create_window(create_info.window_info);
 		if (!window_expected) return window_expected.error().forward("Create window failed");
 		auto window = std::move(*window_expected);
 
@@ -18,33 +19,33 @@ namespace vulkan
 		/* Create Vulkan Instance */
 
 		auto instance_expected =
-			vulkan::impl::create_instance(context, create_info.app_info, create_info.features);
+			context::impl::create_instance(context, create_info.app_info, create_info.features);
 		if (!instance_expected) return instance_expected.error().forward("Create vulkan instance failed");
 		auto instance = std::move(*instance_expected);
 
 		/* Create Surface */
 
-		auto surface_expected = vulkan::impl::create_surface(instance, *window);
+		auto surface_expected = context::impl::create_surface(instance, *window);
 		if (!surface_expected) return surface_expected.error().forward("Create surface failed");
 		auto surface = std::move(*surface_expected);
 
 		/* Pick Physical Device */
 
-		auto phy_device_expected = vulkan::impl::pick_physical_device(instance, create_info.features);
+		auto phy_device_expected = context::impl::pick_physical_device(instance, create_info.features);
 		if (!phy_device_expected) return phy_device_expected.error().forward("Pick physical device failed");
 		auto phy_device = std::move(*phy_device_expected);
 
 		/* Create Logical Device and Queues */
 
 		auto device_expected =
-			vulkan::impl::create_logical_device(phy_device, vk::SurfaceKHR(*surface), create_info.features);
+			context::impl::create_logical_device(phy_device, vk::SurfaceKHR(*surface), create_info.features);
 		if (!device_expected) return device_expected.error().forward("Create logical device failed");
 		auto [device, queues] = std::move(*device_expected);
 
 		/* Select Swapchain Layout */
 
 		auto swapchain_layout_expected =
-			vulkan::impl::select_swapchain_layout(phy_device, vk::SurfaceKHR(*surface), queues);
+			context::impl::select_swapchain_layout(phy_device, vk::SurfaceKHR(*surface), queues);
 		if (!swapchain_layout_expected)
 			return swapchain_layout_expected.error().forward("Select swapchain layout failed");
 		auto swapchain_layout = std::move(*swapchain_layout_expected);

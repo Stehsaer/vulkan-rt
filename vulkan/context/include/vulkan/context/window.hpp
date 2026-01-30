@@ -45,13 +45,4 @@ namespace vulkan
 
 		operator SDL_Window*() const noexcept { return window; }
 	};
-
-	namespace impl
-	{
-		std::expected<std::unique_ptr<WindowWrapper>, Error> create_window(
-			const WindowInfo& window_info
-		) noexcept;
-
-		std::expected<std::span<const char* const>, Error> get_instance_extensions() noexcept;
-	}
 }
