@@ -30,25 +30,38 @@ struct PerFrameObject
 		vk::raii::CommandBuffer command_buffer
 	) noexcept
 	{
-		auto fence_expected = vulkan.device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
-		if (!fence_expected) return Error("Create draw fence failed");
+		auto fence_result =
+			vulkan.device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled})
+				.transform_error(Error::from<vk::Result>());
+		if (!fence_result) return fence_result.error().forward("Create draw fence failed");
+		auto fence = std::move(*fence_result);
 
-		auto render_finished_semaphore_expected = vulkan.device.createSemaphore({});
-		if (!render_finished_semaphore_expected) return Error("Create render finished semaphore failed");
+		auto render_finished_semaphore_result =
+			vulkan.device.createSemaphore({}).transform_error(Error::from<vk::Result>());
+		if (!render_finished_semaphore_result)
+			return render_finished_semaphore_result.error().forward(
+				"Create render finished semaphore failed"
+			);
+		auto render_finished_semaphore = std::move(*render_finished_semaphore_result);
 
-		auto present_complete_semaphore_expected = vulkan.device.createSemaphore({});
-		if (!present_complete_semaphore_expected) return Error("Create present complete semaphore failed");
+		auto present_complete_semaphore_result =
+			vulkan.device.createSemaphore({}).transform_error(Error::from<vk::Result>());
+		if (!present_complete_semaphore_result)
+			return present_complete_semaphore_result.error().forward(
+				"Create present complete semaphore failed"
+			);
+		auto present_complete_semaphore = std::move(*present_complete_semaphore_result);
 
 		return PerFrameObject{
 			.command_buffer = std::move(command_buffer),
-			.draw_fence = std::move(*fence_expected),
-			.render_finished_semaphore = std::move(*render_finished_semaphore_expected),
-			.image_available_semaphore = std::move(*present_complete_semaphore_expected)
+			.draw_fence = std::move(fence),
+			.render_finished_semaphore = std::move(render_finished_semaphore),
+			.image_available_semaphore = std::move(present_complete_semaphore)
 		};
 	}
 };
 
-int main()
+int main() noexcept
 {
 	try
 	{
@@ -61,58 +74,53 @@ int main()
 			.features = {.validation = true},
 		};
 
-		auto vulkan_expected = vulkan::Context::create(create_info);
-		if (!vulkan_expected) vulkan_expected.error().throw_self("Create context failed");
-		auto vulkan = std::move(*vulkan_expected);
+		auto vulkan = vulkan::Context::create(create_info) | Error::unwrap("Create context failed");
 
 		/* Resources */
 
-		auto descriptor_set_layout_expected = DescriptorLayouts::create(vulkan.device);
-		if (!descriptor_set_layout_expected)
-			descriptor_set_layout_expected.error().throw_self("Create descriptor set layout failed");
-		auto descriptor_set_layout = std::move(*descriptor_set_layout_expected);
+		auto descriptor_set_layout =
+			DescriptorLayouts::create(vulkan.device) | Error::unwrap("Create descriptor set layout failed");
 
-		auto resources_expected = Resources::create(vulkan, descriptor_set_layout.main_layout);
-		if (!resources_expected) resources_expected.error().throw_self("Create resources failed");
-		auto resources = std::move(*resources_expected);
+		auto resources = Resources::create(vulkan, descriptor_set_layout.main_layout)
+			| Error::unwrap("Create resources failed");
 
 		/* Pipeline */
 
-		auto pipeline_expected = Pipeline::create(vulkan, descriptor_set_layout.main_layout);
-		if (!pipeline_expected) pipeline_expected.error().throw_self("Create pipeline failed");
-		auto pipeline = std::move(*pipeline_expected);
+		auto pipeline = Pipeline::create(vulkan, descriptor_set_layout.main_layout)
+			| Error::unwrap("Create pipeline failed");
 
 		/* Command Pool & Buffer */
 
-		auto command_pool_expected = vulkan.device.createCommandPool(
-			{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-			 .queueFamilyIndex = vulkan.queues.graphics_index}
-		);
-		if (!command_pool_expected)
-			Error(command_pool_expected.error(), "Create command pool failed").throw_self();
-		auto command_pool = std::move(*command_pool_expected);
+		auto command_pool =
+			vulkan.device
+				.createCommandPool(
+					{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+					 .queueFamilyIndex = vulkan.queues.graphics_index}
+				)
+				.transform_error(Error::from<vk::Result>())
+			| Error::unwrap("Create command pool failed");
 
-		auto command_buffers_expected = vulkan.device.allocateCommandBuffers({
-			.commandPool = *command_pool,
-			.level = vk::CommandBufferLevel::ePrimary,
-			.commandBufferCount = 3,
-		});
-		if (!command_buffers_expected)
-			Error(command_buffers_expected.error(), "Allocate command buffers failed").throw_self();
-		auto command_buffers = std::move(*command_buffers_expected);
+		auto command_buffers =
+			vulkan.device
+				.allocateCommandBuffers({
+					.commandPool = *command_pool,
+					.level = vk::CommandBufferLevel::ePrimary,
+					.commandBufferCount = 3,
+				})
+				.transform_error(Error::from<vk::Result>())
+			| Error::unwrap("Allocate command buffers failed");
 
 		/* Render Objects */
 
-		auto per_frame_objects_expected =
+		auto per_frame_objects =
 			command_buffers
 			| std::views::transform([&vulkan](auto& command_buffer) {
 				  return PerFrameObject::create(vulkan, std::move(command_buffer));
 			  })
 			| std::ranges::to<std::vector>()
-			| Error::collect_vec("Create frame objects failed");
-		if (!per_frame_objects_expected) per_frame_objects_expected.error().throw_self();
-		auto per_frame_objects =
-			vulkan::util::Cycle<PerFrameObject>::create(std::move(*per_frame_objects_expected));
+			| Error::collect_vec()
+			| Error::unwrap("Create frame objects failed")
+			| vulkan::util::Cycle<PerFrameObject>::into;
 
 		bool quit = false;
 		while (!quit)
@@ -145,15 +153,15 @@ int main()
 					std::numeric_limits<uint64_t>::max()
 				);
 				wait_result != vk::Result::eSuccess)
-				Error(wait_result, "Wait for draw fence failed").throw_self();
+				std::expected<void, Error>(Error("Wait for draw fence failed", vk::to_string(wait_result)))
+					| Error::unwrap("Wait for draw fence failed");
 			const auto& command_buffer = current_frame_object.command_buffer;
 
 			/* Acquire Swapchain */
 
-			const auto acquire_expected =
-				vulkan.acquire_swapchain_image(per_frame_objects.prev().image_available_semaphore);
-			if (!acquire_expected) acquire_expected.error().throw_self("Acquire swapchain image failed");
-			const auto& [extent, index, swapchain_image] = *acquire_expected;
+			const auto [extent, index, swapchain_image] =
+				vulkan.acquire_swapchain_image(current_frame_object.image_available_semaphore)
+				| Error::unwrap("Acquire swapchain image failed");
 
 			/* Actual Rendering */
 
@@ -225,7 +233,7 @@ int main()
 			/* Submit */
 
 			const auto graphic_submit_wait_semaphores =
-				std::to_array({*per_frame_objects.prev().image_available_semaphore});
+				std::to_array({*current_frame_object.image_available_semaphore});
 			const auto graphic_submit_signal_semaphores =
 				std::to_array({*current_frame_object.render_finished_semaphore});
 			const auto graphic_submit_command_buffers = std::to_array({*command_buffer});
@@ -243,9 +251,8 @@ int main()
 
 			/* Present */
 
-			const auto present_result =
-				vulkan.present_swapchain_image(index, current_frame_object.render_finished_semaphore);
-			if (!present_result) present_result.error().throw_self("Present swapchain image failed");
+			vulkan.present_swapchain_image(index, current_frame_object.render_finished_semaphore)
+				| Error::unwrap("Present swapchain image failed");
 		}
 
 		vulkan.device.waitIdle();
@@ -254,9 +261,19 @@ int main()
 	}
 	catch (const Error& error)
 	{
-		std::println(std::cerr, "Error occurred: {:msg}", error.origin());
-		for (const auto& [idx, entry] : std::views::enumerate(error.trace))
-			std::println(std::cerr, "[#{}]: {}", idx, entry);
+		try
+		{
+			std::println(std::cerr, "Error occurred: {:msg}", error);
+			for (const auto& [idx, entry] : std::views::enumerate(error.chain()))
+				std::println(std::cerr, "[#{}]: {}", idx, entry);
+		}
+		catch (const std::exception& err)
+		{
+			std::cerr
+				<< "Error occurred: an error occurred, but formatting the error has failed: "
+				<< err.what()
+				<< '\n';
+		}
 
 		return 1;
 	}

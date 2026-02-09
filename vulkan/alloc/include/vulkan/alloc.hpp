@@ -110,6 +110,7 @@ namespace vulkan::alloc
 		/// @param dst_offset Destination offset in buffer
 		/// @return Void or Error
 		///
+		[[nodiscard]]
 		std::expected<void, Error> upload(
 			std::span<const std::byte> data,
 			size_t dst_offset = 0
@@ -122,6 +123,7 @@ namespace vulkan::alloc
 		/// @param src_offset Source offset in buffer
 		/// @return Void or Error
 		///
+		[[nodiscard]]
 		std::expected<void, Error> download(std::span<std::byte> data, size_t src_offset = 0) const noexcept;
 	};
 
@@ -137,6 +139,7 @@ namespace vulkan::alloc
 		/// @param device Vulkan Device
 		/// @return An allocator or Error
 		///
+		[[nodiscard]]
 		static std::expected<Allocator, Error> create(
 			const vk::Instance& instance,
 			const vk::PhysicalDevice& physical_device,
@@ -150,6 +153,7 @@ namespace vulkan::alloc
 		/// @param usage VMA memory usage
 		/// @return An image or Error
 		///
+		[[nodiscard]]
 		std::expected<Image, Error> create_image(
 			const vk::ImageCreateInfo& create_info,
 			MemoryUsage usage
@@ -162,6 +166,7 @@ namespace vulkan::alloc
 		/// @param usage VMA memory usage
 		/// @return A buffer or Error
 		///
+		[[nodiscard]]
 		std::expected<Buffer, Error> create_buffer(
 			const vk::BufferCreateInfo& create_info,
 			MemoryUsage usage

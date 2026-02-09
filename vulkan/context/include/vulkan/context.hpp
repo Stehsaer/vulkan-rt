@@ -155,6 +155,7 @@ namespace vulkan
 		/// @param old_swapchain Optional old swapchain for recreation
 		/// @return New Swapchain instance or Error
 		///
+		[[nodiscard]]
 		static std::expected<SwapchainInstance, Error> create(
 			const vk::raii::PhysicalDevice& phy_device,
 			const vk::raii::Device& device,
@@ -171,6 +172,7 @@ namespace vulkan
 		/// @param timeout Timeout, default to UINT64_MAX
 		/// @return Acquired image or Vulkan warning/error
 		///
+		[[nodiscard]]
 		std::expected<SwapchainAcquireResult, vk::Result> acquire_next_image(
 			std::optional<vk::Semaphore> semaphore = std::nullopt,
 			std::optional<vk::Fence> fence = std::nullopt,
@@ -183,9 +185,17 @@ namespace vulkan
 		/// @param index Index of the image to get
 		/// @return Reference to the swapchain image
 		///
-		const SwapchainImage& operator[](size_t index) const noexcept { return images.at(index); }
+		[[nodiscard]]
+		const SwapchainImage& operator[](size_t index) const noexcept
+		{
+			return images.at(index);
+		}
 
-		vk::SwapchainKHR get_swapchain() const noexcept { return swapchain; }
+		[[nodiscard]]
+		vk::SwapchainKHR get_swapchain() const noexcept
+		{
+			return swapchain;
+		}
 
 		SwapchainInstance(const SwapchainInstance&) = delete;
 		SwapchainInstance(SwapchainInstance&&) noexcept = default;
@@ -282,6 +292,7 @@ namespace vulkan
 		/// @param create_info Create Info
 		/// @return Successfully created context or Error
 		///
+		[[nodiscard]]
 		static std::expected<Context, Error> create(const CreateInfo& create_info) noexcept;
 
 		///
@@ -292,6 +303,7 @@ namespace vulkan
 		/// @param timeout Acquisition timeout in nanoseconds
 		/// @return Acquisition result or Error
 		///
+		[[nodiscard]]
 		std::expected<vulkan::SwapchainAcquireResult, Error> acquire_swapchain_image(
 			std::optional<vk::Semaphore> signal_semaphore = std::nullopt,
 			std::optional<vk::Fence> signal_fence = std::nullopt,
@@ -305,6 +317,7 @@ namespace vulkan
 		/// @param wait_semaphore Semaphore to wait on before presenting
 		/// @return Presentation result or Error
 		///
+		[[nodiscard]]
 		std::expected<void, Error> present_swapchain_image(
 			uint32_t image_index,
 			std::optional<vk::Semaphore> wait_semaphore = std::nullopt

@@ -1,0 +1,11 @@
+{
+	"Result check and move": {
+		"prefix": "reschk",
+		"body": [
+			"auto ${1:name}_result = ${2:expr};",
+			"if (!${1}_result) return ${1}_result.error().forward(${3:msg});",
+			"auto ${1} = std::move(*${1}_result);"
+		],
+		"description": "Boilerplate: check Result and move value"
+	}
+}

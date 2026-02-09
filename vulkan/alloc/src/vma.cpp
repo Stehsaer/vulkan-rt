@@ -21,7 +21,8 @@ namespace vulkan::alloc
 
 		VmaAllocator allocator;
 		const auto result = vmaCreateAllocator(&create_info, &allocator);
-		if (result != VK_SUCCESS) return Error(vk::Result(result), "Create VMA allocator failed");
+		if (result != VK_SUCCESS)
+			return Error("Create VMA allocator failed", vk::to_string(vk::Result(result)));
 
 		return Allocator(std::make_unique<AllocatorWrapper>(allocator));
 	}
@@ -47,7 +48,8 @@ namespace vulkan::alloc
 			&allocation,
 			nullptr
 		);
-		if (result != VK_SUCCESS) return Error(vk::Result(result), "Allocate image using VMA failed");
+		if (result != VK_SUCCESS)
+			return Error("Allocate image using VMA failed", vk::to_string(vk::Result(result)));
 
 		return Image(std::make_unique<ImageWrapper>(image, allocation, wrapper->allocator));
 	}
@@ -73,7 +75,8 @@ namespace vulkan::alloc
 			&allocation,
 			nullptr
 		);
-		if (result != VK_SUCCESS) return Error(vk::Result(result), "Allocate buffer using VMA failed");
+		if (result != VK_SUCCESS)
+			return Error("Allocate buffer using VMA failed", vk::to_string(vk::Result(result)));
 
 		return Buffer(std::make_unique<BufferWrapper>(buffer, allocation, wrapper->allocator));
 	}
@@ -90,7 +93,8 @@ namespace vulkan::alloc
 			dst_offset,
 			data.size()
 		);
-		if (result != VK_SUCCESS) return Error(vk::Result(result), "Upload data to buffer failed");
+		if (result != VK_SUCCESS)
+			return Error("Upload data to buffer failed", vk::to_string(vk::Result(result)));
 		return {};
 	}
 
@@ -103,7 +107,8 @@ namespace vulkan::alloc
 			data.data(),
 			data.size()
 		);
-		if (result != VK_SUCCESS) return Error(vk::Result(result), "Download data from buffer failed");
+		if (result != VK_SUCCESS)
+			return Error("Download data from buffer failed", vk::to_string(vk::Result(result)));
 		return {};
 	}
 

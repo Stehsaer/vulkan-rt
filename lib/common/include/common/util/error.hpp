@@ -1,18 +1,20 @@
 ///
 /// @file error.hpp
-/// @brief Provides generic error type with trace functionality
+/// @brief Provides generic error type with stacktrace functionality
 ///
 
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 #include <expected>
 #include <format>
+#include <iterator>
+#include <memory>
+#include <optional>
 #include <ranges>
 #include <source_location>
 #include <string>
-#include <vector>
-#include <vulkan/vulkan.hpp>
 
 // IWYU pragma: begin_exports
 #include "common/formatter/vec.hpp"
@@ -20,261 +22,569 @@
 // IWYU pragma: end_exports
 
 ///
-/// @brief Struct representing an error with a trace of its propagation
-///
+/// @brief Error class, supports error chaining and unwrapping
 /// @details
 ///
-/// ### Creation
-/// - From a `vk::Result` code: `Error(vk::Result, "message")`
-/// - From an SDL error: `Error(Error::from_sdl, "message")`
-/// - From a message directly: `Error("message")`
+/// #### Creating
 ///
-/// ---
+/// - Simple error with message:
+///   ```cpp
+///   Error("Something went wrong")
+///   ```
 ///
-/// ### Error Handling
+/// - Error with message and detail:
+///   ```cpp
+///   Error("Something went wrong", "Additional detail")
+///   ```
 ///
-/// #### Cascading/Forwarding
+/// - Create from another error type:
+///   ```cpp
+///   T other_error = ...;
+///   auto error = Error::from<T>(other_error);
+///   ```
 ///
-/// Forwarding the error adds a new trace entry:
-/// ```cpp
-/// if (!some_expected)
-/// 	return some_expected.error().forward("Additional message");
-/// ```
+/// - Convert from another error type:
+///   ```cpp
+///   std::expected<T, E> result = ...;
+///   std::expected<T, Error> new_result = result.transform_error(Error::from<E>());
+///   ```
+///   > Note: for custom type support, specialize `Error::from<T>::operator()`
+///   > By default, types supported by `std::to_string`, and `vk::Result` are supported.
 ///
-/// The message is optional; if omitted, only the location is recorded:
-/// ```cpp
-/// if (!some_expected)
-/// 	return some_expected.error().forward();
-/// ```
+/// #### Propagating
 ///
-/// #### Throwing
+/// - Forwarding an error with additional context:
+///   ```cpp
+///   error.forward("While doing something");
+///   error.forward("While doing something", "With extra detail");
+///   ```
 ///
-/// If necessary and exceptions are enabled, the error can be thrown with additional context:
-/// ```cpp
-/// if (!some_expected)
-/// 	some_expected.error().throw_self("Additional message");
-/// ```
-/// Catch the error directly:
-/// ```cpp
-/// try {...}
-/// catch (const Error& error)
-/// {
-///    // Handle the error
-/// }
-/// ```
+/// - Error can be directly returned as `std::expected<T, Error>`:
+///   ```cpp
+///   std::expected<int, Error> func()
+///   {
+/// 	 return Error("An error occurred");
+///   }
+///   ```
 ///
 /// #### Collecting
 ///
-/// Multiple expected values stored in `std::vector` can be collected into a vector, short circuiting on the
-/// first element with error:
+/// Use `Error::collect_vec()` to collect expected values into a vector, aggregating errors:
 /// ```cpp
-/// std::vector<std::expected<T, Error>> expected_list = ...;
-/// std::expected<std::vector<T>, Error> list_expected
-///     = std::move(expected_list) | Error::collect_vec("Collecting objects failed");
-/// // Error handling...
+/// std::vector<std::expected<T, Error>> results = ...;
+/// std::expected<std::vector<T>, Error> collected = std::move(results) | Error::collect_vec();
 /// ```
 ///
-/// ---
+/// #### Unwrapping
 ///
-/// ### Accessing and Using Trace Entries
+/// Use `Error::unwrap()` to unwrap expected values, throwing an Error if the value contains error:
+/// ```cpp
+/// std::expected<T, Error> result = ...;
+/// T value = std::move(result) | Error::unwrap("Unwrapping failed", "Extra detail");
+/// ```
 ///
-/// Each trace entry contains:
-/// - A message
-/// - A source location pointing to where the error was created or
-/// forwarded.
+/// #### Accessing Error Chain
 ///
-/// Acquire the original error location with `error.origin()`, which returns the first and deepest trace
-/// entry. The full trace can be accessed via the `trace` member, where smaller indices are deeper in the call
-/// stack.
+/// - Iterate over the error chain:
+///   ```cpp
+///   for (const auto& entry : error.chain())
+///   {
+///       ... // process each entry
+///   }
+///   ```
 ///
-/// After acquiring a trace entry, its fields can be formatted using `std::format`.
+/// - Alternatively, use C++20 ranges for more complex processing:
+///   ```cpp
+///   for (const auto& [idx, entry] : std::views::enumerate(error.chain()))
+///   {
+///       ... // process each entry with index
+///   }
+///   ```
+///
+/// #### Interpreting Error
+///
+/// Each error contains the following information:
+/// - `message: std::string` - Main message describing the error
+/// - `detail: std::optional<std::string>` - Optional detailed message providing additional context
+/// - `location: std::source_location` - Source location where the error was created or forwarded
+///
+/// and
+/// - `cause: std::shared_ptr<const Error>` - Pointer to the cause of the error, for chaining errors
+/// Use them to interpret the error.
+///
+/// #### Formatting
+///
+/// This error class also supports formatting via `std::format`:
 ///
 /// | Specifier | Description |
-/// | --- | --- |
-/// | `{}` | Full message (function, file, line, message) |
-/// | `{:msg}` | Message |
-/// | `{:line}` | Line number |
-/// | `{:col}` | Column number |
-/// | `{:file}` | File name |
-/// | `{:func}` | Function name |
+/// |-----------|-------------|
+/// | `{}` | Brief representation including file, line and message |
+/// | `{:msg}` / `{:message}` | Just the error message |
+/// | `{:detail}` | Just the error detail, `"<no detail>"` if none |
+/// | `{:loc}` / `{:location}` | File and line in `file:line` format |
+/// | `{:file}` | Just the file name |
+/// | `{:line}` | Just the line number |
+/// | `{:col}` / `{:column}` | Just the column number |
+/// | `{:func}` / `{:function}` | Just the function name |
 ///
-struct Error
+/// Example:
+/// ```cpp
+/// std::format("Error occurred: {0:msg} at {0:location}", error);
+/// std::format("Detail of the error: {0:detail}", error);
+/// std::println("Print out error: {}", error);
+/// ```
+///
+class Error
 {
+  public:
+
+	std::string message;                 // Main message describing the error
+	std::optional<std::string> detail;   // Optional detailed message providing additional context
+	std::source_location location;       // Source location where the error was created or forwarded
+	std::shared_ptr<const Error> cause;  // Pointer to the cause of the error, for chaining errors
+
+  private:
+
+	explicit Error(
+		std::string message,
+		std::optional<std::string> detail,
+		std::source_location location,
+		std::shared_ptr<const Error> cause
+	) noexcept :
+		message(std::move(message)),
+		detail(std::move(detail)),
+		location(location),
+		cause(std::move(cause))
+	{}
+
+#pragma region Constructors
+
+  public:
+
 	///
-	/// @brief Trace entry struct, containing a message and source location
-	/// @note For formatting, see documentation for `Error`
+	/// @brief Create an error with message
 	///
-	struct TraceEntry
+	/// @param message Brief message describing the error
+	/// @param location Source location where the error is created (default: current location)
+	///
+	explicit Error(
+		std::string message,
+		std::source_location location = std::source_location::current()
+	) noexcept :
+		message(std::move(message)),
+		detail(std::nullopt),
+		location(location),
+		cause(nullptr)
+	{}
+
+	///
+	/// @brief Create an error with message and extra detail
+	///
+	/// @param message Brief message describing the error
+	/// @param detail Detailed message providing additional context
+	/// @param location Source location where the error is created (default: current location)
+	///
+	explicit Error(
+		std::string message,
+		std::string detail,
+		std::source_location location = std::source_location::current()
+	) noexcept :
+		message(std::move(message)),
+		detail(std::move(detail)),
+		location(location),
+		cause(nullptr)
+	{}
+
+	///
+	/// @brief Conversion functor to create Error from another error type
+	/// @note
+	/// To support custom types, implement a specialization of the `operator()` for the type T.
+	///
+	/// @tparam T The other error type
+	///
+	template <typename T>
+	class FromFunctor
 	{
-		std::string message;
 		std::source_location location;
+
+	  public:
+
+		explicit FromFunctor(std::source_location location) noexcept :
+			location(location)
+		{}
+
+		Error operator()(const T& error) const noexcept;
 	};
 
-	inline static const struct FromSDL_type
+	///
+	/// @brief Get the conversion functor to create Error from another error type
+	/// @details
+	/// Example of usage:
+	/// ```cpp
+	/// std::expected<T, E> result = ...;
+	/// std::expected<T, Error> new_result = result.transform_error(Error::from<E>());
+	/// ```
+	///
+	/// @tparam T The other error type
+	/// @param location Source location where the error is created (default: current location)
+	/// @return Functor to convert T to Error
+	///
+	template <typename T>
+	[[nodiscard]]
+	static FromFunctor<T> from(std::source_location location = std::source_location::current()) noexcept
 	{
-	} from_sdl;
-
-	///
-	/// @brief Trace entries
-	/// @details Each entry represents a point in the call stack where the error was propagated or
-	/// handled. `.front()` is the deepest call, `.back()` is the most recent.
-	///
-	std::vector<TraceEntry> trace;
-
-	///
-	/// @brief Create an Error from a Vulkan result code
-	///
-	/// @param result Vulkan result code
-	/// @param message Optional message to include in the trace entry
-	/// @param location Source location of the error
-	/// @return Error instance
-	///
-	Error(
-		vk::Result result,
-		const std::string& message = "",
-		std::source_location location = std::source_location::current()
-	) noexcept;
-
-	///
-	/// @brief Create an Error directly from a message
-	///
-	/// @param message Optional message to include in the trace entry
-	/// @param location Source location of the error
-	/// @return
-	///
-	Error(
-		const std::string& message = "",
-		std::source_location location = std::source_location::current()
-	) noexcept;
-
-	///
-	/// @brief Create an Error from an SDL error
-	///
-	/// @param message Optional message to include in the trace entry
-	/// @param location Source location of the error
-	///
-	Error(
-		FromSDL_type,
-		const std::string& message = "",
-		std::source_location location = std::source_location::current()
-	) noexcept;
-
-	Error(const Error&) = default;
-	Error(Error&&) = default;
-	Error& operator=(const Error&) = default;
-	Error& operator=(Error&&) = default;
-
-	template <typename V>
-	operator std::expected<V, Error>(this auto&& self) noexcept
-	{
-		return std::unexpected<Error>(std::forward<decltype(self)>(self));
+		return FromFunctor<T>(location);
 	}
 
 	///
-	/// @brief Forward the error by adding a new trace entry
+	/// @brief Convert another error type to Error
 	///
-	/// @param message Message to include in the trace entry
-	/// @param location Source location of the forwarding
-	/// @return New Error instance with added trace entry
+	/// @tparam T The other error type
+	/// @param error The other error instance
+	/// @param location Source location where the error is created (default: current location)
+	/// @return Converted Error instance
 	///
+	template <typename T>
 	[[nodiscard]]
-	Error forward(
-		const std::string& message = "",
+	static Error from(
+		const T& error,
 		std::source_location location = std::source_location::current()
-	) && noexcept;
-
-	///
-	/// @brief Forward the error by adding a new trace entry
-	///
-	/// @param message Message to include in the trace entry
-	/// @param location Source location of the forwarding
-	/// @return New Error instance with added trace entry
-	///
-	[[nodiscard]]
-	Error forward(
-		const std::string& message = "",
-		std::source_location location = std::source_location::current()
-	) const& noexcept;
-
-	///
-	/// @brief Throw the error as an exception
-	///
-	/// @param message Additional message to include in the trace entry
-	/// @param location Source location of the throwing
-	///
-	[[noreturn]]
-	void throw_self(
-		const std::string& message = "",
-		std::source_location location = std::source_location::current()
-	) const;
-
-	///
-	/// @brief Get the original error trace entry
-	///
-	/// @return Original trace entry
-	///
-	const TraceEntry& origin() const noexcept { return trace.front(); }
-
-	struct CollectFunctor
+	) noexcept
 	{
-		const std::source_location invoke_loc;
-		const std::string message;
+		return FromFunctor<T>(location)(error);
+	}
+
+#pragma endregion
+
+#pragma region Forwarding
+
+	///
+	/// @brief Forward the error with additional context
+	///
+	/// @param message Additional message describing the context
+	/// @param location Source location where the error is forwarded (default: current location)
+	/// @return New Error instance with forwarded context
+	///
+	[[nodiscard]]
+	Error forward(
+		this auto&& self,
+		std::string message,
+		std::source_location location = std::source_location::current()
+	) noexcept
+	{
+		return Error(
+			std::move(message),
+			std::nullopt,
+			location,
+			std::make_shared<const Error>(std::forward<decltype(self)>(self))
+		);
+	}
+
+	///
+	/// @brief Forward the error with additional context and detail
+	///
+	/// @param message Additional message describing the context
+	/// @param detail Detailed message providing additional context
+	/// @param location Source location where the error is forwarded (default: current location)
+	/// @return New Error instance with forwarded context and detail
+	///
+	[[nodiscard]]
+	Error forward(
+		this auto&& self,
+		std::string message,
+		std::string detail,
+		std::source_location location = std::source_location::current()
+	) noexcept
+	{
+		return Error(
+			std::move(message),
+			std::move(detail),
+			location,
+			std::make_shared<const Error>(std::forward<decltype(self)>(self))
+		);
+	}
+
+#pragma endregion
+
+#pragma region Conversion
+
+	operator std::unexpected<Error>() const noexcept { return std::unexpected(*this); }
+
+	template <typename T>
+	operator std::expected<T, Error>() const noexcept
+	{
+		return std::unexpected(*this);
+	}
+
+#pragma endregion
+
+#pragma region Unwrapping
+
+  private:
+
+	class UnwrapFunctor
+	{
+		std::string message;
+		std::optional<std::string> detail;
+		std::source_location location;
+
+	  public:
+
+		explicit UnwrapFunctor(std::string message, std::source_location location) noexcept :
+			message(std::move(message)),
+			location(location)
+		{}
+
+		explicit UnwrapFunctor(
+			std::string message,
+			std::string detail,
+			std::source_location location
+		) noexcept :
+			message(std::move(message)),
+			detail(std::move(detail)),
+			location(location)
+		{}
+
+		template <typename T>
+			requires(!std::same_as<T, void>)
+		[[nodiscard]]
+		friend T operator|(std::expected<T, Error> expected, const UnwrapFunctor& unwrap)
+		{
+			if (!expected)
+			{
+				if (unwrap.detail)
+					throw std::move(expected.error())
+						.forward(unwrap.message, *unwrap.detail, unwrap.location);
+				else
+					throw std::move(expected.error()).forward(unwrap.message, unwrap.location);
+			}
+
+			return std::move(*expected);
+		}
+
+		friend void operator|(std::expected<void, Error> expected, const UnwrapFunctor& unwrap)
+		{
+			if (!expected)
+			{
+				if (unwrap.detail)
+					throw std::move(expected.error())
+						.forward(unwrap.message, *unwrap.detail, unwrap.location);
+				else
+					throw std::move(expected.error()).forward(unwrap.message, unwrap.location);
+			}
+		}
 	};
 
+  public:
+
 	///
-	/// @brief Return a functor to collect expected values into a vector, propagating errors
+	/// @brief Return the unwrapping functor to unwrap expected values
 	///
-	/// @param message Optional message to include in the trace entry
-	/// @param location Source location of the invocation
-	/// @return CollectFunctor instance
+	/// @param message Additional message describing the context
+	/// @param location Source location where the unwrapping is done (default: current location)
+	/// @return Unwrapping functor
 	///
-	static CollectFunctor collect_vec(
+	[[nodiscard]]
+	static UnwrapFunctor unwrap(
 		std::string message = "",
 		std::source_location location = std::source_location::current()
 	) noexcept
 	{
-		return CollectFunctor{.invoke_loc = location, .message = std::move(message)};
+		return UnwrapFunctor(std::move(message), location);
 	}
+
+	///
+	/// @brief Return the unwrapping functor to unwrap expected values with additional detail
+	///
+	/// @param message Additional message describing the context
+	/// @param detail Detailed message providing additional context
+	/// @param location Source location where the unwrapping is done (default: current location)
+	/// @return Unwrapping functor
+	///
+	[[nodiscard]]
+	static UnwrapFunctor unwrap(
+		std::string message,
+		std::string detail,
+		std::source_location location = std::source_location::current()
+	) noexcept
+	{
+		return UnwrapFunctor(std::move(message), std::move(detail), location);
+	}
+
+#pragma endregion
+
+#pragma region Iterating over error chain
+
+  private:
+
+	class Iterator
+	{
+		const Error* current;
+
+	  public:
+
+		/* Iterator Traits */
+
+		using iterator_concept = std::forward_iterator_tag;
+		using value_type = Error;
+		using difference_type = std::ptrdiff_t;
+		using reference = const Error&;
+		using pointer = const Error*;
+
+		/* Ctors */
+
+		Iterator(const Iterator&) noexcept = default;
+		Iterator& operator=(const Iterator&) noexcept = default;
+		Iterator(Iterator&&) noexcept = default;
+		Iterator& operator=(Iterator&&) noexcept = default;
+
+		Iterator() noexcept :
+			current(nullptr)
+		{}
+
+		explicit Iterator(const Error& error) noexcept :
+			current(&error)
+		{}
+
+		/* Operators */
+
+		reference operator*() const noexcept { return *current; }
+		pointer operator->() const noexcept { return current; }
+
+		Iterator& operator++() noexcept
+		{
+			current = current->cause.get();
+			return *this;
+		}
+
+		Iterator operator++(int) noexcept
+		{
+			Iterator tmp = *this;
+			++*this;
+			return tmp;
+		}
+
+		bool operator==(const Iterator& other) const noexcept { return current == other.current; }
+	};
+
+	class ErrorChain
+	{
+		std::reference_wrapper<const Error> head;
+
+	  public:
+
+		ErrorChain(const ErrorChain&) = default;
+		ErrorChain(ErrorChain&&) = default;
+		ErrorChain& operator=(const ErrorChain&) = default;
+		ErrorChain& operator=(ErrorChain&&) = default;
+
+		explicit ErrorChain(const Error& error) noexcept :
+			head(error)
+		{}
+
+		[[nodiscard]]
+		Iterator begin() const noexcept
+		{
+			return Iterator(head.get());
+		}
+
+		[[nodiscard]]
+		Iterator end() const noexcept
+		{
+			return {};
+		}
+	};
+
+  public:
+
+	///
+	/// @brief Gets the error chain for iterating
+	/// @details See `Error` documentation for usage examples
+	///
+	/// @return Error chain for iterating over the error and its causes
+	///
+	[[nodiscard]]
+	ErrorChain chain() const noexcept
+	{
+		return ErrorChain(*this);
+	}
+
+#pragma endregion
+
+#pragma region Collecting vectors
+
+  private:
+
+	class CollectVectorFunctor
+	{
+		std::source_location location;
+
+	  public:
+
+		explicit CollectVectorFunctor(std::source_location location) noexcept :
+			location(location)
+		{}
+
+		template <typename T>
+		friend std::expected<std::vector<T>, Error> operator|(
+			std::vector<std::expected<T, Error>> range,
+			const CollectVectorFunctor& collect
+		) noexcept
+		{
+			std::vector<T> result;
+			for (const auto [index, item] : range | std::views::enumerate)
+			{
+				if (!item)
+					return item.error().forward(
+						"Error in vector element",
+						std::format("Error found in index {}", index),
+						collect.location
+					);
+				result.emplace_back(std::move(*item));
+			}
+			return result;
+		}
+	};
+
+  public:
+
+	///
+	/// @brief Collects expected values into a vector, aggregating errors
+	/// @details
+	/// - Collecting will short-circuit on the first error encountered, returning that error. Additional
+	/// context is attached, indicating the place in the vector where the error occurred.
+	/// - See `Error` documentation for usage examples.
+	///
+	/// @param location Source location where the collection is done (default: current location)
+	/// @return Collecting functor
+	///
+	[[nodiscard]]
+	static CollectVectorFunctor collect_vec(
+		std::source_location location = std::source_location::current()
+	) noexcept
+	{
+		return CollectVectorFunctor(location);
+	}
+
+#pragma endregion
 };
 
-template <std::move_constructible T>
-std::expected<std::vector<T>, Error> operator|(
-	std::vector<std::expected<T, Error>> expected,
-	const Error::CollectFunctor& func
-) noexcept
-{
-	std::vector<T> result;
-	result.reserve(expected.size());
-
-	for (const auto [idx, item] : std::views::enumerate(expected))
-	{
-		if (!item)
-			return item.error().forward(
-				func.message.empty()
-					? std::format("Found error at index {}", idx)
-					: std::format("{} (at index {})", func.message, idx),
-				func.invoke_loc
-			);
-		result.emplace_back(std::move(*item));
-	}
-
-	return result;
-}
-
 template <>
-struct std::formatter<Error::TraceEntry, char>
+class std::formatter<Error, char>
 {
 	enum class Kind
 	{
-		Full,
-		Msg,
+		Default,
+		Message,
+		Detail,
+		Location,
 		Line,
 		Col,
 		File,
 		Func
-	};
+	} kind = Kind::Default;
 
-	Kind kind = Kind::Full;
+  public:
 
 	template <typename ParseContext>
 	constexpr ParseContext::iterator parse(ParseContext& ctx)
@@ -286,48 +596,65 @@ struct std::formatter<Error::TraceEntry, char>
 		auto pos = std::find(it, end, '}');
 		std::string token(it, pos);
 
-		if (token == "msg")
-			kind = Kind::Msg;
+		if (token == "msg" || token == "message")
+			kind = Kind::Message;
+		else if (token == "detail")
+			kind = Kind::Detail;
 		else if (token == "line")
 			kind = Kind::Line;
-		else if (token == "col")
-			kind = Kind::Col;
 		else if (token == "file")
 			kind = Kind::File;
-		else if (token == "func")
+		else if (token == "col" || token == "column")
+			kind = Kind::Col;
+		else if (token == "func" || token == "function")
 			kind = Kind::Func;
+		else if (token == "loc" || token == "location")
+			kind = Kind::Location;
 		else
-			throw format_error("invalid format specifier for TraceEntry");
+			throw std::format_error("Invalid format specifier");
 
 		return pos;
 	}
 
 	template <typename FormatContext>
-	typename FormatContext::iterator format(const Error::TraceEntry& entry, FormatContext& ctx) const
+	FormatContext::iterator format(const Error& err, FormatContext& ctx) const
 	{
 		switch (kind)
 		{
-		case Kind::Msg:
-			return std::format_to(ctx.out(), "{}", entry.message);
+		case Kind::Message:
+			return std::format_to(ctx.out(), "{}", err.message);
+
+		case Kind::Detail:
+			return std::format_to(ctx.out(), "{}", err.detail.value_or("<no detail>"));
+
 		case Kind::Line:
-			return std::format_to(ctx.out(), "{}", entry.location.line());
+			return std::format_to(ctx.out(), "{}", err.location.line());
+
 		case Kind::Col:
-			return std::format_to(ctx.out(), "{}", entry.location.column());
+			return std::format_to(ctx.out(), "{}", err.location.column());
+
 		case Kind::File:
-			return std::format_to(ctx.out(), "{}", entry.location.file_name());
+			return std::format_to(ctx.out(), "{}", err.location.file_name());
+
 		case Kind::Func:
-			return std::format_to(ctx.out(), "{}", entry.location.function_name());
-		case Kind::Full:
-			return std::format_to(
-				ctx.out(),
-				"{} ({}:{}): {}",
-				entry.location.function_name(),
-				entry.location.file_name(),
-				entry.location.line(),
-				entry.message
-			);
+			return std::format_to(ctx.out(), "{}", err.location.function_name());
+
+		case Kind::Location:
+			return std::format_to(ctx.out(), "{}:{}", err.location.file_name(), err.location.line());
+
+		case Kind::Default:
+		default:
+		{
+			auto it = ctx.out();
+
+			it = std::format_to(it, "({}:{}) {}", err.location.file_name(), err.location.line(), err.message);
+			if (err.detail) it = std::format_to(it, ": {}", *err.detail);
+
+			return it;
+		}
 		}
 
-		throw format_error("Invalid format specifier for TraceEntry");
+		throw std::format_error("Invalid format specifier");
 	}
 };
+

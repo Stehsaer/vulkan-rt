@@ -5,6 +5,8 @@ Checks: "
   performance-*,
   misc-*,
 
+  modernize-use-nodiscard,
+
   cppcoreguidelines-slicing,
   cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   cppcoreguidelines-pro-bounds-pointer-arithmetic,
@@ -18,7 +20,6 @@ Checks: "
   -modernize-replace-auto-ptr,
   -modernize-use-default-member-init,
   -modernize-use-override,
-  -modernize-use-nodiscard,
   -modernize-avoid-c-arrays,
   -modernize-avoid-bind,
   -modernize-type-traits,

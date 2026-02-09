@@ -9,5 +9,6 @@ namespace image
 	///
 	/// @return Blue noise image or an error
 	///
+	[[nodiscard]]
 	std::expected<RawImage<Precision::Uint16, Layout::RGBA>, Error> get_blue_noise() noexcept;
 }

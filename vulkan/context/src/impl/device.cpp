@@ -143,10 +143,11 @@ namespace vulkan::context
 
 		/* Detection */
 
-		auto all_devices_expected = instance.enumeratePhysicalDevices();
-		if (!all_devices_expected)
-			return Error(all_devices_expected.error(), "Enumerate physical devices failed");
-		const auto all_devices = std::move(*all_devices_expected);
+		auto all_devices_result =
+			instance.enumeratePhysicalDevices().transform_error(Error::from<vk::Result>());
+		if (!all_devices_result)
+			return all_devices_result.error().forward("Enumerate physical devices failed");
+		auto all_devices = std::move(*all_devices_result);
 
 		const auto available_devices = all_devices
 			| std::views::filter(api_version_supported)
@@ -220,17 +221,26 @@ namespace vulkan::context
 				.setQueueCreateInfos(queue_create_infos)
 				.setPEnabledExtensionNames(extensions_cstr);
 
-		auto device_expected = phy_device.createDevice(device_create_info);
-		if (!device_expected) return Error(device_expected.error(), "Create logical device failed");
+		auto device_result =
+			phy_device.createDevice(device_create_info).transform_error(Error::from<vk::Result>());
+		if (!device_result) return device_result.error().forward("Create logical device failed");
+		auto device = std::move(*device_result);
 
 		/* Retrieve Queues */
 
 		std::map<uint32_t, std::shared_ptr<vk::raii::Queue>> queues_map;
 		for (const auto index : unique_queue_indices)
 		{
-			auto queue_expected = device_expected->getQueue(index, 0);
+			auto queue_expected = device.getQueue(index, 0);
 			if (!queue_expected)
-				return Error(queue_expected.error(), std::format("Get queue {} failed", index));
+				return Error(
+					"Get queue failed",
+					std::format(
+						"Get queue at index {} failed due to vk::Result({})",
+						index,
+						queue_expected.error()
+					)
+				);
 
 			queues_map[index] = std::make_shared<vk::raii::Queue>(std::move(*queue_expected));
 		}
@@ -245,6 +255,6 @@ namespace vulkan::context
 			.present_index = present_index
 		};
 
-		return std::make_tuple(std::move(*device_expected), queues);
+		return std::make_tuple(std::move(device), queues);
 	}
 }

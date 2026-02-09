@@ -14,9 +14,11 @@ std::expected<DescriptorLayouts, Error> DescriptorLayouts::create(const vk::raii
 {
 	const auto create_info = vk::DescriptorSetLayoutCreateInfo{}.setBindings(bindings);
 
-	auto descriptor_layout_expected = device.createDescriptorSetLayout(create_info);
-	if (!descriptor_layout_expected)
-		return Error(descriptor_layout_expected.error(), "Create descriptor set layout failed");
+	auto descriptor_layout_result =
+		device.createDescriptorSetLayout(create_info).transform_error(Error::from<vk::Result>());
+	if (!descriptor_layout_result)
+		return descriptor_layout_result.error().forward("Create descriptor set layout failed");
+	auto descriptor_layout = std ::move(*descriptor_layout_result);
 
-	return DescriptorLayouts{.main_layout = std::move(*descriptor_layout_expected)};
+	return DescriptorLayouts{.main_layout = std::move(descriptor_layout)};
 }

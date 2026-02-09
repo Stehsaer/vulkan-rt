@@ -10,6 +10,7 @@ namespace vulkan::util::image_barrier
 	/// @param image Swapchain image
 	/// @return Image memory barrier for acquiring the image
 	///
+	[[nodiscard]]
 	vk::ImageMemoryBarrier2 swapchain_acquire(vk::Image image) noexcept;
 
 	///
@@ -18,5 +19,6 @@ namespace vulkan::util::image_barrier
 	/// @param image Swapchain image
 	/// @return Image memory barrier for presenting the image
 	///
+	[[nodiscard]]
 	vk::ImageMemoryBarrier2 swapchain_present(vk::Image image) noexcept;
 }

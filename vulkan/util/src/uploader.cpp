@@ -4,7 +4,7 @@ namespace vulkan::util
 {
 	std::expected<void, Error> Uploader::upload_buffer(const BufferUploadParam& param) noexcept
 	{
-		auto staging_buffer_expected = allocator.create_buffer(
+		auto staging_buffer_result = allocator.create_buffer(
 			vk::BufferCreateInfo{
 				.size = param.data.size(),
 				.usage = vk::BufferUsageFlagBits::eTransferSrc,
@@ -12,16 +12,17 @@ namespace vulkan::util
 			},
 			vulkan::alloc::MemoryUsage::CpuToGpu
 		);
-		if (!staging_buffer_expected)
-			return staging_buffer_expected.error().forward("Create staging buffer failed");
+		if (!staging_buffer_result)
+			return staging_buffer_result.error().forward("Create staging buffer failed");
+		auto staging_buffer = std::move(*staging_buffer_result);
 
-		if (const auto map_result = staging_buffer_expected->upload(param.data); !map_result)
-			return map_result.error().forward("Upload data to staging buffer failed");
+		if (const auto result = staging_buffer.upload(param.data); !result)
+			return result.error().forward("Upload data to staging buffer failed");
 
 		buffer_upload_tasks.push_back(
 			BufferUploadTask{
 				.dst_buffer = param.dst_buffer,
-				.staging_buffer = std::move(*staging_buffer_expected),
+				.staging_buffer = std::move(staging_buffer),
 				.data_size = param.data.size()
 			}
 		);
@@ -31,7 +32,7 @@ namespace vulkan::util
 
 	std::expected<void, Error> Uploader::upload_image(const ImageUploadParam& param) noexcept
 	{
-		auto staging_buffer_expected = allocator.create_buffer(
+		auto staging_buffer_result = allocator.create_buffer(
 			vk::BufferCreateInfo{
 				.size = param.data.size(),
 				.usage = vk::BufferUsageFlagBits::eTransferSrc,
@@ -39,16 +40,17 @@ namespace vulkan::util
 			},
 			vulkan::alloc::MemoryUsage::CpuToGpu
 		);
-		if (!staging_buffer_expected)
-			return staging_buffer_expected.error().forward("Create staging buffer failed");
+		if (!staging_buffer_result)
+			return staging_buffer_result.error().forward("Create staging buffer failed");
+		auto staging_buffer = std::move(*staging_buffer_result);
 
-		if (const auto map_result = staging_buffer_expected->upload(param.data); !map_result)
-			return map_result.error().forward("Upload data to staging buffer failed");
+		if (const auto result = staging_buffer.upload(param.data); !result)
+			return result.error().forward("Upload data to staging buffer failed");
 
 		image_upload_tasks.push_back(
 			ImageUploadTask{
 				.dst_image = param.dst_image,
-				.staging_buffer = std::move(*staging_buffer_expected),
+				.staging_buffer = std::move(staging_buffer),
 				.buffer_row_length = param.buffer_row_length,
 				.buffer_image_height = param.buffer_image_height,
 				.subresource_layers = param.subresource_layers,
@@ -60,24 +62,33 @@ namespace vulkan::util
 		return {};
 	}
 
-	std::expected<void, Error> Uploader::execute() const noexcept
+	std::expected<void, Error> Uploader::execute() noexcept
 	{
-		auto command_pool_expected = device.createCommandPool(
-			{.flags = vk::CommandPoolCreateFlagBits::eTransient, .queueFamilyIndex = queue_family}
-		);
-		if (!command_pool_expected) return Error(command_pool_expected.error(), "Create command pool failed");
-		auto command_pool = std::move(*command_pool_expected);
+		auto command_pool_result =
+			device
+				.createCommandPool(
+					{.flags = vk::CommandPoolCreateFlagBits::eTransient, .queueFamilyIndex = queue_family}
+				)
+				.transform_error(Error::from<vk::Result>());
+		if (!command_pool_result) return command_pool_result.error().forward("Create command pool failed");
+		auto command_pool = std::move(*command_pool_result);
 
-		auto command_buffer_expected = device.allocateCommandBuffers(
-			{.commandPool = command_pool, .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1}
-		);
-		if (!command_buffer_expected)
-			return Error(command_buffer_expected.error(), "Allocate command buffer failed");
-		auto command_buffer = std::move((*command_buffer_expected)[0]);
+		auto allocated_command_buffers_result =
+			device
+				.allocateCommandBuffers(
+					{.commandPool = command_pool,
+					 .level = vk::CommandBufferLevel::ePrimary,
+					 .commandBufferCount = 1}
+				)
+				.transform_error(Error::from<vk::Result>());
+		if (!allocated_command_buffers_result)
+			return allocated_command_buffers_result.error().forward("Allocate command buffer failed");
+		auto allocated_command_buffers = std::move(*allocated_command_buffers_result);
+		auto command_buffer = std::move(allocated_command_buffers[0]);
 
-		auto fence_expected = device.createFence({});
-		if (!fence_expected) return Error(fence_expected.error(), "Create upload fence failed");
-		auto fence = std::move(*fence_expected);
+		auto fence_result = device.createFence({}).transform_error(Error::from<vk::Result>());
+		if (!fence_result) return fence_result.error().forward("Create fence failed");
+		auto fence = std::move(*fence_result);
 
 		const auto buffer_barriers_after_copying =
 			buffer_upload_tasks
@@ -194,7 +205,10 @@ namespace vulkan::util
 		if (const auto wait_fence_result =
 				device.waitForFences({fence}, vk::True, std::numeric_limits<uint64_t>::max());
 			wait_fence_result != vk::Result::eSuccess)
-			return Error(wait_fence_result, "Wait for upload fence failed");
+			return Error("Wait for upload fence failed", vk::to_string(wait_fence_result));
+
+		buffer_upload_tasks.clear();
+		image_upload_tasks.clear();
 
 		return {};
 	}

@@ -7,6 +7,7 @@
 
 namespace vulkan::util
 {
+	[[nodiscard]]
 	std::expected<vk::raii::ShaderModule, Error> create_shader(
 		const vk::raii::Device& device,
 		std::span<const std::byte> span

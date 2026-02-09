@@ -1,11 +1,7 @@
 #pragma once
 
-#include "common/util/error.hpp"
-
 #include <concepts>
-#include <functional>
 #include <memory>
-#include <ranges>
 #include <vector>
 
 namespace vulkan::util
@@ -22,10 +18,6 @@ namespace vulkan::util
 		// `back()` for current frame, `front()` for last frame
 		std::vector<std::unique_ptr<T>> items;
 
-		Cycle(std::vector<std::unique_ptr<T>> items) noexcept :
-			items(std::move(items))
-		{}
-
 	  public:
 
 		Cycle(const Cycle&) = delete;
@@ -33,12 +25,29 @@ namespace vulkan::util
 		Cycle& operator=(const Cycle&) = delete;
 		Cycle& operator=(Cycle&&) = default;
 
+		Cycle(std::vector<T> items) noexcept
+		{
+			items.reserve(items.size());
+			for (auto& item : items) this->items.emplace_back(std::make_unique<T>(std::move(item)));
+		}
+
+		struct Creator
+		{
+			friend Cycle operator|(std::vector<T> items, const Creator&) noexcept
+			{
+				return Cycle(std::move(items));
+			}
+		};
+
+		static constexpr Creator into{};
+
 		///
 		/// @brief Create a cycle object
 		///
 		/// @param items Items to cycle through
 		/// @return New Cycle instance
 		///
+		[[nodiscard]]
 		static Cycle<T> create(std::vector<T> items) noexcept
 		{
 			std::vector<std::unique_ptr<T>> unique_ptr_items;
@@ -47,54 +56,26 @@ namespace vulkan::util
 		}
 
 		///
-		/// @brief Create a cycle object from a creation function
-		///
-		/// @param count Number of items to create
-		/// @param func Function to create each item
-		///
-		template <typename F>
-			requires(std::is_invocable_r_v<std::expected<T, Error>, F>)
-		static std::expected<Cycle<T>, Error> create_by_func(uint32_t count, F func) noexcept
-		{
-			std::vector<std::unique_ptr<T>> items;
-			for (const auto _ : std::views::iota(0u, count))
-			{
-				std::expected<T, Error> item_expected = std::invoke(func);
-				if (!item_expected) return item_expected.error();
-				items.push_back(std::make_unique<T>(std::move(*item_expected)));
-			}
-			return Cycle<T>(std::move(items));
-		}
-
-		///
-		/// @brief Create a cycle object from a creation function
-		///
-		/// @param count Number of items to create
-		/// @param func Function to create each item
-		///
-		template <typename F>
-			requires(std::is_invocable_r_v<T, F>)
-		static Cycle<T> create_by_func(uint32_t count, F func) noexcept
-		{
-			std::vector<std::unique_ptr<T>> items;
-			for (const auto _ : std::views::iota(0u, count))
-				items.push_back(std::make_unique<T>(std::invoke(func)));
-			return Cycle<T>(std::move(items));
-		}
-
-		///
 		/// @brief Item for current frame
 		///
 		/// @return Reference to the current item
 		///
-		const T& current() const noexcept { return *items.back(); }
+		[[nodiscard]]
+		const T& current() const noexcept
+		{
+			return *items.back();
+		}
 
 		///
 		/// @brief Item for previous frame
 		///
 		/// @return Reference to the previous item
 		///
-		const T& prev() const noexcept { return *items.front(); }
+		[[nodiscard]]
+		const T& prev() const noexcept
+		{
+			return *items.front();
+		}
 
 		///
 		/// @brief Cycle to the next item, often called at the end of a frames

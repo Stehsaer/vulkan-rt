@@ -10,13 +10,16 @@ std::expected<Pipeline, Error> Pipeline::create(
 ) noexcept
 {
 	const auto pipeline_layout_create_info = vk::PipelineLayoutCreateInfo{}.setSetLayouts(main_set_layout);
-	auto pipeline_layout_expected = context.device.createPipelineLayout(pipeline_layout_create_info);
-	if (!pipeline_layout_expected) return Error("Create pipeline layout failed");
-	auto pipeline_layout = std::move(*pipeline_layout_expected);
+	auto pipeline_layout_result =
+		context.device.createPipelineLayout(pipeline_layout_create_info)
+			.transform_error(Error::from<vk::Result>());
+	if (!pipeline_layout_result)
+		return pipeline_layout_result.error().forward("Create pipeline layout failed");
+	auto pipeline_layout = std::move(*pipeline_layout_result);
 
-	auto shader_module_expected = vulkan::util::create_shader(context.device, shader::first_shader);
-	if (!shader_module_expected) return shader_module_expected.error().forward("Create shader module failed");
-	auto shader_module = std::move(*shader_module_expected);
+	auto shader_module_result = vulkan::util::create_shader(context.device, shader::first_shader);
+	if (!shader_module_result) return shader_module_result.error().forward("Create shader module failed");
+	auto shader_module = std::move(*shader_module_result);
 
 	const auto vertex_stage_info = vk::PipelineShaderStageCreateInfo{
 		.stage = vk::ShaderStageFlagBits::eVertex,
@@ -106,9 +109,11 @@ std::expected<Pipeline, Error> Pipeline::create(
 		vk::PipelineRenderingCreateInfo{}.setColorAttachmentFormats(attachment_formats)
 	);
 
-	auto pipeline_expected = context.device.createGraphicsPipeline(nullptr, graphics_create_info.get());
-	if (!pipeline_expected) return Error("Create graphics pipeline failed");
-	auto pipeline = std::move(*pipeline_expected);
+	auto pipeline_result =
+		context.device.createGraphicsPipeline(nullptr, graphics_create_info.get())
+			.transform_error(Error::from<vk::Result>());
+	if (!pipeline_result) return pipeline_result.error().forward("Create graphics pipeline failed");
+	auto pipeline = std::move(*pipeline_result);
 
 	return Pipeline{.layout = std::move(pipeline_layout), .pipeline = std::move(pipeline)};
 }

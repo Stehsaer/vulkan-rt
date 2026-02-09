@@ -20,7 +20,7 @@ namespace vulkan::context
 		{
 			unsigned int extension_count = 0;
 			const char* const* extensions = SDL_Vulkan_GetInstanceExtensions(&extension_count);
-			if (extensions == nullptr) return Error(Error::from_sdl, "Get instance extensions failed");
+			if (extensions == nullptr) return Error("Get instance extensions failed", SDL_GetError());
 
 			std::set<std::string> extension_set;
 			extension_set.insert_range(std::span(extensions, extension_count));
@@ -62,10 +62,11 @@ namespace vulkan::context
 
 		std::set<std::string> requested_extensions;
 
-		const auto instance_extensions_expected = get_instance_extensions(features);
-		if (!instance_extensions_expected)
-			return instance_extensions_expected.error().forward("Get instance extensions failed");
-		requested_extensions.insert_range(*instance_extensions_expected);
+		auto instance_extensions_result = get_instance_extensions(features);
+		if (!instance_extensions_result)
+			return instance_extensions_result.error().forward("Get instance extensions failed");
+		const auto instance_extensions = std::move(*instance_extensions_result);
+		requested_extensions.insert_range(instance_extensions);
 		{
 			const auto available_extensions = context.enumerateInstanceExtensionProperties()
 				| std::views::transform(&vk::ExtensionProperties::extensionName)
@@ -89,9 +90,12 @@ namespace vulkan::context
 			vk::InstanceCreateInfo{.pApplicationInfo = &vk_appinfo}
 				.setPEnabledLayerNames(requested_layers_vec)
 				.setPEnabledExtensionNames(requested_extensions_vec);
-		auto instance_expected = context.createInstance(instance_create_info);
-		if (!instance_expected) return Error(instance_expected.error(), "Create vulkan instance failed");
 
-		return std::move(*instance_expected);
+		auto instance_result =
+			context.createInstance(instance_create_info).transform_error(Error::from<vk::Result>());
+		if (!instance_result) return instance_result.error().forward("Create Vulkan instance failed");
+		auto instance = std::move(*instance_result);
+
+		return instance;
 	}
 }

@@ -18,6 +18,7 @@ namespace image
 		glm::u32vec2 size;
 		std::vector<T> data;
 
+		[[nodiscard]]
 		auto& operator[](this auto& self, size_t x, size_t y)
 			requires(IndexablePixel<T>)
 		{
@@ -25,6 +26,7 @@ namespace image
 			return self.data[y * self.size.x + x];
 		}
 
+		[[nodiscard]]
 		auto& operator[](this auto& self, glm::u32vec2 coord)
 			requires(IndexablePixel<T>)
 		{

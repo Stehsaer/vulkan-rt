@@ -77,6 +77,7 @@ namespace vulkan::util
 		/// @retval true A structure was popped
 		/// @retval false No structure to pop
 		///
+		[[nodiscard]]
 		bool try_pop() noexcept
 		{
 			if (linked_structs.empty()) return false;
@@ -93,6 +94,10 @@ namespace vulkan::util
 		///
 		/// @return Const reference to the primary structure
 		///
-		const Primary& get() const noexcept { return *primary; }
+		[[nodiscard]]
+		const Primary& get() const noexcept
+		{
+			return *primary;
+		}
 	};
 }

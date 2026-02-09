@@ -142,6 +142,7 @@ namespace image
 		/// @param encoded_data Encoded image data
 		/// @return Decoded RawImage or Error
 		///
+		[[nodiscard]]
 		static std::expected<RawImage, Error> decode(std::span<const std::byte> encoded_data) noexcept;
 
 		///
@@ -150,6 +151,7 @@ namespace image
 		/// @param new_size New image size
 		/// @return Resized RawImage
 		///
+		[[nodiscard]]
 		RawImage resize(glm::u32vec2 new_size) const noexcept;
 	};
 
@@ -166,6 +168,7 @@ namespace image
 		};
 
 		template <Precision P>
+		[[nodiscard]]
 		std::expected<DecodeResult<P>, Error> decode_img(
 			std::span<const std::byte> encoded_data,
 			Layout layout

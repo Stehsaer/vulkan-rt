@@ -38,6 +38,7 @@ namespace image
 		/// @param format BCn compression format to use
 		/// @return Encoded block compressed image or an error
 		///
+		[[nodiscard]]
 		static std::expected<BlockCompressedImage, Error> encode(
 			const RawImage<Precision::Uint8, Layout::RGBA>& raw_image,
 			BCnFormat format
@@ -55,6 +56,7 @@ namespace image
 		{}
 
 		// (Helper) Get block at specified block coordinates
+		[[nodiscard]]
 		auto& block_at(this auto& self, glm::u32vec2 block_coord) noexcept
 		{
 			assert(block_coord.x < self.block_dim.x && block_coord.y < self.block_dim.y);
@@ -65,16 +67,19 @@ namespace image
 		void iterate_blocks(const RawImage<Precision::Uint8, Layout::RGBA>& raw_image, auto func) noexcept;
 
 		/// (Helper) Encode a single BC3 block
+		[[nodiscard]]
 		static std::expected<BlockCompressedImage, Error> encode_bc3(
 			const RawImage<Precision::Uint8, Layout::RGBA>& raw_image
 		) noexcept;
 
 		// (Helper) Encode a single BC5 block
+		[[nodiscard]]
 		static std::expected<BlockCompressedImage, Error> encode_bc5(
 			const RawImage<Precision::Uint8, Layout::RGBA>& raw_image
 		) noexcept;
 
 		// (Helper) Encode a single BC7 block
+		[[nodiscard]]
 		static std::expected<BlockCompressedImage, Error> encode_bc7(
 			const RawImage<Precision::Uint8, Layout::RGBA>& raw_image
 		) noexcept;

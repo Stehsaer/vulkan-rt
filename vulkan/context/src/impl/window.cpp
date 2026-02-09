@@ -16,7 +16,7 @@ namespace vulkan::context
 
 	std::expected<std::unique_ptr<WindowWrapper>, Error> create_window(const WindowInfo& window_info) noexcept
 	{
-		if (!SDL_Init(SDL_INIT_VIDEO)) return Error(Error::from_sdl, "Initialize SDL failed");
+		if (!SDL_Init(SDL_INIT_VIDEO)) return Error("Initialize SDL failed", SDL_GetError());
 
 		const auto window = SDL_CreateWindow(
 			window_info.title.c_str(),
@@ -24,9 +24,9 @@ namespace vulkan::context
 			window_info.initial_size.y,
 			get_flags(window_info)
 		);
-		if (window == nullptr) return Error(Error::from_sdl, "Create SDL window failed");
+		if (window == nullptr) return Error("Create SDL window failed", SDL_GetError());
 
-		if (!SDL_Vulkan_LoadLibrary(nullptr)) return Error(Error::from_sdl, "Load Vulkan library failed");
+		if (!SDL_Vulkan_LoadLibrary(nullptr)) return Error("Load Vulkan library failed", SDL_GetError());
 
 		return std::make_unique<WindowWrapper>(window);
 	}
@@ -38,7 +38,7 @@ namespace vulkan::context
 	{
 		VkSurfaceKHR surface;
 		if (!SDL_Vulkan_CreateSurface(window, *instance, nullptr, &surface))
-			return Error("Create surface for SDL window failed");
+			return Error("Create surface for SDL window failed", SDL_GetError());
 		return std::make_unique<SurfaceWrapper>(instance, surface);
 	}
 }

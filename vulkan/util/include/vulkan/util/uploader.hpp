@@ -53,6 +53,7 @@ namespace vulkan::util
 		/// @param param Upload parameters, see `BufferUploadParam`
 		/// @return `void` on success, `Error` on failure
 		///
+		[[nodiscard]]
 		std::expected<void, Error> upload_buffer(const BufferUploadParam& param) noexcept;
 
 		///
@@ -62,6 +63,7 @@ namespace vulkan::util
 		/// @param param Upload parameters, see `ImageUploadParam`
 		/// @return `void` on success, `Error` on failure
 		///
+		[[nodiscard]]
 		std::expected<void, Error> upload_image(const ImageUploadParam& param) noexcept;
 
 		///
@@ -69,7 +71,8 @@ namespace vulkan::util
 		///
 		/// @return `void` on success, `Error` on failure
 		///
-		std::expected<void, Error> execute() const noexcept;
+		[[nodiscard]]
+		std::expected<void, Error> execute() noexcept;
 
 	  private:
 
