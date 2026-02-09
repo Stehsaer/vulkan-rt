@@ -45,7 +45,7 @@ add_defines(
 	"VULKAN_HPP_ASSERT_ON_RESULT=;"
 )
 
+includes("rule")
 includes("lib")
 includes("vulkan")
 includes("project")
-includes("rule")

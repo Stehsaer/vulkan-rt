@@ -1,3 +1,15 @@
+local apis = {
+	paths = {
+		"slang.add_moduledirs"
+	},
+	values = {
+		"slang.add_deps",
+		"target.add_slang_deps"
+	}
+}
+
+interp_add_scopeapis(apis)
+
 rule("compile.slang")
 	set_extensions(".slang")
 	

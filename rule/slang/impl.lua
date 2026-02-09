@@ -3,6 +3,7 @@ import("core.project.depend")
 import("utils.progress")
 import("core.project.config")
 import("core.project.depend")
+import("core.project.project")
 import("core.base.binutils")
 
 local rule_name = "compile.slang"
@@ -87,10 +88,48 @@ function _parse_dependencies(line)
 	return deps
 end
 
-function _compile_spv(tools, files, debug)
-	local optimization_flags = debug and {"-O0", "-g"} or {"-O3"}
+function _iterate_deps(scope, dep, deps_set, includedirs)
+    if deps_set[dep] then
+		return
+	end
 
-	os.vrunv(tools.slangc, {
+	local dep_target = scope[dep]
+	if not dep_target then
+		raise("Slang dependency '%s' not found", dep)
+	end
+
+	deps_set[dep] = true
+	local moduledirs = dep_target:get("moduledirs") or {}
+	for _, moduledir in ipairs(moduledirs) do
+		table.insert(includedirs, moduledir)
+	end
+
+	for _, dep in ipairs(dep_target:get("deps") or {}) do
+		_iterate_deps(scope, dep, deps_set, includedirs)
+	end
+end
+
+function _find_includedirs(target)
+	local primary_deps = target:get("slang_deps") or {}
+	local slang_scope = project.scope("slang")
+
+	if type(primary_deps) ~= "table" then
+		primary_deps = {primary_deps}
+	end
+
+	-- Iterate over all dependencies and collect their moduledirs, while avoiding duplicates
+	local deps_set = {}
+	local includedirs = {}
+	for _, dep in ipairs(primary_deps) do
+		_iterate_deps(slang_scope, dep, deps_set, includedirs)
+	end
+
+	return includedirs
+end
+
+function _compile_spv(tools, files, debug, include_dirs)
+	local optimization_flags = debug and {"-O0", "-g"} or {"-O3"}
+	local compile_flags = {
 		"-target", "spirv",
 		"-profile", "spirv_1_4+SPV_KHR_non_semantic_info",
 		"-emit-spirv-directly",
@@ -98,9 +137,20 @@ function _compile_spv(tools, files, debug)
 		"-depfile", files.spv .. ".d",
 		"-matrix-layout-column-major",
 		"-fvk-invert-y",
-		"--",
-		files.source,
-	})
+	}
+
+	local include_flags = {}
+	for _, dir in ipairs(include_dirs) do
+		table.insert(include_flags, "-I")
+		table.insert(include_flags, dir)
+	end
+
+	os.vrunv(tools.slangc, table.join(
+		compile_flags, 
+		optimization_flags, 
+		include_flags, 
+		{"--", files.source}
+	))
 end
 
 function load_rule(target)
@@ -165,6 +215,7 @@ function build_file(target, source_path, opt)
 	local paths = _get_path(target)
 	local tools = _get_tools()
 	local files = _get_filepaths(target, paths, source_path)
+	local include_dirs = _find_includedirs(target)
 	local arch = target:arch()
 	local plat = target:plat()
 
@@ -172,7 +223,7 @@ function build_file(target, source_path, opt)
 
 	depend.on_changed(function() 
 		progress.show(opt.progress, "${color.build.object}compiling.slang %s", source_path)
-		_compile_spv(tools, files, debug)
+		_compile_spv(tools, files, debug, include_dirs)
 		binutils.bin2obj(files.spv, files.object, {
 			symbol_prefix = format("_asset_shader_%s_", string.gsub(target:name(), "[%.%-]", "_")),
 			basename = files.varname,
