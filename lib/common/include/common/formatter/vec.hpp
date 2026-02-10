@@ -1,9 +1,3 @@
-///
-/// @file vec.hpp
-/// @brief Provides std::formatter specializations for vector types (e.g., glm::vec2, glm::vec3, glm::vec4)
-/// @note Detects vector types based on the presence of x, y, z, w members
-///
-
 #pragma once
 
 #include <format>

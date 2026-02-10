@@ -1,3 +1,5 @@
+-- Convenient vulkan utilities, reducing boilerplate
+
 target("vulkan.util")
 	set_kind("static")
 

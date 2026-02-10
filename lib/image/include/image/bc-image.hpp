@@ -26,6 +26,10 @@ namespace image
 		BC7
 	};
 
+	///
+	/// @brief Block-compress format image, 8 bits per pixel
+	///
+	///
 	struct BlockCompressedImage : public Container<CompressionBlock>
 	{
 		BCnFormat format;

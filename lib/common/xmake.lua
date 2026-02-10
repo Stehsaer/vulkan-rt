@@ -1,3 +1,5 @@
+-- Common utilities library, including formatting and error classes.
+
 target("lib.common")
 	if #os.files("src/**.cpp") > 0 then
 		set_kind("static")

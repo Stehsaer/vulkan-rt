@@ -64,6 +64,10 @@ namespace vulkan::alloc
 		~BufferWrapper() noexcept;
 	};
 
+	///
+	/// @brief Allocated image, frees the memory on deconstruction
+	/// @details Can be directly used as if it were a `vk::Image`
+	///
 	class Image
 	{
 		std::unique_ptr<ImageWrapper> wrapper;
@@ -84,6 +88,13 @@ namespace vulkan::alloc
 		operator vk::Image() noexcept { return wrapper->image; }
 	};
 
+	///
+	/// @brief Allocated buffer, frees the memory on deconstruction
+	/// @details
+	/// - Can be directly used as if it were a `vk::Buffer`
+	/// - For host-visible buffers, use `upload` and `download` to transfer data between host and the buffer.
+	/// See the docs of these two functions for more detail
+	///
 	class Buffer
 	{
 		std::unique_ptr<BufferWrapper> wrapper;
@@ -105,6 +116,7 @@ namespace vulkan::alloc
 
 		///
 		/// @brief Upload data to buffer
+		/// @warning This function should be called if and only if the buffer is host-visible.
 		///
 		/// @param data Host data
 		/// @param dst_offset Destination offset in buffer
@@ -118,6 +130,7 @@ namespace vulkan::alloc
 
 		///
 		/// @brief Download data from buffer to host
+		/// @warning This function should be called if and only if the buffer is host-visible.
 		///
 		/// @param data Data span to fill
 		/// @param src_offset Source offset in buffer
@@ -127,6 +140,17 @@ namespace vulkan::alloc
 		std::expected<void, Error> download(std::span<std::byte> data, size_t src_offset = 0) const noexcept;
 	};
 
+	///
+	/// @brief C++ wrapper for vulkan-memory-allocator
+	/// @details
+	/// #### Creation
+	/// Simply use `vulkan::alloc::Allocator::create` to create an allocator instance.
+	///
+	/// #### Allocation
+	/// Use `allocator.create_image(...)` and `allocator.create_buffer(...)` to create buffers and images.
+	/// These buffers and images are self-contained wrappers and automatically frees the memory on
+	/// deconstruction.
+	///
 	class Allocator
 	{
 	  public:

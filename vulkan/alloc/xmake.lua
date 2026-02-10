@@ -1,3 +1,5 @@
+-- C++ wrapper for vulkan-memory-allocator
+
 target("vulkan.alloc")
 	set_kind("static")
 

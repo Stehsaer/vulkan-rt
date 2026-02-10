@@ -1,8 +1,3 @@
-///
-/// @file span-util.hpp
-/// @brief Provides utility functions for working with std::span
-///
-
 #pragma once
 
 #include <cassert>

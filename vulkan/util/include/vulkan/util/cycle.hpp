@@ -8,6 +8,25 @@ namespace vulkan::util
 {
 	///
 	/// @brief Helper class for cycling through a list of items, e.g. frame resources
+	/// @details
+	/// #### Creation
+	/// Create a `Cycle<T>` by directly supplying a `std::vector<T>` into the constructor.
+	/// ```cpp
+	/// std::vector<vk::raii::Image> images = ...;
+	/// auto image_cycle = Cycle(images);
+	/// ```
+	///
+	/// Alternatively, a `Cycle<T>` can also be created in chained style.
+	/// ```cpp
+	/// auto image_cycle = foo()
+	/// 	| Error::collect_vec()
+	/// 	| Error::unwrap()
+	/// 	| Cycle::into;
+	/// ```
+	///
+	/// #### Usage
+	/// - Call @p cycle to cycle the elements by 1 step. Typically called at the start of a new frame.
+	/// - Use @p current and @p prev to access the current item and the previous item.
 	///
 	/// @tparam T Type of the items to cycle through
 	///

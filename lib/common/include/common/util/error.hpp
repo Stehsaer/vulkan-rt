@@ -1,8 +1,3 @@
-///
-/// @file error.hpp
-/// @brief Provides generic error type with stacktrace functionality
-///
-
 #pragma once
 
 #include <algorithm>

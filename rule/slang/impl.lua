@@ -8,6 +8,7 @@ import("core.base.binutils")
 
 local rule_name = "compile.slang"
 
+-- Gets fixed paths for files
 function _get_path(target)
 	local root_path = path.join(target:autogendir(), rule_name, config.get("mode"))
 	local gen_header_root_path = path.join(root_path, "include")
@@ -21,6 +22,7 @@ function _get_path(target)
 	}
 end
 
+-- Creates directories if not exists
 function _create_dir(paths)
 	if not os.exists(paths.header) then
 		os.mkdir(paths.header)
@@ -30,6 +32,7 @@ function _create_dir(paths)
 	end
 end
 
+-- Finds compiler
 function _get_tools()
 	local tools = {
 		slangc = find_program("slangc", {check="--help"}),
@@ -40,6 +43,7 @@ function _get_tools()
 	return tools
 end
 
+-- Generates file paths from source file and fixed file paths
 function _get_filepaths(target, paths, source_path)
 	local fileconfig = target:fileconfig(source_path)
 	local module_name = fileconfig and fileconfig.module_name or string.gsub(path.basename(source_path), "[%.%-]", "_")
@@ -57,6 +61,7 @@ function _get_filepaths(target, paths, source_path)
 	}
 end
 
+-- Parse `.d` files from slang compiler
 function _parse_dependencies(line)
 	local deps = {}
 
@@ -88,6 +93,7 @@ function _parse_dependencies(line)
 	return deps
 end
 
+-- Iterates through slang dependency
 function _iterate_deps(scope, dep, deps_set, includedirs)
     if deps_set[dep] then
 		return
@@ -109,6 +115,7 @@ function _iterate_deps(scope, dep, deps_set, includedirs)
 	end
 end
 
+-- Finds slang include paths
 function _find_includedirs(target)
 	local primary_deps = target:get("slang_deps") or {}
 	local slang_scope = project.scope("slang")
@@ -127,6 +134,7 @@ function _find_includedirs(target)
 	return includedirs
 end
 
+-- Compile file into SPIR-V
 function _compile_spv(tools, files, debug, include_dirs)
 	local optimization_flags = debug and {"-O0", "-g"} or {"-O3"}
 	local compile_flags = {

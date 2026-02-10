@@ -1,7 +1,8 @@
+-- Third-party libraries
 includes("package/*.lua")
-
 add_requires("stb_dxt", "bc7enc")
 
+-- Image decoding library
 target("lib.image")
 	set_kind("static")
 

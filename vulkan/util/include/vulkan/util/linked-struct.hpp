@@ -23,6 +23,23 @@ namespace vulkan::util
 
 	///
 	/// @brief Helper for dynamically linking Vulkan structures
+	/// @details
+	/// To use this helper, first create a instance using a primary structure (i.e the first element of the
+	/// chain):
+	/// ```cpp
+	/// auto linked = LinkedStruct(primary_blah_blah);
+	/// ```
+	///
+	/// Then, chain the struct by calling @p push
+	/// ```cpp
+	/// linked.push(blah_blah).push(blah_blah);
+	/// ```
+	///
+	/// If needed, pop the last linked struct by calling @p try_pop
+	/// ```cpp
+	/// auto pop_result = linked.try_pop();
+	/// if (!pop_result) ...
+	/// ```
 	///
 	/// @tparam Primary Primary structure type, must have `pNext` member
 	///

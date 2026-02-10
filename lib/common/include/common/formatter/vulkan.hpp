@@ -1,8 +1,3 @@
-///
-/// @file vulkan.hpp
-/// @brief Provides std::formatter specializations for Vulkan types, based on `vk::to_string`
-///
-
 #pragma once
 
 #include <format>

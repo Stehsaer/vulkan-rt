@@ -11,7 +11,14 @@ namespace vulkan::util
 	///
 	/// @brief Simple uploader for buffer and image data using staging buffers.
 	/// @note The implementation isn't the most optimized, but good enough for initializing resources.
+	/// @details
+	/// #### Add upload task
+	/// Add upload tasks by filling in `BufferUploadParam` and `ImageUploadParam` and calling `upload_buffer`
+	/// or `upload_image`
 	///
+	/// #### Execute upload tasks
+	/// Call `execute` to execute upload tasks. After a successful call of `execute`, images are already in
+	/// layouts designated by `ImageUploadParam`
 	///
 	class Uploader
 	{
@@ -48,7 +55,9 @@ namespace vulkan::util
 
 		///
 		/// @brief Add buffer upload task
-		/// @note Actual upload is deferred and executed in `execute()`
+		/// @note
+		/// - Actual upload is deferred and executed in `execute()`
+		/// - The data is already copied into staging buffer by this call.
 		///
 		/// @param param Upload parameters, see `BufferUploadParam`
 		/// @return `void` on success, `Error` on failure
@@ -58,7 +67,9 @@ namespace vulkan::util
 
 		///
 		/// @brief Add image upload task
-		/// @note Actual upload is deferred and executed in `execute()`
+		/// @note
+		/// - Actual upload is deferred and executed in `execute()`
+		/// - The data is already copied into staging buffer by this call.
 		///
 		/// @param param Upload parameters, see `ImageUploadParam`
 		/// @return `void` on success, `Error` on failure
@@ -67,7 +78,8 @@ namespace vulkan::util
 		std::expected<void, Error> upload_image(const ImageUploadParam& param) noexcept;
 
 		///
-		/// @brief Execute the actual uploading of all added tasks
+		/// @brief Execute the actual uploading of all added tasks.
+		/// @note This call blocks until all uploads complete or fail.
 		///
 		/// @return `void` on success, `Error` on failure
 		///

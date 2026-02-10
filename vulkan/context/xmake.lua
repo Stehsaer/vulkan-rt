@@ -1,3 +1,5 @@
+-- Convenient SDL window and vulkan context creator
+
 target("vulkan.context")
 	set_kind("static")
 
