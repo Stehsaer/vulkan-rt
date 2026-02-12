@@ -85,7 +85,7 @@ namespace vulkan::alloc
 		Image& operator=(const Image&) = delete;
 		Image& operator=(Image&&) = default;
 
-		operator vk::Image() noexcept { return wrapper->image; }
+		operator vk::Image() const noexcept { return wrapper->image; }
 	};
 
 	///

@@ -136,7 +136,8 @@ namespace vulkan
 	{
 		glm::u32vec2 extent;
 		uint32_t image_index;
-		const SwapchainImage& image;
+		vk::Image image;
+		vk::ImageView image_view;
 	};
 
 	///

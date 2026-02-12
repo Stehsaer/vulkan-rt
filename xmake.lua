@@ -23,13 +23,15 @@ end
 add_requires(
 	-- Utilities
 	"gzip-hpp v0.1.0",
-	"meshoptimizer v0.25",
-	"doctest",
+	"doctest 2.4.12",
+	"argparse v3.2",
 
 	-- Graphics
 	"libsdl3 3.2.28",
 	"stb 2025.03.14",
 	"glm 1.0.2",
+	"meshoptimizer v0.25",
+	"rapidobj v1.1",
 
 	-- Vulkan
 	"vulkan-headers 1.4.309+0",

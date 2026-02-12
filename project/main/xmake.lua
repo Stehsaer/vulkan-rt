@@ -5,6 +5,7 @@ target("main")
 	add_deps(
 		"lib.common",
 		"lib.image",
+		"lib.scene",
 		"vulkan.util",
 		"vulkan.alloc",
 		"vulkan.context"
@@ -14,5 +15,6 @@ target("main")
 	add_includedirs("include")
 	add_headerfiles("include/**.hpp")
 
-	add_files("shader/first-shader.slang")
-	add_files("asset/sample.jpg", {rule="utils.bin2obj"})
+	add_files("shader/*.slang")
+
+	add_packages("rapidobj", "argparse")

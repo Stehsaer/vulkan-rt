@@ -282,7 +282,12 @@ namespace vulkan
 
 		if (result != vk::Result::eSuccess) return std::unexpected(result);
 
-		return SwapchainAcquireResult{.extent = extent, .image_index = idx, .image = images.at(idx)};
+		return SwapchainAcquireResult{
+			.extent = extent,
+			.image_index = idx,
+			.image = images.at(idx).image,
+			.image_view = images.at(idx).view
+		};
 	}
 
 	SurfaceWrapper::~SurfaceWrapper() noexcept
