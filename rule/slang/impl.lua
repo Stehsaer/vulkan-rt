@@ -136,13 +136,11 @@ end
 
 -- Compile file into SPIR-V
 function _compile_spv(tools, files, debug, include_dirs)
-	local optimization_flags = debug and {"-O0", "-g"} or {"-O3"}
+	local optimization_flags = debug and {"-O0", "-g3"} or {"-O3"}
 	local compile_flags = {
 		"-target", "spirv",
 		"-profile", "spirv_1_4+SPV_KHR_non_semantic_info",
 		"-emit-spirv-directly",
-		"-o", files.spv,
-		"-depfile", files.spv .. ".d",
 		"-matrix-layout-column-major",
 		"-fvk-invert-y",
 	}
@@ -157,7 +155,12 @@ function _compile_spv(tools, files, debug, include_dirs)
 		compile_flags, 
 		optimization_flags, 
 		include_flags, 
-		{"--", files.source}
+		{
+			"-o", files.spv,
+			"-depfile", files.spv .. ".d",
+			"--",
+			files.source
+		}
 	))
 end
 
@@ -227,7 +230,7 @@ function build_file(target, source_path, opt)
 	local arch = target:arch()
 	local plat = target:plat()
 
-	local debug = target:extraconf("rules", rule_name, "debug") or false
+	local debug = target:extraconf("rules", rule_name, "debug") or config.mode() == "debug"
 
 	depend.on_changed(function() 
 		progress.show(opt.progress, "${color.build.object}compiling.slang %s", source_path)

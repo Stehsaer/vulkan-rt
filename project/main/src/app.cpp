@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "frame-objects.hpp"
 #include "pipeline.hpp"
+#include "vulkan/context/instance.hpp"
 #include "vulkan/util/constants.hpp"
 #include "vulkan/util/image-barrier.hpp"
 
@@ -10,24 +11,27 @@
 
 App App::create(const Argument& argument)
 {
-	const auto create_info = vulkan::Context::CreateInfo{
-		.window_info = {.title = "Context Gltf RT", .initial_size = {800, 600}},
-		.app_info = {.application_name = "Context Gltf RT", .application_version = VK_MAKE_VERSION(0, 1, 0)},
-		.features = {.validation = true},
-	};
+	const auto instance_context_create_info = vulkan::InstanceContext::Config{};
+	auto instance_context = vulkan::InstanceContext::create(instance_context_create_info)
+		| Error::unwrap("Create instance context failed");
 
-	auto context = vulkan::Context::create(create_info) | Error::unwrap("Create context failed");
+	const auto device_context_create_info = vulkan::DeviceContext::Config{};
+	auto device_context = vulkan::DeviceContext::create(instance_context, device_context_create_info)
+		| Error::unwrap("Create device context failed");
+
+	auto swapchain_context = vulkan::SwapchainContext::create(instance_context, device_context)
+		| Error::unwrap("Create swapchain context failed");
 
 	auto command_pool =
-		context.device
+		device_context.device
 			.createCommandPool(
 				{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-				 .queueFamilyIndex = context.queues.graphics_index}
+				 .queueFamilyIndex = device_context.graphics_queue.family_index}
 			)
 			.transform_error(Error::from<vk::Result>())
 		| Error::unwrap("Create command pool failed");
 	auto command_buffers =
-		context.device
+		device_context.device
 			.allocateCommandBuffers({
 				.commandPool = *command_pool,
 				.level = vk::CommandBufferLevel::ePrimary,
@@ -37,25 +41,30 @@ App App::create(const Argument& argument)
 		| Error::unwrap("Allocate command buffers failed")
 		| vulkan::util::Cycle<vk::raii::CommandBuffer>::into;
 
-	auto pipeline = ObjectRenderPipeline::create(context);
+	auto pipeline = ObjectRenderPipeline::create(device_context, swapchain_context);
 	auto model = Model::load_from_file(argument.model_path) | Error::unwrap("Load model failed");
-	auto model_buffer = ModelBuffer::create(context, model);
+	auto model_buffer = ModelBuffer::create(device_context, model);
 
-	auto frame_sync_primitives = std::views::iota(0zu, 3zu)
-		| std::views::transform([&context](size_t) { return FrameSyncPrimitive::create(context); })
+	auto frame_sync_primitives =
+		std::views::iota(0zu, 3zu)
+		| std::views::transform([&device_context](size_t) {
+			  return FrameSyncPrimitive::create(device_context);
+		  })
 		| std::ranges::to<std::vector>()
 		| vulkan::util::Cycle<FrameSyncPrimitive>::into;
 
 	auto render_resources =
 		std::views::iota(0zu, 3zu)
-		| std::views::transform([&context, &create_info](size_t) {
-			  return FrameRenderResource::create(context, create_info.window_info.initial_size);
+		| std::views::transform([&device_context, &instance_context_create_info](size_t) {
+			  return FrameRenderResource::create(device_context, instance_context_create_info.initial_size);
 		  })
 		| std::ranges::to<std::vector>()
 		| vulkan::util::Cycle<FrameRenderResource>::into;
 
 	return App(
-		std::move(context),
+		std::move(instance_context),
+		std::move(device_context),
+		std::move(swapchain_context),
 		std::move(command_pool),
 		std::move(command_buffers),
 		std::move(pipeline),
@@ -72,7 +81,7 @@ App::FramePrepareResult App::prepare_frame()
 
 	/* Wait for command buffer */
 
-	if (const auto wait_result = context.device.waitForFences(
+	if (const auto wait_result = device_context.device.waitForFences(
 			{sync_primitives.current().draw_fence},
 			vk::True,
 			std::numeric_limits<uint64_t>::max()
@@ -83,18 +92,21 @@ App::FramePrepareResult App::prepare_frame()
 	/* Acquire swapchain image */
 
 	auto swapchain_result =
-		context.acquire_swapchain_image(sync_primitives.current().image_available_semaphore)
+		swapchain_context.acquire_next(
+			instance_context,
+			device_context,
+			sync_primitives.current().image_available_semaphore
+		)
 		| Error::unwrap("Acquire swapchain image failed");
 
-	extent_tracker.update(swapchain_result.extent);
-	if (extent_tracker.is_changed())
+	if (swapchain_result.extent_changed)
 	{
-		context.device.waitIdle();
+		device_context.device.waitIdle();
 
 		render_resources =
 			std::views::iota(0zu, 3zu)
 			| std::views::transform([this, &swapchain_result](size_t) {
-				  return FrameRenderResource::create(context, swapchain_result.extent);
+				  return FrameRenderResource::create(device_context, swapchain_result.extent);
 			  })
 			| std::ranges::to<std::vector>()
 			| vulkan::util::Cycle<FrameRenderResource>::into;
@@ -140,9 +152,7 @@ App::FrameSceneInfo App::update_scene_info(glm::u32vec2 swapchain_extent)
 void App::draw_frame()
 {
 	const auto& [command_buffer, sync, frame, swapchain] = prepare_frame();
-	const auto& [extent, index, swapchain_image, swapchain_imageview] = swapchain;
-
-	const auto scene_info = update_scene_info(extent);
+	const auto scene_info = update_scene_info(swapchain.extent);
 
 	/* Actual Rendering */
 
@@ -159,25 +169,25 @@ void App::draw_frame()
 			.subresourceRange = vulkan::util::constant::subres::depth_only_attachment
 		};
 		const auto acquire_image_barriers = std::to_array(
-			{vulkan::util::image_barrier::swapchain_acquire(swapchain_image), depth_buffer_image_barrier}
+			{vulkan::util::image_barrier::swapchain_acquire(swapchain.image), depth_buffer_image_barrier}
 		);
 		command_buffer.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(acquire_image_barriers));
 
 		const auto viewport = vk::Viewport{
 			.x = 0.0f,
 			.y = 0.0f,
-			.width = static_cast<float>(extent.x),
-			.height = static_cast<float>(extent.y),
+			.width = static_cast<float>(swapchain.extent.x),
+			.height = static_cast<float>(swapchain.extent.y),
 			.minDepth = 0.0f,
 			.maxDepth = 1.0f,
 		};
 		const auto scissor = vk::Rect2D{
-			.offset = vk::Offset2D{.x = 0,            .y = 0            },
-			.extent = vk::Extent2D{.width = extent.x, .height = extent.y},
+			.offset = vk::Offset2D{.x = 0,                      .y = 0                      },
+			.extent = vk::Extent2D{.width = swapchain.extent.x, .height = swapchain.extent.y},
 		};
 
 		const auto swapchain_attachment_info = vk::RenderingAttachmentInfo{
-			.imageView = swapchain_imageview,
+			.imageView = swapchain.image_view,
 			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.loadOp = vk::AttachmentLoadOp::eClear,
 			.storeOp = vk::AttachmentStoreOp::eStore,
@@ -223,7 +233,7 @@ void App::draw_frame()
 		command_buffer.endRendering();
 
 		const auto present_image_barriers =
-			std::to_array({vulkan::util::image_barrier::swapchain_present(swapchain_image)});
+			std::to_array({vulkan::util::image_barrier::swapchain_present(swapchain.image)});
 		command_buffer.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(present_image_barriers));
 	}
 	command_buffer.end();
@@ -243,17 +253,17 @@ void App::draw_frame()
 				.setSignalSemaphores(signal_semaphores)
 				.setWaitDstStageMask(wait_stages);
 
-		context.device.resetFences({*sync.draw_fence});
-		context.queues.graphics->submit(graphic_submit_info, *sync.draw_fence);
+		device_context.device.resetFences({*sync.draw_fence});
+		device_context.graphics_queue.queue->submit(graphic_submit_info, *sync.draw_fence);
 	}
 
 	/* Present */
 
-	context.present_swapchain_image(index, sync.render_finished_semaphore)
+	swapchain_context.present(device_context, swapchain, sync.render_finished_semaphore)
 		| Error::unwrap("Present swapchain image failed");
 }
 
 App::~App() noexcept
 {
-	context.device.waitIdle();
+	device_context.device.waitIdle();
 }

@@ -5,7 +5,10 @@
 #include "vulkan/util/linked-struct.hpp"
 #include "vulkan/util/shader.hpp"
 
-ObjectRenderPipeline ObjectRenderPipeline::create(const vulkan::Context& context)
+ObjectRenderPipeline ObjectRenderPipeline::create(
+	const vulkan::DeviceContext& context,
+	const vulkan::SwapchainContext& swapchain_context
+)
 {
 	/* Pipeline Layout */
 
@@ -121,7 +124,7 @@ ObjectRenderPipeline ObjectRenderPipeline::create(const vulkan::Context& context
 	const auto color_blend_info =
 		vk::PipelineColorBlendStateCreateInfo{}.setAttachments(color_attachment_blend_states);
 
-	const auto attachment_formats = std::to_array({context.swapchain_layout.surface_format.format});
+	const auto attachment_formats = std::to_array({swapchain_context->surface_format.format});
 	const auto pipeline_rendering_info =
 		vk::PipelineRenderingCreateInfo()
 			.setColorAttachmentFormats(attachment_formats)

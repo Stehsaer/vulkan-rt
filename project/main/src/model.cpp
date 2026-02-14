@@ -120,7 +120,7 @@ std::expected<Model, Error> Model::load_from_file(const std::string_view& path) 
 	};
 }
 
-ModelBuffer ModelBuffer::create(const vulkan::Context& context, const Model& model)
+ModelBuffer ModelBuffer::create(const vulkan::DeviceContext& context, const Model& model)
 {
 	auto vertex_buffer =
 		context.allocator.create_buffer(
@@ -146,8 +146,8 @@ ModelBuffer ModelBuffer::create(const vulkan::Context& context, const Model& mod
 
 	auto uploader = vulkan::util::Uploader(
 		context.device,
-		*context.queues.graphics,
-		context.queues.graphics_index,
+		*context.graphics_queue.queue,
+		context.graphics_queue.family_index,
 		context.allocator
 	);
 

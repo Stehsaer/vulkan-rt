@@ -2,7 +2,7 @@
 
 #include "common/util/error.hpp"
 #include "vulkan/alloc.hpp"
-#include "vulkan/context.hpp"
+#include "vulkan/context/device.hpp"
 
 #include <glm/glm.hpp>
 
@@ -26,5 +26,5 @@ struct ModelBuffer
 	vulkan::alloc::Buffer vertex_buffer, index_buffer;
 	uint32_t vertex_count;
 
-	static ModelBuffer create(const vulkan::Context& context, const Model& model);
+	static ModelBuffer create(const vulkan::DeviceContext& context, const Model& model);
 };

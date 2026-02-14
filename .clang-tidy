@@ -27,6 +27,7 @@ Checks: "
   -bugprone-easily-swappable-parameters,
   -bugprone-implicit-widening-of-multiplication-result,
   -bugprone-reserved-identifier,
+  -bugprone-exception-escape,
   -readability-braces-around-statements,
   -readability-else-after-return,
   -readability-magic-numbers,

@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace vulkan::context
+namespace vulkan
 {
 	std::vector<std::string> operator-(
 		const std::set<std::string>& a,

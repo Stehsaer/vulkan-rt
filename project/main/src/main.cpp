@@ -18,18 +18,12 @@ int main(int argc, const char* argv[]) noexcept
 	}
 	else
 	{
-#ifndef NDEBUG
 		std::string model_path;
 
 		std::print(std::cerr, "Manually input model path: ");
 		std::getline(std::cin, model_path);
 
 		argument.model_path = std::move(model_path);
-#else
-		std::println(std::cerr, "{}", argument_parse_result.error().message);
-		std::println(std::cerr, "{}", argument_parse_result.error().detail.value_or(""));
-		return 1;
-#endif
 	}
 
 	try
@@ -61,25 +55,15 @@ int main(int argc, const char* argv[]) noexcept
 	}
 	catch (const Error& error)
 	{
-		try
-		{
-			std::println(std::cerr, "\x1b[91mError\x1b[0m: {:msg}", error);
-			for (const auto& [idx, entry] : std::views::enumerate(error.chain()))
-				std::println(std::cerr, "[#{}]: {}", idx, entry);
-		}
-		catch (const std::exception& err)
-		{
-			std::cerr
-				<< "\x1b[91mError\x1b[0m: an error occurred, but formatting the error has failed: "
-				<< err.what()
-				<< '\n';
-		}
+		std::println(std::cerr, "\x1b[91mError\x1b[0m: {:msg}", error);
+		for (const auto& [idx, entry] : std::views::enumerate(error.chain()))
+			std::println(std::cerr, "[#{}]: {}", idx, entry);
 
 		return 1;
 	}
 	catch (const std::exception& e)
 	{
-		std::cerr << "\x1b[91mError\x1b[0m: an unexpected error occurred: " << e.what() << '\n';
+		std::println(std::cerr, "\x1b[91mError\x1b[0m: an unexpected error occurred: {}", e.what());
 		return 1;
 	}
 }

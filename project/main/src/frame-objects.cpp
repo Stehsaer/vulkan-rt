@@ -1,7 +1,7 @@
 #include "frame-objects.hpp"
 #include "vulkan/util/constants.hpp"
 
-FrameSyncPrimitive FrameSyncPrimitive::create(const vulkan::Context& context)
+FrameSyncPrimitive FrameSyncPrimitive::create(const vulkan::DeviceContext& context)
 {
 	auto fence =
 		context.device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled})
@@ -23,7 +23,10 @@ FrameSyncPrimitive FrameSyncPrimitive::create(const vulkan::Context& context)
 	};
 }
 
-FrameRenderResource FrameRenderResource::create(const vulkan::Context& context, glm::u32vec2 swapchain_extent)
+FrameRenderResource FrameRenderResource::create(
+	const vulkan::DeviceContext& context,
+	glm::u32vec2 swapchain_extent
+)
 {
 	const auto depth_buffer_create_info = vk::ImageCreateInfo{
 		.imageType = vk::ImageType::e2D,

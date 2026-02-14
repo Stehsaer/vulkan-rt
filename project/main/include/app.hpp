@@ -5,9 +5,10 @@
 #include "model.hpp"
 #include "pipeline.hpp"
 #include "scene/camera.hpp"
-#include "vulkan/context.hpp"
+#include "vulkan/context/device.hpp"
+#include "vulkan/context/instance.hpp"
+#include "vulkan/context/swapchain.hpp"
 #include "vulkan/util/cycle.hpp"
-#include "vulkan/util/extent-tracker.hpp"
 #include <vulkan/vulkan_structs.hpp>
 
 class App
@@ -23,14 +24,15 @@ class App
 
   private:
 
-	vulkan::Context context;
+	vulkan::InstanceContext instance_context;
+	vulkan::DeviceContext device_context;
+	vulkan::SwapchainContext swapchain_context;
 	vk::raii::CommandPool command_pool;
 	vulkan::util::Cycle<vk::raii::CommandBuffer> command_buffers;
 
 	ObjectRenderPipeline pipeline;
 	ModelBuffer model_buffer;
 
-	vulkan::util::ExtentTracker extent_tracker;
 	vulkan::util::Cycle<FrameSyncPrimitive> sync_primitives;
 	vulkan::util::Cycle<FrameRenderResource> render_resources;
 
@@ -43,7 +45,9 @@ class App
 	scene::camera::PerspectiveProjection projection{.fov_degrees = 50.0, .near = 0.01, .far = 100.0};
 
 	explicit App(
-		vulkan::Context context,
+		vulkan::InstanceContext instance_context,
+		vulkan::DeviceContext device_context,
+		vulkan::SwapchainContext swapchain_context,
 		vk::raii::CommandPool command_pool,
 		vulkan::util::Cycle<vk::raii::CommandBuffer> command_buffers,
 		ObjectRenderPipeline pipeline,
@@ -51,7 +55,9 @@ class App
 		vulkan::util::Cycle<FrameSyncPrimitive> sync_primitives,
 		vulkan::util::Cycle<FrameRenderResource> render_resources
 	) noexcept :
-		context(std::move(context)),
+		instance_context(std::move(instance_context)),
+		device_context(std::move(device_context)),
+		swapchain_context(std::move(swapchain_context)),
 		command_pool(std::move(command_pool)),
 		command_buffers(std::move(command_buffers)),
 		pipeline(std::move(pipeline)),
@@ -65,7 +71,7 @@ class App
 		const vk::raii::CommandBuffer& command_buffer;
 		const FrameSyncPrimitive& sync;
 		const FrameRenderResource& frame;
-		vulkan::SwapchainAcquireResult swapchain;
+		vulkan::SwapchainContext::Frame swapchain;
 	};
 
 	struct FrameSceneInfo
