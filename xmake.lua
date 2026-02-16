@@ -27,7 +27,7 @@ add_requires(
 	"argparse v3.2",
 
 	-- Graphics
-	"libsdl3 3.2.28",
+	"libsdl3 3.4.0",
 	"stb 2025.03.14",
 	"glm 1.0.2",
 	"meshoptimizer v0.25",
@@ -38,6 +38,8 @@ add_requires(
 	"vulkan-hpp 1.4.309",
 	"vulkan-memory-allocator 3.3.0"
 )
+
+add_requires("imgui v1.92.5-docking", {configs = {sdl3 = true, vulkan = true, freetype = true}})
 
 -- Global defines
 add_defines(

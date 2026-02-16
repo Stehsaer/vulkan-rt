@@ -1,26 +1,45 @@
 #include "app.hpp"
 #include "frame-objects.hpp"
 #include "pipeline.hpp"
+#include "vulkan/context/imgui.hpp"
 #include "vulkan/context/instance.hpp"
+#include "vulkan/context/swapchain.hpp"
 #include "vulkan/util/constants.hpp"
 #include "vulkan/util/image-barrier.hpp"
 
+#include <SDL3/SDL_events.h>
 #include <SDL3/SDL_mouse.h>
+#include <imgui.h>
 #include <ranges>
 #include <vulkan/vulkan_raii.hpp>
 
 App App::create(const Argument& argument)
 {
-	const auto instance_context_create_info = vulkan::InstanceContext::Config{};
-	auto instance_context = vulkan::InstanceContext::create(instance_context_create_info)
+	const auto instance_context_config = vulkan::InstanceContext::Config{};
+	auto instance_context = vulkan::InstanceContext::create(instance_context_config)
 		| Error::unwrap("Create instance context failed");
 
-	const auto device_context_create_info = vulkan::DeviceContext::Config{};
-	auto device_context = vulkan::DeviceContext::create(instance_context, device_context_create_info)
+	const auto device_context_config = vulkan::DeviceContext::Config{};
+	auto device_context = vulkan::DeviceContext::create(instance_context, device_context_config)
 		| Error::unwrap("Create device context failed");
 
-	auto swapchain_context = vulkan::SwapchainContext::create(instance_context, device_context)
+	const auto swapchain_context_config =
+		vulkan::SwapchainContext::Config{.format = vulkan::SwapchainContext::Format::Linear_8bit};
+	auto swapchain_context =
+		vulkan::SwapchainContext::create(instance_context, device_context, swapchain_context_config)
 		| Error::unwrap("Create swapchain context failed");
+
+	const auto attachment_formats = std::to_array({swapchain_context->surface_format.format});
+	const auto pipeline_rendering_info =
+		vk::PipelineRenderingCreateInfo()
+			.setColorAttachmentFormats(attachment_formats)
+			.setDepthAttachmentFormat(vk::Format::eD32Sfloat);
+
+	const auto render_scheme =
+		vulkan::ImGuiContext::Config::DynamicRendering{.rendering_info = pipeline_rendering_info};
+	auto imgui_context =
+		vulkan::ImGuiContext::create(instance_context, device_context, {.render_scheme = render_scheme})
+		| Error::unwrap("Create ImGui context failed");
 
 	auto command_pool =
 		device_context.device
@@ -41,7 +60,7 @@ App App::create(const Argument& argument)
 		| Error::unwrap("Allocate command buffers failed")
 		| vulkan::util::Cycle<vk::raii::CommandBuffer>::into;
 
-	auto pipeline = ObjectRenderPipeline::create(device_context, swapchain_context);
+	auto pipeline = ObjectRenderPipeline::create(device_context, pipeline_rendering_info);
 	auto model = Model::load_from_file(argument.model_path) | Error::unwrap("Load model failed");
 	auto model_buffer = ModelBuffer::create(device_context, model);
 
@@ -55,8 +74,8 @@ App App::create(const Argument& argument)
 
 	auto render_resources =
 		std::views::iota(0zu, 3zu)
-		| std::views::transform([&device_context, &instance_context_create_info](size_t) {
-			  return FrameRenderResource::create(device_context, instance_context_create_info.initial_size);
+		| std::views::transform([&device_context, &instance_context_config](size_t) {
+			  return FrameRenderResource::create(device_context, instance_context_config.initial_size);
 		  })
 		| std::ranges::to<std::vector>()
 		| vulkan::util::Cycle<FrameRenderResource>::into;
@@ -65,6 +84,7 @@ App App::create(const Argument& argument)
 		std::move(instance_context),
 		std::move(device_context),
 		std::move(swapchain_context),
+		std::move(imgui_context),
 		std::move(command_pool),
 		std::move(command_buffers),
 		std::move(pipeline),
@@ -128,19 +148,19 @@ App::FramePrepareResult App::prepare_frame()
 
 App::FrameSceneInfo App::update_scene_info(glm::u32vec2 swapchain_extent)
 {
-	glm::vec2 mouse_delta;
-	const auto mouse_state = SDL_GetRelativeMouseState(&mouse_delta.x, &mouse_delta.y);
+	const auto& io = ImGui::GetIO();
+	if (!io.WantCaptureMouse)
+	{
+		const auto mouse_delta = glm::vec2(io.MouseDelta.x, io.MouseDelta.y) / glm::vec2(swapchain_extent);
+		const auto mouse_scroll = io.MouseWheel;
 
-	if ((mouse_state & SDL_BUTTON_MASK(SDL_BUTTON_RIGHT)) != 0)
-		view = view.mouse_rotate(mouse_delta / glm::vec2(swapchain_extent));
-	if ((mouse_state & SDL_BUTTON_MASK(SDL_BUTTON_MIDDLE)) != 0)
-		view = view.mouse_scroll(mouse_delta.y / swapchain_extent.y, 3.0);
-	if ((mouse_state & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0)
-		view = view.mouse_pan(
-			mouse_delta / glm::vec2(swapchain_extent),
-			swapchain_extent.x / double(swapchain_extent.y),
-			1.0
-		);
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) view = view.mouse_rotate(mouse_delta);
+
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+			view = view.mouse_pan(mouse_delta, swapchain_extent.x / double(swapchain_extent.y), 1.0);
+
+		view = view.mouse_scroll(mouse_scroll);
+	}
 
 	const glm::mat4 camera_matrix = scene::camera::reverse_z(true)
 		* projection.matrix(swapchain_extent.x / static_cast<float>(swapchain_extent.y))
@@ -149,10 +169,33 @@ App::FrameSceneInfo App::update_scene_info(glm::u32vec2 swapchain_extent)
 	return {.view_projection = camera_matrix};
 }
 
-void App::draw_frame()
+bool App::draw_frame()
 {
+	bool quit = false;
+
+	SDL_Event event;
+	while (SDL_PollEvent(&event))
+	{
+		imgui_context.process_event(event);
+
+		switch (event.type)
+		{
+		case SDL_EVENT_QUIT:
+			quit = true;
+			break;
+		case SDL_EVENT_WINDOW_MINIMIZED:
+			continue;
+		default:
+			break;
+		}
+	}
+
 	const auto& [command_buffer, sync, frame, swapchain] = prepare_frame();
+
+	imgui_context.new_frame() | Error::unwrap("Start new ImGui frame failed");
+	draw_ui();
 	const auto scene_info = update_scene_info(swapchain.extent);
+	imgui_context.render() | Error::unwrap("Render ImGui frame failed");
 
 	/* Actual Rendering */
 
@@ -229,6 +272,8 @@ void App::draw_frame()
 				vk::ArrayProxy<const ObjectRenderPipeline::PushConstant>(push_constant)
 			);
 			command_buffer.drawIndexed(model_buffer.vertex_count, 1, 0, 0, 0);
+
+			imgui_context.draw(command_buffer) | Error::unwrap("Draw ImGui failed");
 		}
 		command_buffer.endRendering();
 
@@ -261,6 +306,31 @@ void App::draw_frame()
 
 	swapchain_context.present(device_context, swapchain, sync.render_finished_semaphore)
 		| Error::unwrap("Present swapchain image failed");
+
+	return !quit;
+}
+
+void App::draw_ui()
+{
+	ImGui::ShowDemoWindow();
+
+	if (ImGui::Begin("Info"))
+	{
+		ImGui::Text(
+			"Center: (%.2f, %.2f, %.2f)",
+			view.center_position.x,
+			view.center_position.y,
+			view.center_position.z
+		);
+		ImGui::Text("Distance: %.2f", view.distance);
+		ImGui::Text("Pitch: %.2f", view.pitch_degrees);
+		ImGui::Text("Yaw: %.2f", view.yaw_degrees);
+
+		ImGui::Separator();
+
+		ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
+	}
+	ImGui::End();
 }
 
 App::~App() noexcept

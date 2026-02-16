@@ -5,18 +5,36 @@ namespace vulkan
 {
 	namespace
 	{
+		std::vector<vk::SurfaceFormatKHR> get_preferred_surface_formats(
+			const SwapchainContext::Config& config
+		) noexcept
+		{
+			switch (config.format)
+			{
+			case SwapchainContext::Format::Srgb_8bit:
+				return {
+					{.format = vk::Format::eB8G8R8A8Srgb, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear},
+					{.format = vk::Format::eR8G8B8A8Srgb, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear}
+				};
+			case SwapchainContext::Format::Linear_8bit:
+				return {
+					{.format = vk::Format::eB8G8R8A8Unorm, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear},
+					{.format = vk::Format::eR8G8B8A8Unorm, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear}
+				};
+			default:
+				return {};
+			}
+		}
+
 		std::optional<vk::SurfaceFormatKHR> select_surface_format(
 			const vk::raii::PhysicalDevice& phy_device,
-			const vk::SurfaceKHR& surface
+			const vk::SurfaceKHR& surface,
+			const SwapchainContext::Config& config
 		) noexcept
 		{
 			const auto available_formats = phy_device.getSurfaceFormatsKHR(surface);
-			const auto preferred_formats = std::to_array<vk::SurfaceFormatKHR>({
-				{.format = vk::Format::eB8G8R8A8Srgb, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear},
-				{.format = vk::Format::eR8G8B8A8Srgb, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear}
-			});
 
-			for (const auto& preferred_format : preferred_formats)
+			for (const auto& preferred_format : get_preferred_surface_formats(config))
 			{
 				auto found = std::ranges::find_if(
 					available_formats,
@@ -28,7 +46,7 @@ namespace vulkan
 				if (found != available_formats.end()) return *found;
 			}
 
-			if (!available_formats.empty()) return available_formats.front();
+			if (!available_formats.empty()) return std::nullopt;
 
 			return std::nullopt;
 		}
@@ -103,13 +121,14 @@ namespace vulkan
 
 	std::expected<SwapchainContext, Error> SwapchainContext::create(
 		const InstanceContext& instance_context,
-		const DeviceContext& device_context
+		const DeviceContext& device_context,
+		const Config& config
 	) noexcept
 	{
 		const auto& phy_device = device_context.phy_device;
 		const auto surface = instance_context->surface;
 
-		const auto format_result = select_surface_format(phy_device, surface);
+		const auto format_result = select_surface_format(phy_device, surface, config);
 		if (!format_result) return Error("Select surface format failed");
 		const auto surface_format = *format_result;
 

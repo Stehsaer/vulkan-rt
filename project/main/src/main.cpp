@@ -29,28 +29,7 @@ int main(int argc, const char* argv[]) noexcept
 	try
 	{
 		App app = App::create(argument);
-
-		bool quit = false;
-		while (!quit)
-		{
-			SDL_Event event;
-			while (SDL_PollEvent(&event))
-			{
-				switch (event.type)
-				{
-				case SDL_EVENT_QUIT:
-					quit = true;
-					break;
-				case SDL_EVENT_WINDOW_MINIMIZED:
-					continue;
-				default:
-					break;
-				}
-			}
-
-			app.draw_frame();
-		}
-
+		while (app.draw_frame());
 		return 0;
 	}
 	catch (const Error& error)

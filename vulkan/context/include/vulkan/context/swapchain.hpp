@@ -53,6 +53,17 @@ namespace vulkan
 			vk::ImageView image_view;
 		};
 
+		enum class Format
+		{
+			Srgb_8bit,
+			Linear_8bit
+		};
+
+		struct Config
+		{
+			Format format = Format::Linear_8bit;
+		};
+
 		///
 		/// @brief Create a swapchain context
 		///
@@ -63,7 +74,8 @@ namespace vulkan
 		[[nodiscard]]
 		static std::expected<SwapchainContext, Error> create(
 			const InstanceContext& instance_context,
-			const DeviceContext& device_context
+			const DeviceContext& device_context,
+			const Config& config
 		) noexcept;
 
 		///

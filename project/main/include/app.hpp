@@ -6,6 +6,7 @@
 #include "pipeline.hpp"
 #include "scene/camera.hpp"
 #include "vulkan/context/device.hpp"
+#include "vulkan/context/imgui.hpp"
 #include "vulkan/context/instance.hpp"
 #include "vulkan/context/swapchain.hpp"
 #include "vulkan/util/cycle.hpp"
@@ -18,7 +19,14 @@ class App
 	[[nodiscard]]
 	static App create(const Argument& argument);
 
-	void draw_frame();
+	///
+	/// @brief Run one frame of the app
+	///
+	/// @retval true Keep running
+	/// @retval false Quit app
+	///
+	[[nodiscard]]
+	bool draw_frame();
 
 	~App() noexcept;
 
@@ -27,6 +35,8 @@ class App
 	vulkan::InstanceContext instance_context;
 	vulkan::DeviceContext device_context;
 	vulkan::SwapchainContext swapchain_context;
+	vulkan::ImGuiContext imgui_context;
+
 	vk::raii::CommandPool command_pool;
 	vulkan::util::Cycle<vk::raii::CommandBuffer> command_buffers;
 
@@ -48,6 +58,7 @@ class App
 		vulkan::InstanceContext instance_context,
 		vulkan::DeviceContext device_context,
 		vulkan::SwapchainContext swapchain_context,
+		vulkan::ImGuiContext imgui_context,
 		vk::raii::CommandPool command_pool,
 		vulkan::util::Cycle<vk::raii::CommandBuffer> command_buffers,
 		ObjectRenderPipeline pipeline,
@@ -58,6 +69,7 @@ class App
 		instance_context(std::move(instance_context)),
 		device_context(std::move(device_context)),
 		swapchain_context(std::move(swapchain_context)),
+		imgui_context(std::move(imgui_context)),
 		command_pool(std::move(command_pool)),
 		command_buffers(std::move(command_buffers)),
 		pipeline(std::move(pipeline)),
@@ -78,6 +90,8 @@ class App
 	{
 		glm::mat4 view_projection;
 	};
+
+	void draw_ui();
 
 	FramePrepareResult prepare_frame();
 

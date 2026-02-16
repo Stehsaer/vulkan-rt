@@ -7,7 +7,7 @@
 
 ObjectRenderPipeline ObjectRenderPipeline::create(
 	const vulkan::DeviceContext& context,
-	const vulkan::SwapchainContext& swapchain_context
+	const vk::PipelineRenderingCreateInfo& rendering_info
 )
 {
 	/* Pipeline Layout */
@@ -124,15 +124,9 @@ ObjectRenderPipeline ObjectRenderPipeline::create(
 	const auto color_blend_info =
 		vk::PipelineColorBlendStateCreateInfo{}.setAttachments(color_attachment_blend_states);
 
-	const auto attachment_formats = std::to_array({swapchain_context->surface_format.format});
-	const auto pipeline_rendering_info =
-		vk::PipelineRenderingCreateInfo()
-			.setColorAttachmentFormats(attachment_formats)
-			.setDepthAttachmentFormat(vk::Format::eD32Sfloat);
-
 	vulkan::util::LinkedStruct<vk::GraphicsPipelineCreateInfo> graphics_create_info =
 		vk::GraphicsPipelineCreateInfo{
-			.pNext = &pipeline_rendering_info,
+			.pNext = nullptr,
 			.pVertexInputState = &vertex_input_info,
 			.pInputAssemblyState = &input_assembly_info,
 			.pViewportState = &viewport_info,
@@ -144,7 +138,7 @@ ObjectRenderPipeline ObjectRenderPipeline::create(
 			.layout = *pipeline_layout
 		}
 			.setStages(shader_stages);
-	graphics_create_info.push(pipeline_rendering_info);
+	graphics_create_info.push(rendering_info);
 
 	auto pipeline =
 		context.device.createGraphicsPipeline(nullptr, graphics_create_info.get())

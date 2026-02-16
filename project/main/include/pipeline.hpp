@@ -1,7 +1,6 @@
 #pragma once
 
 #include "vulkan/context/device.hpp"
-#include "vulkan/context/swapchain.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
 
@@ -17,6 +16,6 @@ struct ObjectRenderPipeline
 
 	static ObjectRenderPipeline create(
 		const vulkan::DeviceContext& context,
-		const vulkan::SwapchainContext& swapchain_context
+		const vk::PipelineRenderingCreateInfo& rendering_info
 	);
 };
