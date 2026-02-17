@@ -5,7 +5,7 @@
 #include <span>
 #include <vulkan/vulkan_raii.hpp>
 
-namespace vulkan::util
+namespace vulkan
 {
 	///
 	/// @brief Creates a shader module

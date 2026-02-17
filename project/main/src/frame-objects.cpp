@@ -46,7 +46,7 @@ FrameRenderResource FrameRenderResource::create(
 		.image = depth_buffer,
 		.viewType = vk::ImageViewType::e2D,
 		.format = depth_buffer_create_info.format,
-		.subresourceRange = vulkan::util::constant::subres::depth_only_attachment
+		.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eDepth)
 	};
 	auto depth_buffer_view =
 		context.device.createImageView(depth_buffer_view_create_info)

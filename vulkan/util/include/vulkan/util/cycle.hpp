@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-namespace vulkan::util
+namespace vulkan
 {
 	///
 	/// @brief Helper class for cycling through a list of items, e.g. frame resources

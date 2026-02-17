@@ -1,6 +1,6 @@
 #include "vulkan/util/shader.hpp"
 
-namespace vulkan::util
+namespace vulkan
 {
 	std::expected<vk::raii::ShaderModule, Error> create_shader(
 		const vk::raii::Device& device,
@@ -9,10 +9,12 @@ namespace vulkan::util
 	{
 		if (span.size() % sizeof(uint32_t) != 0)
 			return Error("Shader bytecode size is not a multiple of 4 bytes");
+		if (uintptr_t(span.data()) % alignof(uint32_t) != 0)
+			return Error("Shader bytecode data is not properly aligned for uint32_t");
 
 		const vk::ShaderModuleCreateInfo create_info{
 			.codeSize = span.size(),
-			.pCode = reinterpret_cast<const uint32_t*>(span.data()),
+			.pCode = reinterpret_cast<const uint32_t*>(std::assume_aligned<alignof(uint32_t)>(span.data())),
 		};
 
 		auto shader_module_result =

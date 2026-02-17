@@ -79,7 +79,7 @@ namespace vulkan
 		}
 
 		[[nodiscard]]
-		std::expected<vulkan::util::LinkedStruct<vk::PhysicalDeviceFeatures2>, Error> test_device_features(
+		std::expected<vulkan::LinkedStruct<vk::PhysicalDeviceFeatures2>, Error> test_device_features(
 			const vk::raii::PhysicalDevice& phy_device,
 			const DeviceContext::Config& config
 		)
@@ -114,9 +114,8 @@ namespace vulkan
 			if (!required_features_vulkan12.has_value()) return required_features_vulkan12.error();
 			if (!required_features_vulkan13.has_value()) return required_features_vulkan13.error();
 
-			auto linked_struct = vulkan::util::LinkedStruct(
-				vk::PhysicalDeviceFeatures2{.features = *required_features_vulkan10}
-			);
+			auto linked_struct =
+				vulkan::LinkedStruct(vk::PhysicalDeviceFeatures2{.features = *required_features_vulkan10});
 
 			linked_struct.push(*required_features_vulkan11)
 				.push(*required_features_vulkan12)
@@ -253,7 +252,7 @@ namespace vulkan
 		struct DeviceCreateInfo
 		{
 			vk::raii::PhysicalDevice phy_device;
-			vulkan::util::LinkedStruct<vk::PhysicalDeviceFeatures2> features_chain;
+			vulkan::LinkedStruct<vk::PhysicalDeviceFeatures2> features_chain;
 			std::vector<std::string> extensions;
 			uint32_t render_family_index;
 			uint32_t present_family_index;

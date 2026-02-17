@@ -8,7 +8,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-namespace vulkan::util
+namespace vulkan
 {
 	template <typename T>
 	concept LinkableType =

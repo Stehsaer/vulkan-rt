@@ -27,8 +27,8 @@ ObjectRenderPipeline ObjectRenderPipeline::create(
 
 	/* Shader Module */
 
-	auto shader_module = vulkan::util::create_shader(context.device, shader::object)
-		| Error::unwrap("Create shader module failed");
+	auto shader_module =
+		vulkan::create_shader(context.device, shader::object) | Error::unwrap("Create shader module failed");
 
 	/* Pipeline */
 
@@ -124,7 +124,7 @@ ObjectRenderPipeline ObjectRenderPipeline::create(
 	const auto color_blend_info =
 		vk::PipelineColorBlendStateCreateInfo{}.setAttachments(color_attachment_blend_states);
 
-	vulkan::util::LinkedStruct<vk::GraphicsPipelineCreateInfo> graphics_create_info =
+	vulkan::LinkedStruct<vk::GraphicsPipelineCreateInfo> graphics_create_info =
 		vk::GraphicsPipelineCreateInfo{
 			.pNext = nullptr,
 			.pVertexInputState = &vertex_input_info,

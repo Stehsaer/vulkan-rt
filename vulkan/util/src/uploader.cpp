@@ -1,6 +1,6 @@
 #include "vulkan/util/uploader.hpp"
 
-namespace vulkan::util
+namespace vulkan
 {
 	std::expected<void, Error> Uploader::upload_buffer(const BufferUploadParam& param) noexcept
 	{
@@ -98,8 +98,8 @@ namespace vulkan::util
 					  .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
 					  .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
 					  .dstAccessMask = vk::AccessFlagBits2::eNone,
-					  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-					  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+					  .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+					  .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 					  .buffer = task.dst_buffer,
 					  .offset = 0,
 					  .size = VK_WHOLE_SIZE,
@@ -117,8 +117,8 @@ namespace vulkan::util
 					  .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
 					  .oldLayout = vk::ImageLayout::eUndefined,
 					  .newLayout = vk::ImageLayout::eTransferDstOptimal,
-					  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-					  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+					  .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+					  .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 					  .image = task.dst_image,
 					  .subresourceRange = {
 										.aspectMask = task.subresource_layers.aspectMask,
@@ -141,8 +141,8 @@ namespace vulkan::util
 					  .dstAccessMask = vk::AccessFlagBits2::eNone,
 					  .oldLayout = vk::ImageLayout::eTransferDstOptimal,
 					  .newLayout = task.dst_layout,
-					  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-					  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+					  .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+					  .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 					  .image = task.dst_image,
 					  .subresourceRange = {
 										   .aspectMask = task.subresource_layers.aspectMask,

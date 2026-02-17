@@ -5,6 +5,7 @@
 #include "model.hpp"
 #include "pipeline.hpp"
 #include "scene/camera.hpp"
+
 #include "vulkan/context/device.hpp"
 #include "vulkan/context/imgui.hpp"
 #include "vulkan/context/instance.hpp"
@@ -38,13 +39,13 @@ class App
 	vulkan::ImGuiContext imgui_context;
 
 	vk::raii::CommandPool command_pool;
-	vulkan::util::Cycle<vk::raii::CommandBuffer> command_buffers;
+	vulkan::Cycle<vk::raii::CommandBuffer> command_buffers;
 
 	ObjectRenderPipeline pipeline;
 	ModelBuffer model_buffer;
 
-	vulkan::util::Cycle<FrameSyncPrimitive> sync_primitives;
-	vulkan::util::Cycle<FrameRenderResource> render_resources;
+	vulkan::Cycle<FrameSyncPrimitive> sync_primitives;
+	vulkan::Cycle<FrameRenderResource> render_resources;
 
 	scene::camera::CenterView view{
 		.center_position = {0.0, 0.0, 0.0},
@@ -60,11 +61,11 @@ class App
 		vulkan::SwapchainContext swapchain_context,
 		vulkan::ImGuiContext imgui_context,
 		vk::raii::CommandPool command_pool,
-		vulkan::util::Cycle<vk::raii::CommandBuffer> command_buffers,
+		vulkan::Cycle<vk::raii::CommandBuffer> command_buffers,
 		ObjectRenderPipeline pipeline,
 		ModelBuffer model_buffer,
-		vulkan::util::Cycle<FrameSyncPrimitive> sync_primitives,
-		vulkan::util::Cycle<FrameRenderResource> render_resources
+		vulkan::Cycle<FrameSyncPrimitive> sync_primitives,
+		vulkan::Cycle<FrameRenderResource> render_resources
 	) noexcept :
 		instance_context(std::move(instance_context)),
 		device_context(std::move(device_context)),

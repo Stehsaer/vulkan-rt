@@ -5,7 +5,6 @@
 #include "vulkan/context/instance.hpp"
 #include "vulkan/context/swapchain.hpp"
 #include "vulkan/util/constants.hpp"
-#include "vulkan/util/image-barrier.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_mouse.h>
@@ -58,7 +57,7 @@ App App::create(const Argument& argument)
 			})
 			.transform_error(Error::from<vk::Result>())
 		| Error::unwrap("Allocate command buffers failed")
-		| vulkan::util::Cycle<vk::raii::CommandBuffer>::into;
+		| vulkan::Cycle<vk::raii::CommandBuffer>::into;
 
 	auto pipeline = ObjectRenderPipeline::create(device_context, pipeline_rendering_info);
 	auto model = Model::load_from_file(argument.model_path) | Error::unwrap("Load model failed");
@@ -70,7 +69,7 @@ App App::create(const Argument& argument)
 			  return FrameSyncPrimitive::create(device_context);
 		  })
 		| std::ranges::to<std::vector>()
-		| vulkan::util::Cycle<FrameSyncPrimitive>::into;
+		| vulkan::Cycle<FrameSyncPrimitive>::into;
 
 	auto render_resources =
 		std::views::iota(0zu, 3zu)
@@ -78,7 +77,7 @@ App App::create(const Argument& argument)
 			  return FrameRenderResource::create(device_context, instance_context_config.initial_size);
 		  })
 		| std::ranges::to<std::vector>()
-		| vulkan::util::Cycle<FrameRenderResource>::into;
+		| vulkan::Cycle<FrameRenderResource>::into;
 
 	return App(
 		std::move(instance_context),
@@ -129,7 +128,7 @@ App::FramePrepareResult App::prepare_frame()
 				  return FrameRenderResource::create(device_context, swapchain_result.extent);
 			  })
 			| std::ranges::to<std::vector>()
-			| vulkan::util::Cycle<FrameRenderResource>::into;
+			| vulkan::Cycle<FrameRenderResource>::into;
 	}
 	else
 	{
@@ -201,7 +200,7 @@ bool App::draw_frame()
 
 	command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 	{
-		const auto depth_buffer_image_barrier = vk::ImageMemoryBarrier2{
+		const auto depth_buffer_acquire_image_barrier = vk::ImageMemoryBarrier2{
 			.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
 			.srcAccessMask = {},
 			.dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests,
@@ -209,11 +208,20 @@ bool App::draw_frame()
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
 			.image = frame.depth_buffer,
-			.subresourceRange = vulkan::util::constant::subres::depth_only_attachment
+			.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eDepth)
 		};
-		const auto acquire_image_barriers = std::to_array(
-			{vulkan::util::image_barrier::swapchain_acquire(swapchain.image), depth_buffer_image_barrier}
-		);
+		const auto swapchain_acquire_image_barrier = vk::ImageMemoryBarrier2{
+			.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
+			.srcAccessMask = {},
+			.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+			.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+			.oldLayout = vk::ImageLayout::eUndefined,
+			.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+			.image = swapchain.image,
+			.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eColor)
+		};
+		const auto acquire_image_barriers =
+			std::to_array({swapchain_acquire_image_barrier, depth_buffer_acquire_image_barrier});
 		command_buffer.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(acquire_image_barriers));
 
 		const auto viewport = vk::Viewport{
@@ -277,9 +285,20 @@ bool App::draw_frame()
 		}
 		command_buffer.endRendering();
 
-		const auto present_image_barriers =
-			std::to_array({vulkan::util::image_barrier::swapchain_present(swapchain.image)});
-		command_buffer.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(present_image_barriers));
+		const auto swapchain_image_present_barrier = vk::ImageMemoryBarrier2{
+			.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+			.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+			.dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
+			.dstAccessMask = {},
+			.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+			.newLayout = vk::ImageLayout::ePresentSrcKHR,
+			.image = swapchain.image,
+			.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eColor)
+		};
+
+		command_buffer.pipelineBarrier2(
+			vk::DependencyInfo{}.setImageMemoryBarriers(swapchain_image_present_barrier)
+		);
 	}
 	command_buffer.end();
 

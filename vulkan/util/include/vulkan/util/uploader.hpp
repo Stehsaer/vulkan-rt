@@ -6,7 +6,7 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
-namespace vulkan::util
+namespace vulkan
 {
 	///
 	/// @brief Simple uploader for buffer and image data using staging buffers.

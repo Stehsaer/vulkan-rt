@@ -1,30 +1,21 @@
 #pragma once
 
-#include <cstdint>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_handles.hpp>
 
-namespace vulkan::util::constant
+namespace vulkan
 {
-	namespace subres
+	///
+	/// @brief Get the image subresource range for an image with 1 mip-level and 1 layer
+	///
+	/// @param aspect_flags The aspect flags of the image, e.g. `vk::ImageAspectFlagBits::eColor` for a color
+	/// image
+	/// @return The image subresource range for the given aspect flags
+	///
+	constexpr vk::ImageSubresourceRange base_level_image(vk::ImageAspectFlags aspect_flags) noexcept
 	{
-		static constexpr auto color_attachment = vk::ImageSubresourceRange{
-			.aspectMask = vk::ImageAspectFlagBits::eColor,
-			.baseMipLevel = 0,
-			.levelCount = 1,
-			.baseArrayLayer = 0,
-			.layerCount = 1,
-		};
-
-		static constexpr auto depth_only_attachment = vk::ImageSubresourceRange{
-			.aspectMask = vk::ImageAspectFlagBits::eDepth,
-			.baseMipLevel = 0,
-			.levelCount = 1,
-			.baseArrayLayer = 0,
-			.layerCount = 1,
-		};
-
-		static constexpr auto depth_stencil_attachment = vk::ImageSubresourceRange{
-			.aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
+		return vk::ImageSubresourceRange{
+			.aspectMask = aspect_flags,
 			.baseMipLevel = 0,
 			.levelCount = 1,
 			.baseArrayLayer = 0,
