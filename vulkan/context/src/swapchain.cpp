@@ -137,14 +137,14 @@ namespace vulkan
 		const auto [sharing_mode, queue_family_indices] =
 			[&]() -> std::pair<vk::SharingMode, std::vector<uint32_t>> {
 			std::vector<uint32_t> queue_family_indices;
-			if (device_context.graphics_queue.family_index == device_context.present_queue.family_index)
+			if (device_context.render_queue.family_index == device_context.present_queue.family_index)
 			{
-				queue_family_indices.push_back(device_context.graphics_queue.family_index);
+				queue_family_indices.push_back(device_context.render_queue.family_index);
 				return std::make_pair(vk::SharingMode::eExclusive, std::move(queue_family_indices));
 			}
 			else
 			{
-				queue_family_indices.push_back(device_context.graphics_queue.family_index);
+				queue_family_indices.push_back(device_context.render_queue.family_index);
 				queue_family_indices.push_back(device_context.present_queue.family_index);
 				return std::make_pair(vk::SharingMode::eConcurrent, std::move(queue_family_indices));
 			}

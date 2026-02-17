@@ -30,8 +30,12 @@ namespace vulkan
 		vk::raii::Device device;
 		vulkan::alloc::Allocator allocator;
 
-		Queue graphics_queue;
-		Queue compute_queue;
+		///
+		/// @brief Render queue
+		/// @note This queue supports graphics, compute and transfer operations. Use it as the main queue for
+		/// rendering
+		///
+		Queue render_queue;
 		Queue present_queue;
 
 		///

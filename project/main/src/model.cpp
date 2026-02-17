@@ -146,8 +146,8 @@ ModelBuffer ModelBuffer::create(const vulkan::DeviceContext& context, const Mode
 
 	auto uploader = vulkan::util::Uploader(
 		context.device,
-		*context.graphics_queue.queue,
-		context.graphics_queue.family_index,
+		*context.render_queue.queue,
+		context.render_queue.family_index,
 		context.allocator
 	);
 

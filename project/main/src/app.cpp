@@ -45,7 +45,7 @@ App App::create(const Argument& argument)
 		device_context.device
 			.createCommandPool(
 				{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-				 .queueFamilyIndex = device_context.graphics_queue.family_index}
+				 .queueFamilyIndex = device_context.render_queue.family_index}
 			)
 			.transform_error(Error::from<vk::Result>())
 		| Error::unwrap("Create command pool failed");
@@ -299,7 +299,7 @@ bool App::draw_frame()
 				.setWaitDstStageMask(wait_stages);
 
 		device_context.device.resetFences({*sync.draw_fence});
-		device_context.graphics_queue.queue->submit(graphic_submit_info, *sync.draw_fence);
+		device_context.render_queue.queue->submit(graphic_submit_info, *sync.draw_fence);
 	}
 
 	/* Present */

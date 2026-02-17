@@ -190,7 +190,7 @@ namespace vulkan
 		[[nodiscard]]
 		std::optional<uint32_t> find_queue_family_index(
 			const vk::raii::PhysicalDevice& device,
-			vk::QueueFlagBits required_flags
+			vk::QueueFlags required_flags
 		)
 		{
 			const auto queue_families = device.getQueueFamilyProperties();
@@ -199,24 +199,29 @@ namespace vulkan
 			return std::nullopt;
 		}
 
-		// Returns (graphics, compute, present)
+		// Returns (render, present)
 		[[nodiscard]]
-		std::expected<std::tuple<uint32_t, uint32_t, uint32_t>, Error> test_device_queue_families(
+		std::expected<std::tuple<uint32_t, uint32_t>, Error> find_device_queue_families(
 			const vk::raii::PhysicalDevice& phy_device,
 			const VkSurfaceKHR& surface,
 			const DeviceContext::Config& config [[maybe_unused]]
 		) noexcept
 		{
-			const auto graphics_index = find_queue_family_index(phy_device, vk::QueueFlagBits::eGraphics);
-			const auto compute_index = find_queue_family_index(phy_device, vk::QueueFlagBits::eCompute);
-
-			if (!graphics_index) return Error("No queue family supports graphics operations");
-			if (!compute_index) return Error("No queue family supports compute operations");
+			const auto render_index = find_queue_family_index(
+				phy_device,
+				vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer
+			);
+			if (!render_index)
+				return Error(
+					"Find render queue family failed",
+					"No queue family with graphics & compute & transfer support was found. This is violating "
+					"the vulkan spec."
+				);
 
 			uint32_t present_index;
-			if (phy_device.getSurfaceSupportKHR(*graphics_index, surface) == vk::True)
+			if (phy_device.getSurfaceSupportKHR(*render_index, surface) == vk::True)
 			{
-				present_index = *graphics_index;
+				present_index = *render_index;
 			}
 			else
 			{
@@ -226,20 +231,22 @@ namespace vulkan
 					[&](uint32_t idx) { return phy_device.getSurfaceSupportKHR(idx, surface) == vk::True; }
 				);
 				if (*find == static_cast<uint32_t>(queue_families.size()))
-					return Error("No queue family supports present operations");
+					return Error(
+						"Find present queue family failed",
+						"No queue family with present support was found"
+					);
 
 				present_index = *find;
 			}
 
-			return std::make_tuple(*graphics_index, *compute_index, present_index);
+			return std::make_tuple(*render_index, present_index);
 		}
 
 		struct DeviceCreateResult
 		{
 			vk::raii::PhysicalDevice phy_device;
 			vk::raii::Device device;
-			DeviceContext::Queue graphics_queue;
-			DeviceContext::Queue compute_queue;
+			DeviceContext::Queue render_queue;
 			DeviceContext::Queue present_queue;
 		};
 
@@ -248,8 +255,7 @@ namespace vulkan
 			vk::raii::PhysicalDevice phy_device;
 			vulkan::util::LinkedStruct<vk::PhysicalDeviceFeatures2> features_chain;
 			std::vector<std::string> extensions;
-			uint32_t graphics_family_index;
-			uint32_t compute_family_index;
+			uint32_t render_family_index;
 			uint32_t present_family_index;
 
 			[[nodiscard]]
@@ -258,8 +264,7 @@ namespace vulkan
 
 		std::expected<DeviceCreateResult, Error> DeviceCreateInfo::create_logical_device() const noexcept
 		{
-			const std::set<uint32_t> unique_queue_indices =
-				{graphics_family_index, compute_family_index, present_family_index};
+			const std::set<uint32_t> unique_queue_indices = {render_family_index, present_family_index};
 
 			const float queue_priority = 1.0f;
 
@@ -301,12 +306,10 @@ namespace vulkan
 			return DeviceCreateResult{
 				.phy_device = phy_device,
 				.device = std::move(device),
-				.graphics_queue =
-					{.queue = queues_map.at(graphics_family_index), .family_index = graphics_family_index},
-				.compute_queue =
-					{.queue = queues_map.at(compute_family_index),  .family_index = compute_family_index },
+				.render_queue =
+					{.queue = queues_map.at(render_family_index),  .family_index = render_family_index },
 				.present_queue =
-					{.queue = queues_map.at(present_family_index),  .family_index = present_family_index },
+					{.queue = queues_map.at(present_family_index), .family_index = present_family_index},
 			};
 		}
 
@@ -331,18 +334,16 @@ namespace vulkan
 			auto type_result = test_device_type(phy_device, config);
 			if (!type_result) return type_result.error().forward("Device is not of a suitable type");
 
-			auto queue_families_result = test_device_queue_families(phy_device, context->surface, config);
+			auto queue_families_result = find_device_queue_families(phy_device, context->surface, config);
 			if (!queue_families_result)
 				return queue_families_result.error().forward("Device does not have required queue families");
-			const auto [graphics_family_index, compute_family_index, present_family_index] =
-				*queue_families_result;
+			const auto [render_family_index, present_family_index] = *queue_families_result;
 
 			return DeviceCreateInfo{
 				.phy_device = phy_device,
 				.features_chain = std::move(*features_result),
 				.extensions = std::move(*extensions_result),
-				.graphics_family_index = graphics_family_index,
-				.compute_family_index = compute_family_index,
+				.render_family_index = render_family_index,
 				.present_family_index = present_family_index
 			};
 		}
@@ -465,8 +466,7 @@ namespace vulkan
 			.phy_device = std::move(device.phy_device),
 			.device = std::move(device.device),
 			.allocator = std::move(allocator),
-			.graphics_queue = std::move(device.graphics_queue),
-			.compute_queue = std::move(device.compute_queue),
+			.render_queue = std::move(device.render_queue),
 			.present_queue = std::move(device.present_queue)
 		};
 	}
