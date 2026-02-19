@@ -39,6 +39,10 @@ AlignAfterOpenBracket: BlockIndent
 
 ReflowComments: Always
 
+InsertNewlineAtEOF: true
+KeepEmptyLines:
+  AtEndOfFile: false
+
 BraceWrapping:
   SplitEmptyFunction: false
   SplitEmptyRecord: false

@@ -143,6 +143,7 @@ function _compile_spv(tools, files, debug, include_dirs)
 		"-emit-spirv-directly",
 		"-matrix-layout-column-major",
 		"-fvk-invert-y",
+		"-fvk-use-c-layout"
 	}
 
 	local include_flags = {}

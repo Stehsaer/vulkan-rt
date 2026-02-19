@@ -165,7 +165,7 @@ App::FrameSceneInfo App::update_scene_info(glm::u32vec2 swapchain_extent)
 		* projection.matrix(swapchain_extent.x / static_cast<float>(swapchain_extent.y))
 		* view.matrix();
 
-	return {.view_projection = camera_matrix};
+	return {.view_projection = camera_matrix, .view_pos = view.view_position()};
 }
 
 bool App::draw_frame()
@@ -207,7 +207,7 @@ bool App::draw_frame()
 			.dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-			.image = frame.depth_buffer,
+			.image = frame.depth_buffer.image,
 			.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eDepth)
 		};
 		const auto swapchain_acquire_image_barrier = vk::ImageMemoryBarrier2{
@@ -245,7 +245,7 @@ bool App::draw_frame()
 			.clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
 		};
 		const auto depth_attachment_info = vk::RenderingAttachmentInfo{
-			.imageView = frame.depth_buffer_view,
+			.imageView = frame.depth_buffer.view,
 			.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
 			.loadOp = vk::AttachmentLoadOp::eClear,
 			.storeOp = vk::AttachmentStoreOp::eDontCare,
@@ -263,9 +263,6 @@ bool App::draw_frame()
 		const auto vertex_buffer_lists = std::to_array<vk::Buffer>({model_buffer.vertex_buffer});
 		const auto vertex_buffer_offsets = std::to_array<vk::DeviceSize>({0});
 
-		const auto push_constant =
-			ObjectRenderPipeline::PushConstant{.view_projection = scene_info.view_projection};
-
 		command_buffer.beginRendering(rendering_info);
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.pipeline);
@@ -273,11 +270,9 @@ bool App::draw_frame()
 			command_buffer.setScissor(0, {scissor});
 			command_buffer.bindVertexBuffers(0, vertex_buffer_lists, vertex_buffer_offsets);
 			command_buffer.bindIndexBuffer(model_buffer.index_buffer, 0, vk::IndexType::eUint32);
-			command_buffer.pushConstants(
-				pipeline.layout,
-				vk::ShaderStageFlagBits::eVertex,
-				0,
-				vk::ArrayProxy<const ObjectRenderPipeline::PushConstant>(push_constant)
+			pipeline.set_params(
+				command_buffer,
+				{.view_projection = scene_info.view_projection, .view_pos = scene_info.view_pos}
 			);
 			command_buffer.drawIndexed(model_buffer.vertex_count, 1, 0, 0, 0);
 

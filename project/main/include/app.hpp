@@ -90,6 +90,7 @@ class App
 	struct FrameSceneInfo
 	{
 		glm::mat4 view_projection;
+		glm::vec3 view_pos;
 	};
 
 	void draw_ui();

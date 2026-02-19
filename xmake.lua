@@ -57,6 +57,7 @@ add_defines(
 includes("rule")
 
 -- Targets
+includes("shader")
 includes("lib")
 includes("vulkan")
 includes("project")

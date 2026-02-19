@@ -13,9 +13,9 @@ ObjectRenderPipeline ObjectRenderPipeline::create(
 	/* Pipeline Layout */
 
 	const auto push_constant_range = vk::PushConstantRange{
-		.stageFlags = vk::ShaderStageFlagBits::eVertex,
+		.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 		.offset = 0,
-		.size = sizeof(PushConstant)
+		.size = sizeof(Parameters)
 	};
 
 	const auto pipeline_layout_create_info =
@@ -146,4 +146,17 @@ ObjectRenderPipeline ObjectRenderPipeline::create(
 		| Error::unwrap("Create graphics pipeline failed");
 
 	return ObjectRenderPipeline{.layout = std::move(pipeline_layout), .pipeline = std::move(pipeline)};
+}
+
+void ObjectRenderPipeline::set_params(
+	const vk::raii::CommandBuffer& command_buffer,
+	const Parameters& params
+) const noexcept
+{
+	command_buffer.pushConstants<Parameters>(
+		layout,
+		vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+		0,
+		params
+	);
 }

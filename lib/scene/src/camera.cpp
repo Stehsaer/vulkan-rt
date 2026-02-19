@@ -10,7 +10,20 @@ namespace scene::camera
 		return glm::lookAt(position, look_position, up_direction);
 	}
 
+	glm::dvec3 LookatView::view_position() const noexcept
+	{
+		return position;
+	}
+
 	glm::dmat4 CenterView::matrix() const noexcept
+	{
+		const auto position = view_position();
+		const auto up_direction = glm::dvec3(0.0, 1.0, 0.0);
+
+		return glm::lookAt(position, center_position, up_direction);
+	}
+
+	glm::dvec3 CenterView::view_position() const noexcept
 	{
 		const auto pitch_radians = glm::radians(pitch_degrees);
 		const auto yaw_radians = glm::radians(yaw_degrees);
@@ -21,10 +34,7 @@ namespace scene::camera
 			std::cos(pitch_radians) * std::cos(yaw_radians)
 		};
 
-		const auto position = center_position + direction * distance;
-		const auto up_direction = glm::dvec3(0.0, 1.0, 0.0);
-
-		return glm::lookAt(position, center_position, up_direction);
+		return center_position + direction * distance;
 	}
 
 	CenterView CenterView::mouse_rotate(glm::dvec2 delta_uv, glm::dvec2 rotation_rate) const noexcept

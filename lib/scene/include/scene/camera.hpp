@@ -28,6 +28,9 @@ namespace scene::camera
 		[[nodiscard]]
 		glm::dmat4 matrix() const noexcept;
 
+		[[nodiscard]]
+		glm::dvec3 view_position() const noexcept;
+
 		///
 		/// @brief Generate a new `CenterView` by applying mouse rotation input to the current view
 		/// @note The pitch angle is clamped inside `(-89.9 deg, 89.9 deg)` to prevent gimbal lock,
@@ -102,6 +105,9 @@ namespace scene::camera
 		///
 		[[nodiscard]]
 		glm::dmat4 matrix() const noexcept;
+
+		[[nodiscard]]
+		glm::dvec3 view_position() const noexcept;
 	};
 
 	///

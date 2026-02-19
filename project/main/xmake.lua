@@ -18,3 +18,5 @@ target("main")
 	add_files("shader/*.slang")
 
 	add_packages("rapidobj", "argparse")
+
+	add_slang_deps("lighting", "algorithm")

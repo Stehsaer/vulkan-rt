@@ -1,5 +1,5 @@
 #include "frame-objects.hpp"
-#include "vulkan/util/constants.hpp"
+#include "vulkan/util/frame-buffer.hpp"
 
 FrameSyncPrimitive FrameSyncPrimitive::create(const vulkan::DeviceContext& context)
 {
@@ -28,30 +28,15 @@ FrameRenderResource FrameRenderResource::create(
 	glm::u32vec2 swapchain_extent
 )
 {
-	const auto depth_buffer_create_info = vk::ImageCreateInfo{
-		.imageType = vk::ImageType::e2D,
-		.format = vk::Format::eD32Sfloat,
-		.extent = {.width = swapchain_extent.x, .height = swapchain_extent.y, .depth = 1},
-		.mipLevels = 1,
-		.arrayLayers = 1,
-		.samples = vk::SampleCountFlagBits::e1,
-		.tiling = vk::ImageTiling::eOptimal,
-		.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment
-	};
 	auto depth_buffer =
-		context.allocator.create_image(depth_buffer_create_info, vulkan::alloc::MemoryUsage::GpuOnly)
+		vulkan::FrameBuffer::create_depth(
+			context.device,
+			context.allocator,
+			swapchain_extent,
+			depth_format,
+			depth_usages
+		)
 		| Error::unwrap("Create depth buffer failed");
 
-	const auto depth_buffer_view_create_info = vk::ImageViewCreateInfo{
-		.image = depth_buffer,
-		.viewType = vk::ImageViewType::e2D,
-		.format = depth_buffer_create_info.format,
-		.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eDepth)
-	};
-	auto depth_buffer_view =
-		context.device.createImageView(depth_buffer_view_create_info)
-			.transform_error(Error::from<vk::Result>())
-		| Error::unwrap("Create depth buffer view failed");
-
-	return {.depth_buffer = std::move(depth_buffer), .depth_buffer_view = std::move(depth_buffer_view)};
+	return {.depth_buffer = std::move(depth_buffer)};
 }
