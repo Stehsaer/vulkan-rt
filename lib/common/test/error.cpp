@@ -173,7 +173,7 @@ TEST_CASE("Error collecting")
 	SUBCASE("All success")
 	{
 		const std::vector<std::expected<int, Error>> vec = {10, 20, 30};
-		const auto collected = vec | Error::collect_vec();
+		const auto collected = vec | Error::collect();
 
 		REQUIRE(collected);
 		REQUIRE_EQ(collected->size(), 3);
@@ -185,7 +185,7 @@ TEST_CASE("Error collecting")
 	SUBCASE("With error")
 	{
 		const std::vector<std::expected<int, Error>> vec = {10, Error("Second element error"), 30};
-		const auto collected = vec | Error::collect_vec();
+		const auto collected = vec | Error::collect();
 
 		REQUIRE(!collected);
 		CHECK_EQ(collected.error().message, "Error in vector element");

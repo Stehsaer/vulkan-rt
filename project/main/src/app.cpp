@@ -1,6 +1,6 @@
 #include "app.hpp"
-#include "frame-objects.hpp"
 #include "pipeline.hpp"
+#include "resource.hpp"
 #include "vulkan/context/imgui.hpp"
 #include "vulkan/context/instance.hpp"
 #include "vulkan/context/swapchain.hpp"
@@ -48,6 +48,7 @@ App App::create(const Argument& argument)
 			)
 			.transform_error(Error::from<vk::Result>())
 		| Error::unwrap("Create command pool failed");
+
 	auto command_buffers =
 		device_context.device
 			.allocateCommandBuffers({
@@ -59,25 +60,27 @@ App App::create(const Argument& argument)
 		| Error::unwrap("Allocate command buffers failed")
 		| vulkan::Cycle<vk::raii::CommandBuffer>::into;
 
-	auto pipeline = ObjectRenderPipeline::create(device_context, pipeline_rendering_info);
+	auto resource_layout = resource::Layout::create(device_context);
+	auto pipeline = ObjectRenderPipeline::create(
+		device_context,
+		pipeline_rendering_info,
+		resource_layout.camera_param_layout.layout
+	);
+
 	auto model = Model::load_from_file(argument.model_path) | Error::unwrap("Load model failed");
 	auto model_buffer = ModelBuffer::create(device_context, model);
 
-	auto frame_sync_primitives =
+	auto descriptor_pool =
+		resource::DescriptorPool::create(device_context.device, resource_layout, resource::inflight_frames);
+	auto descriptor_sets =
+		descriptor_pool.get_frame_descriptor_sets() | vulkan::Cycle<resource::FrameDescriptorSet>::into;
+
+	auto sync_primitives =
 		std::views::iota(0zu, 3zu)
 		| std::views::transform([&device_context](size_t) {
-			  return FrameSyncPrimitive::create(device_context);
+			  return resource::SyncPrimitive::create(device_context);
 		  })
-		| std::ranges::to<std::vector>()
-		| vulkan::Cycle<FrameSyncPrimitive>::into;
-
-	auto render_resources =
-		std::views::iota(0zu, 3zu)
-		| std::views::transform([&device_context, &instance_context_config](size_t) {
-			  return FrameRenderResource::create(device_context, instance_context_config.initial_size);
-		  })
-		| std::ranges::to<std::vector>()
-		| vulkan::Cycle<FrameRenderResource>::into;
+		| vulkan::Cycle<resource::SyncPrimitive>::into;
 
 	return App(
 		std::move(instance_context),
@@ -86,10 +89,12 @@ App App::create(const Argument& argument)
 		std::move(imgui_context),
 		std::move(command_pool),
 		std::move(command_buffers),
-		std::move(pipeline),
 		std::move(model_buffer),
-		std::move(frame_sync_primitives),
-		std::move(render_resources)
+		std::move(resource_layout),
+		std::move(pipeline),
+		std::move(descriptor_pool),
+		std::move(descriptor_sets),
+		std::move(sync_primitives)
 	);
 }
 
@@ -122,17 +127,24 @@ App::FramePrepareResult App::prepare_frame()
 	{
 		device_context.device.waitIdle();
 
-		render_resources =
+		frame_resources =
 			std::views::iota(0zu, 3zu)
 			| std::views::transform([this, &swapchain_result](size_t) {
-				  return FrameRenderResource::create(device_context, swapchain_result.extent);
+				  return resource::FrameResource::create(device_context, swapchain_result.extent);
 			  })
-			| std::ranges::to<std::vector>()
-			| vulkan::Cycle<FrameRenderResource>::into;
+			| vulkan::Cycle<resource::FrameResource>::into;
+
+		for (const auto [descriptor_set, frame_pair] :
+			 std::views::zip(frame_descriptor_sets.iterate(), frame_resources.iterate_pair()))
+		{
+			const auto& [prev_resource, current_resource] = frame_pair;
+			descriptor_set.bind_resource(device_context.device, prev_resource, current_resource);
+		}
 	}
 	else
 	{
-		render_resources.cycle();
+		frame_resources.cycle();
+		frame_descriptor_sets.cycle();
 	}
 
 	/* Calculate camera matrix */
@@ -140,7 +152,8 @@ App::FramePrepareResult App::prepare_frame()
 	return FramePrepareResult{
 		.command_buffer = command_buffers.current(),
 		.sync = sync_primitives.current(),
-		.frame = render_resources.current(),
+		.resource = frame_resources.current(),
+		.descriptor_set = frame_descriptor_sets.current(),
 		.swapchain = swapchain_result,
 	};
 }
@@ -189,7 +202,7 @@ bool App::draw_frame()
 		}
 	}
 
-	const auto& [command_buffer, sync, frame, swapchain] = prepare_frame();
+	const auto& [command_buffer, sync, resource, descriptor_set, swapchain] = prepare_frame();
 
 	imgui_context.new_frame() | Error::unwrap("Start new ImGui frame failed");
 	draw_ui();
@@ -200,6 +213,14 @@ bool App::draw_frame()
 
 	command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 	{
+		const auto camera_param = interface::CameraParam{
+			.view_projection = scene_info.view_projection,
+			.position = scene_info.view_pos
+		};
+		resource.camera_param.update(camera_param) | Error::unwrap("Update camera param failed");
+		resource.camera_param.upload(command_buffer);
+
+		const auto camera_param_barrier = resource.camera_param.barrier_after_upload();
 		const auto depth_buffer_acquire_image_barrier = vk::ImageMemoryBarrier2{
 			.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
 			.srcAccessMask = {},
@@ -207,7 +228,7 @@ bool App::draw_frame()
 			.dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-			.image = frame.depth_buffer.image,
+			.image = resource.depth_buffer.image,
 			.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eDepth)
 		};
 		const auto swapchain_acquire_image_barrier = vk::ImageMemoryBarrier2{
@@ -222,7 +243,13 @@ bool App::draw_frame()
 		};
 		const auto acquire_image_barriers =
 			std::to_array({swapchain_acquire_image_barrier, depth_buffer_acquire_image_barrier});
-		command_buffer.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(acquire_image_barriers));
+		const auto buffer_barriers = std::to_array({camera_param_barrier});
+
+		command_buffer.pipelineBarrier2(
+			vk::DependencyInfo{}
+				.setImageMemoryBarriers(acquire_image_barriers)
+				.setBufferMemoryBarriers(buffer_barriers)
+		);
 
 		const auto viewport = vk::Viewport{
 			.x = 0.0f,
@@ -245,7 +272,7 @@ bool App::draw_frame()
 			.clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
 		};
 		const auto depth_attachment_info = vk::RenderingAttachmentInfo{
-			.imageView = frame.depth_buffer.view,
+			.imageView = resource.depth_buffer.view,
 			.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
 			.loadOp = vk::AttachmentLoadOp::eClear,
 			.storeOp = vk::AttachmentStoreOp::eDontCare,
@@ -266,14 +293,17 @@ bool App::draw_frame()
 		command_buffer.beginRendering(rendering_info);
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.pipeline);
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eGraphics,
+				pipeline.layout,
+				0,
+				{descriptor_set.camera_param.descriptor_set},
+				{}
+			);
 			command_buffer.setViewport(0, {viewport});
 			command_buffer.setScissor(0, {scissor});
 			command_buffer.bindVertexBuffers(0, vertex_buffer_lists, vertex_buffer_offsets);
 			command_buffer.bindIndexBuffer(model_buffer.index_buffer, 0, vk::IndexType::eUint32);
-			pipeline.set_params(
-				command_buffer,
-				{.view_projection = scene_info.view_projection, .view_pos = scene_info.view_pos}
-			);
 			command_buffer.drawIndexed(model_buffer.vertex_count, 1, 0, 0, 0);
 
 			imgui_context.draw(command_buffer) | Error::unwrap("Draw ImGui failed");

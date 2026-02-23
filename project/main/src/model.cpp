@@ -1,5 +1,5 @@
 #include "model.hpp"
-#include "common/util/span-util.hpp"
+#include "common/util/span.hpp"
 #include "vulkan/alloc.hpp"
 #include "vulkan/util/uploader.hpp"
 

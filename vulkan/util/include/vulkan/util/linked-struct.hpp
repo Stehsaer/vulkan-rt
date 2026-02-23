@@ -76,16 +76,16 @@ namespace vulkan
 		/// @return Reference to this linker
 		///
 		template <LinkableType T>
-		LinkedStruct& push(const T& new_struct) noexcept
+		auto push(this auto&& self, const T& new_struct) noexcept -> decltype(self)
 		{
 			std::shared_ptr<T> struct_ptr = std::make_shared<T>(new_struct);
 
-			std::visit([&](auto&& ptr) { *ptr = struct_ptr.get(); }, pnext_ptrs.back());
-			pnext_ptrs.push_back(&struct_ptr->pNext);
+			std::visit([&](auto&& ptr) { *ptr = struct_ptr.get(); }, self.pnext_ptrs.back());
+			self.pnext_ptrs.push_back(&struct_ptr->pNext);
 
-			linked_structs.push_back(std::make_any<std::shared_ptr<T>>(struct_ptr));
+			self.linked_structs.push_back(std::make_any<std::shared_ptr<T>>(struct_ptr));
 
-			return *this;
+			return std::forward<decltype(self)>(self);
 		}
 
 		///

@@ -11,16 +11,9 @@ namespace vulkan::alloc
 {
 	enum class MemoryUsage
 	{
-		Unknown = VMA_MEMORY_USAGE_UNKNOWN,
-		GpuOnly = VMA_MEMORY_USAGE_GPU_ONLY,
-		CpuOnly = VMA_MEMORY_USAGE_CPU_ONLY,
-		CpuToGpu = VMA_MEMORY_USAGE_CPU_TO_GPU,
-		GpuToCpu = VMA_MEMORY_USAGE_GPU_TO_CPU,
-		CpuCopy = VMA_MEMORY_USAGE_CPU_COPY,
-		GpuLazilyAllocated = VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED,
-		Auto = VMA_MEMORY_USAGE_AUTO,
-		AutoPreferDevice = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-		AutoPreferHost = VMA_MEMORY_USAGE_AUTO_PREFER_HOST
+		GpuOnly,
+		CpuToGpu,
+		GpuToCpu,
 	};
 
 	struct AllocatorWrapper
@@ -86,6 +79,7 @@ namespace vulkan::alloc
 		Image& operator=(Image&&) = default;
 
 		operator vk::Image() const noexcept { return wrapper->image; }
+		vk::Image operator*() const noexcept { return wrapper->image; }
 	};
 
 	///
@@ -113,6 +107,7 @@ namespace vulkan::alloc
 		Buffer& operator=(Buffer&&) = default;
 
 		operator vk::Buffer() const noexcept { return wrapper->buffer; }
+		vk::Buffer operator*() const noexcept { return wrapper->buffer; }
 
 		///
 		/// @brief Upload data to buffer

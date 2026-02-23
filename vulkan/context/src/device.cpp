@@ -114,21 +114,14 @@ namespace vulkan
 			if (!required_features_vulkan12.has_value()) return required_features_vulkan12.error();
 			if (!required_features_vulkan13.has_value()) return required_features_vulkan13.error();
 
-			auto linked_struct =
-				vulkan::LinkedStruct(vk::PhysicalDeviceFeatures2{.features = *required_features_vulkan10});
-
-			linked_struct.push(*required_features_vulkan11)
+			return vulkan::LinkedStruct(vk::PhysicalDeviceFeatures2{.features = *required_features_vulkan10})
+				.push(*required_features_vulkan11)
 				.push(*required_features_vulkan12)
 				.push(*required_features_vulkan13);
-
-			return linked_struct;
 		}
 
-		constexpr auto mandatory_device_extensions = std::to_array(
-			{vk::KHRSwapchainExtensionName,
-			 vk::KHRSynchronization2ExtensionName,
-			 vk::KHRShaderNonSemanticInfoExtensionName}
-		);
+		constexpr auto mandatory_device_extensions =
+			std::to_array({vk::KHRSwapchainExtensionName, vk::KHRShaderNonSemanticInfoExtensionName});
 
 		[[nodiscard]]
 		std::set<std::string> get_required_extensions(

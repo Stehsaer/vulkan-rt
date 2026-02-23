@@ -4,6 +4,34 @@
 
 namespace vulkan::alloc
 {
+	static VmaAllocationCreateInfo get_allocation_create_info(MemoryUsage usage) noexcept
+	{
+		VmaAllocationCreateInfo create_info = {};
+		create_info.priority = 1.0f;
+
+		switch (usage)
+		{
+		case MemoryUsage::GpuOnly:
+			create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+			create_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+			break;
+
+		case MemoryUsage::CpuToGpu:
+			create_info.usage = VMA_MEMORY_USAGE_AUTO;
+			create_info.flags =
+				VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+			break;
+
+		case MemoryUsage::GpuToCpu:
+			create_info.usage = VMA_MEMORY_USAGE_AUTO;
+			create_info.flags =
+				VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+			break;
+		}
+
+		return create_info;
+	}
+
 	std::expected<Allocator, Error> Allocator::create(
 		const vk::Instance& instance,
 		const vk::PhysicalDevice& physical_device,
@@ -33,9 +61,7 @@ namespace vulkan::alloc
 	) const noexcept
 	{
 		const VkImageCreateInfo create_info_c = create_info;
-
-		VmaAllocationCreateInfo allocation_info = {};
-		allocation_info.usage = static_cast<VmaMemoryUsage>(usage);
+		const auto allocation_info = get_allocation_create_info(usage);
 
 		VkImage image;
 		VmaAllocation allocation;
@@ -60,9 +86,7 @@ namespace vulkan::alloc
 	) const noexcept
 	{
 		const VkBufferCreateInfo create_info_c = create_info;
-
-		VmaAllocationCreateInfo allocation_info = {};
-		allocation_info.usage = static_cast<VmaMemoryUsage>(usage);
+		const auto allocation_info = get_allocation_create_info(usage);
 
 		VkBuffer buffer;
 		VmaAllocation allocation;

@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 #include <span>
 
-#include "common/util/span-util.hpp"
+#include "common/util/span.hpp"
 #include "image/raw-image.hpp"
 
 extern const std::byte _binary_load8_png_start;

@@ -52,7 +52,7 @@ struct Parameters
 	float3 view_pos;
 }
 
-[[vk::push_constant]]
+[[vk::binding(0, 0)]]
 ConstantBuffer<Parameters> camera_info;
 
 [shader("vertex")]

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "argument.hpp"
-#include "frame-objects.hpp"
 #include "model.hpp"
 #include "pipeline.hpp"
+#include "resource.hpp"
 #include "scene/camera.hpp"
 
 #include "vulkan/context/device.hpp"
@@ -41,11 +41,15 @@ class App
 	vk::raii::CommandPool command_pool;
 	vulkan::Cycle<vk::raii::CommandBuffer> command_buffers;
 
-	ObjectRenderPipeline pipeline;
 	ModelBuffer model_buffer;
 
-	vulkan::Cycle<FrameSyncPrimitive> sync_primitives;
-	vulkan::Cycle<FrameRenderResource> render_resources;
+	resource::Layout layout;
+	ObjectRenderPipeline pipeline;
+
+	resource::DescriptorPool descriptor_pool;
+	vulkan::Cycle<resource::FrameDescriptorSet> frame_descriptor_sets;
+	vulkan::Cycle<resource::FrameResource> frame_resources;
+	vulkan::Cycle<resource::SyncPrimitive> sync_primitives;
 
 	scene::camera::CenterView view{
 		.center_position = {0.0, 0.0, 0.0},
@@ -62,10 +66,12 @@ class App
 		vulkan::ImGuiContext imgui_context,
 		vk::raii::CommandPool command_pool,
 		vulkan::Cycle<vk::raii::CommandBuffer> command_buffers,
-		ObjectRenderPipeline pipeline,
 		ModelBuffer model_buffer,
-		vulkan::Cycle<FrameSyncPrimitive> sync_primitives,
-		vulkan::Cycle<FrameRenderResource> render_resources
+		resource::Layout resource_layout,
+		ObjectRenderPipeline pipeline,
+		resource::DescriptorPool descriptor_pool,
+		vulkan::Cycle<resource::FrameDescriptorSet> frame_descriptor_sets,
+		vulkan::Cycle<resource::SyncPrimitive> sync_primitives
 	) noexcept :
 		instance_context(std::move(instance_context)),
 		device_context(std::move(device_context)),
@@ -73,17 +79,21 @@ class App
 		imgui_context(std::move(imgui_context)),
 		command_pool(std::move(command_pool)),
 		command_buffers(std::move(command_buffers)),
-		pipeline(std::move(pipeline)),
 		model_buffer(std::move(model_buffer)),
-		sync_primitives(std::move(sync_primitives)),
-		render_resources(std::move(render_resources))
+		layout(std::move(resource_layout)),
+		pipeline(std::move(pipeline)),
+		descriptor_pool(std::move(descriptor_pool)),
+		frame_descriptor_sets(std::move(frame_descriptor_sets)),
+		frame_resources(std::nullopt),  // Not ready yet
+		sync_primitives(std::move(sync_primitives))
 	{}
 
 	struct FramePrepareResult
 	{
 		const vk::raii::CommandBuffer& command_buffer;
-		const FrameSyncPrimitive& sync;
-		const FrameRenderResource& frame;
+		const resource::SyncPrimitive& sync;
+		const resource::FrameResource& resource;
+		const resource::FrameDescriptorSet& descriptor_set;
 		vulkan::SwapchainContext::Frame swapchain;
 	};
 

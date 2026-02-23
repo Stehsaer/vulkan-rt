@@ -64,10 +64,10 @@
 ///
 /// #### Collecting
 ///
-/// Use `Error::collect_vec()` to collect expected values into a vector, aggregating errors:
+/// Use `Error::collect()` to collect expected values into a vector, aggregating errors:
 /// ```cpp
 /// std::vector<std::expected<T, Error>> results = ...;
-/// std::expected<std::vector<T>, Error> collected = std::move(results) | Error::collect_vec();
+/// std::expected<std::vector<T>, Error> collected = std::move(results) | Error::collect();
 /// ```
 ///
 /// #### Unwrapping
@@ -506,28 +506,31 @@ class Error
 
 #pragma endregion
 
-#pragma region Collecting vectors
+#pragma region Collecting Ranges
 
   private:
 
-	class CollectVectorFunctor
+	class CollectFunctor
 	{
 		std::source_location location;
 
+		template <typename R>
+		using RangeExpectedElementType =
+			std::remove_cvref_t<decltype(*std::declval<std::ranges::range_value_t<R>>())>;
+
 	  public:
 
-		explicit CollectVectorFunctor(std::source_location location) noexcept :
+		explicit CollectFunctor(std::source_location location) noexcept :
 			location(location)
 		{}
 
-		template <typename T>
-		friend std::expected<std::vector<T>, Error> operator|(
-			std::vector<std::expected<T, Error>> range,
-			const CollectVectorFunctor& collect
-		) noexcept
+		template <std::ranges::viewable_range R>
+		friend auto operator|(R range, const CollectFunctor& collect) noexcept
+			-> std::expected<std::vector<RangeExpectedElementType<R>>, Error>
 		{
-			std::vector<T> result;
-			for (const auto [index, item] : range | std::views::enumerate)
+			std::vector<RangeExpectedElementType<R>> result;
+
+			for (const auto [index, item] : range | std::views::as_rvalue | std::views::enumerate)
 			{
 				if (!item)
 					return item.error().forward(
@@ -537,6 +540,7 @@ class Error
 					);
 				result.emplace_back(std::move(*item));
 			}
+
 			return result;
 		}
 	};
@@ -554,11 +558,9 @@ class Error
 	/// @return Collecting functor
 	///
 	[[nodiscard]]
-	static CollectVectorFunctor collect_vec(
-		std::source_location location = std::source_location::current()
-	) noexcept
+	static CollectFunctor collect(std::source_location location = std::source_location::current()) noexcept
 	{
-		return CollectVectorFunctor(location);
+		return CollectFunctor(location);
 	}
 
 #pragma endregion

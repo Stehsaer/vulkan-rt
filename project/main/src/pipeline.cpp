@@ -7,19 +7,14 @@
 
 ObjectRenderPipeline ObjectRenderPipeline::create(
 	const vulkan::DeviceContext& context,
-	const vk::PipelineRenderingCreateInfo& rendering_info
+	const vk::PipelineRenderingCreateInfo& rendering_info,
+	vk::DescriptorSetLayout camera_param_layout
 )
 {
 	/* Pipeline Layout */
 
-	const auto push_constant_range = vk::PushConstantRange{
-		.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
-		.offset = 0,
-		.size = sizeof(Parameters)
-	};
-
 	const auto pipeline_layout_create_info =
-		vk::PipelineLayoutCreateInfo{}.setPushConstantRanges(push_constant_range);
+		vk::PipelineLayoutCreateInfo().setSetLayouts(camera_param_layout);
 	auto pipeline_layout =
 		context.device.createPipelineLayout(pipeline_layout_create_info)
 			.transform_error(Error::from<vk::Result>())
@@ -146,17 +141,4 @@ ObjectRenderPipeline ObjectRenderPipeline::create(
 		| Error::unwrap("Create graphics pipeline failed");
 
 	return ObjectRenderPipeline{.layout = std::move(pipeline_layout), .pipeline = std::move(pipeline)};
-}
-
-void ObjectRenderPipeline::set_params(
-	const vk::raii::CommandBuffer& command_buffer,
-	const Parameters& params
-) const noexcept
-{
-	command_buffer.pushConstants<Parameters>(
-		layout,
-		vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
-		0,
-		params
-	);
 }

@@ -2,6 +2,8 @@
 
 #include <concepts>
 #include <memory>
+#include <ranges>
+#include <type_traits>
 #include <vector>
 
 namespace vulkan
@@ -10,7 +12,7 @@ namespace vulkan
 	/// @brief Helper class for cycling through a list of items, e.g. frame resources
 	/// @details
 	/// #### Creation
-	/// Create a `Cycle<T>` by directly supplying a `std::vector<T>` into the constructor.
+	/// Create a `Cycle<T>` by directly supplying an input range into the constructor.
 	/// ```cpp
 	/// std::vector<vk::raii::Image> images = ...;
 	/// auto image_cycle = Cycle(images);
@@ -19,7 +21,7 @@ namespace vulkan
 	/// Alternatively, a `Cycle<T>` can also be created in chained style.
 	/// ```cpp
 	/// auto image_cycle = foo()
-	/// 	| Error::collect_vec()
+	/// 	| Error::collect()
 	/// 	| Error::unwrap()
 	/// 	| Cycle::into;
 	/// ```
@@ -44,35 +46,37 @@ namespace vulkan
 		Cycle& operator=(const Cycle&) = delete;
 		Cycle& operator=(Cycle&&) = default;
 
-		Cycle(std::vector<T> items) noexcept
+		///
+		/// @brief Create an empty `Cycle`
+		/// @note This is typically used as a placeholder before the actual items are created, e.g. before the
+		/// first acquisition of the swapchain images
+		///
+		Cycle(std::nullopt_t) noexcept {}
+
+		///
+		/// @brief Create a `Cycle` with the given items
+		///
+		/// @param items Items to cycle through
+		///
+		template <std::ranges::input_range Range>
+			requires std::is_constructible_v<T, std::ranges::range_value_t<Range>>
+		explicit Cycle(Range items) noexcept
 		{
-			items.reserve(items.size());
-			for (auto& item : items) this->items.emplace_back(std::make_unique<T>(std::move(item)));
+			this->items.reserve(items.size());
+			for (auto&& item : items) this->items.emplace_back(std::make_unique<T>(std::move(item)));
 		}
 
 		struct Creator
 		{
-			friend Cycle operator|(std::vector<T> items, const Creator&) noexcept
+			template <std::ranges::input_range Range>
+				requires std::is_constructible_v<T, std::ranges::range_value_t<Range>>
+			friend Cycle operator|(Range items, const Creator&) noexcept
 			{
-				return Cycle(std::move(items));
+				return Cycle(std::forward<Range>(items));
 			}
 		};
 
 		static constexpr Creator into{};
-
-		///
-		/// @brief Create a cycle object
-		///
-		/// @param items Items to cycle through
-		/// @return New Cycle instance
-		///
-		[[nodiscard]]
-		static Cycle<T> create(std::vector<T> items) noexcept
-		{
-			std::vector<std::unique_ptr<T>> unique_ptr_items;
-			for (auto& item : items) unique_ptr_items.push_back(std::make_unique<T>(std::move(item)));
-			return Cycle<T>(std::move(unique_ptr_items));
-		}
 
 		///
 		/// @brief Item for current frame
@@ -106,5 +110,34 @@ namespace vulkan
 			items.pop_back();
 			items.insert(items.begin(), std::move(item));
 		}
+
+		///
+		/// @brief Iterate through the items in pairs of `(previous, current)`
+		///
+		/// @return Array of pairs of `(previous, current)`
+		///
+		[[nodiscard]]
+		auto iterate_pair() const noexcept
+		{
+			return std::views::iota(0zu, items.size()) | std::views::transform([this](size_t i) {
+					   const auto& current_item = *items[i];
+					   const auto& prev_item = *items[(i + 1) % items.size()];
+					   return std::make_pair(std::cref(prev_item), std::cref(current_item));
+				   });
+		}
+
+		///
+		/// @brief Iterate through the items
+		///
+		/// @return Array of const references to the items
+		///
+		[[nodiscard]]
+		auto iterate() const noexcept
+		{
+			return items | std::views::transform([](const auto& item) -> const T& { return *item; });
+		}
 	};
+
+	template <std::ranges::input_range Range>
+	Cycle(Range&&) -> Cycle<std::remove_cvref_t<std::ranges::range_value_t<Range>>>;
 }
