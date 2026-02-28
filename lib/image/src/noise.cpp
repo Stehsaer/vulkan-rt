@@ -12,7 +12,7 @@ namespace image
 	static std::unique_ptr<RawImage<Precision::Uint16, Layout::RGBA>> blue_noise_image = nullptr;
 	static std::mutex blue_noise_mutex;
 
-	std::expected<RawImage<Precision::Uint16, Layout::RGBA>, Error> get_blue_noise() noexcept
+	std::expected<RawUnorm16_RGBA, Error> get_blue_noise() noexcept
 	{
 		const std::scoped_lock lock(blue_noise_mutex);
 

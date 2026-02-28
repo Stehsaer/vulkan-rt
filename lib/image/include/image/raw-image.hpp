@@ -155,6 +155,27 @@ namespace image
 		RawImage resize(glm::u32vec2 new_size) const noexcept;
 	};
 
+	///
+	/// @brief Check if the encoded image data is in 16-bit format, without fully decoding it.
+	///
+	/// @param encoded_data Encoded image data
+	///
+	/// @retval true if the image is in 16-bit format
+	/// @retval false if the image is in 8-bit format OR if the format cannot be determined (e.g. unsupported
+	/// format)
+	///
+	bool encoded_data_is_16bit(std::span<const std::byte> encoded_data) noexcept;
+
+	/* Aliases */
+
+	using RawUnorm8_RGBA = RawImage<Precision::Uint8, Layout::RGBA>;
+	using RawUnorm16_RGBA = RawImage<Precision::Uint16, Layout::RGBA>;
+	using RawFloat32_RGBA = RawImage<Precision::Float32, Layout::RGBA>;
+
+	using RawUnorm8_R = RawImage<Precision::Uint8, Layout::Grey>;
+	using RawUnorm16_R = RawImage<Precision::Uint16, Layout::Grey>;
+	using RawFloat32_R = RawImage<Precision::Float32, Layout::Grey>;
+
 	/* Implementations */
 
 	namespace impl

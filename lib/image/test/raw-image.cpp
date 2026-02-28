@@ -158,3 +158,15 @@ TEST_CASE("Image Resize Big")
 	const auto resized_image = decoded_image.resize(glm::u32vec2(128, 128));
 	REQUIRE_EQ(resized_image.size, glm::u32vec2(128, 128));
 }
+
+TEST_CASE("Is 16 bit")
+{
+	const std::span<const std::byte> encoded_data_unorm8(&_binary_load8_png_start, &_binary_load8_png_end);
+	const std::span<const std::byte> encoded_data_unorm16(&_binary_load16_png_start, &_binary_load16_png_end);
+
+	const auto is_16bit_result_8bit = image::encoded_data_is_16bit(encoded_data_unorm8);
+	const auto is_16bit_result_16bit = image::encoded_data_is_16bit(encoded_data_unorm16);
+
+	CHECK_FALSE(is_16bit_result_8bit);
+	CHECK(is_16bit_result_16bit);
+}
