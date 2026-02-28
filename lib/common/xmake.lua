@@ -16,6 +16,9 @@ target("lib.common")
          add_tests(path.basename(testfile), {
              kind = "binary",
              files = {testfile},
+			 runenvs = {
+				["TEMP_DIR"] = os.tmpdir()
+			 },
              packages = "doctest",
              defines = "DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN"
 		})
