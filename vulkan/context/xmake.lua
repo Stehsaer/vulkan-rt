@@ -8,8 +8,6 @@ target("vulkan.context")
 	add_headerfiles("include/(**.hpp)")
 	add_files("src/**.cpp")
 	
-	add_files("asset/*", {rules = "utils.bin2obj"})
-
 	add_packages(
 		"vulkan-hpp",
 		"libsdl3",

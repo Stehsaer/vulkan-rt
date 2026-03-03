@@ -1,6 +1,5 @@
 #include "vulkan/context/imgui.hpp"
 #include "common/util/error.hpp"
-#include "common/util/variant.hpp"
 
 #include <SDL3/SDL_video.h>
 #include <imgui.h>
@@ -10,17 +9,8 @@
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-extern "C"
-{
-	extern const std::byte _binary_proggy_forever_ttf_start[];
-	extern const std::byte _binary_proggy_forever_ttf_end[];
-}
-
 namespace vulkan
 {
-	static const auto proggy_forever_ttf =
-		std::span(&_binary_proggy_forever_ttf_start[0], &_binary_proggy_forever_ttf_end[0]);
-
 	std::expected<ImGuiContext, Error> ImGuiContext::create(
 		const InstanceContext& instance_context,
 		const DeviceContext& device_context,
@@ -42,19 +32,11 @@ namespace vulkan
 		auto& style = ImGui::GetStyle();
 
 		ImGui::StyleColorsDark();
+		style.FontSizeBase = 16.0;
 		style.ScaleAllSizes(main_scale);
 
-		std::vector font_data_temp(std::from_range, proggy_forever_ttf);
-		ImFontConfig font_config;
-		font_config.FontDataOwnedByAtlas = false;
-
-		const auto add_font_result = io.Fonts->AddFontFromMemoryTTF(
-			font_data_temp.data(),
-			proggy_forever_ttf.size_bytes(),
-			0.0f,
-			&font_config
-		);
-		if (add_font_result == nullptr) return Error("Add font failed");
+		io.Fonts->AddFontDefaultVector();
+		io.ConfigDpiScaleFonts = true;
 
 		/* Initialize ImGui SDL3 Backend */
 

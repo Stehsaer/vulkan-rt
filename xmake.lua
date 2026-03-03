@@ -39,7 +39,7 @@ add_requires(
 	"vulkan-memory-allocator 3.3.0"
 )
 
-add_requires("imgui v1.92.5-docking", {configs = {sdl3 = true, vulkan = true, freetype = true}})
+add_requires("imgui v1.92.6-docking", {configs = {sdl3 = true, vulkan = true, freetype = true}})
 
 -- Global defines
 add_defines(
