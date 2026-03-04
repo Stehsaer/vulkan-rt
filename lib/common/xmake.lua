@@ -10,7 +10,7 @@ target("lib.common")
 
 	add_includedirs("include", {public = true})
 	add_headerfiles("include/(**.hpp)")
-	add_packages("vulkan-hpp", {public=true})
+	add_packages("vulkan-hpp", {public = true})
 
 	for _, testfile in ipairs(os.files("test/*.cpp")) do
          add_tests(path.basename(testfile), {

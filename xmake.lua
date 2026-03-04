@@ -34,10 +34,14 @@ add_requires(
 	"rapidobj v1.1",
 
 	-- Vulkan
-	"vulkan-headers 1.4.309+0",
-	"vulkan-hpp 1.4.309",
+	"vulkan-loader",
+	"vulkan-headers",
+	"vulkan-hpp",
 	"vulkan-memory-allocator 3.3.0"
 )
+
+add_requireconfs("**vulkan-hpp", {version = "1.4.309", override = true, system = false})
+add_requireconfs("**vulkan-headers", "**vulkan-loader", {version = "1.4.309+0", override = true, system = false})
 
 add_requires("imgui v1.92.6-docking", {configs = {sdl3 = true, vulkan = true, freetype = true}})
 
