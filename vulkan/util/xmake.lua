@@ -10,7 +10,8 @@ target("vulkan.util")
 	add_packages(
 		"vulkan-hpp", 
 		"libsdl3", 
-		"vulkan-memory-allocator-hpp", 
+		"vulkan-memory-allocator-hpp",
+		"glm",
 		{public=true}
 	)
 	add_deps("lib.common", "vulkan.alloc", {public=true})
