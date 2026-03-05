@@ -1,8 +1,9 @@
 #include "vulkan/context/instance.hpp"
 
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_init.h>
+#include <SDL3/SDL_video.h>
 #include <SDL3/SDL_vulkan.h>
-#include <print>
 #include <set>
 #include <string>
 #include <vulkan/vulkan_raii.hpp>
@@ -43,6 +44,16 @@ namespace vulkan
 	static std::expected<SDL_Window*, Error> create_window(const InstanceContext::Config& config) noexcept
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO)) return Error("Initialize SDL failed", SDL_GetError());
+
+		const char* current_video_driver = SDL_GetCurrentVideoDriver();
+		if (current_video_driver == nullptr)
+			return Error("Get current video driver from SDL failed", SDL_GetError());
+
+		// Wayland is not supported right now due to its swapchain behavior being incompatible with current
+		// logic: FIX ME!
+		if (std::string(current_video_driver) == "wayland")
+			return Error("Wayland is not supported at the moment");
+
 		if (!SDL_Vulkan_LoadLibrary(nullptr)) return Error("Load vulkan library failed", SDL_GetError());
 
 		const auto window_ptr = SDL_CreateWindow(
