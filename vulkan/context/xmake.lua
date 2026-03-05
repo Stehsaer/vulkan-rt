@@ -9,6 +9,7 @@ target("vulkan.context")
 	add_files("src/**.cpp")
 	
 	add_packages(
+		"vulkan-hpp",
 		"libsdl3",
 		"glm",
 		"imgui",
@@ -18,6 +19,5 @@ target("vulkan.context")
 		"lib.common",
 		"vulkan.util",
 		"vulkan.alloc",
-		"vulkan.loader",
 		{public = true}
 	)

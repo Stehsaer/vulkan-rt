@@ -7,8 +7,8 @@ target("vulkan.util")
 	add_headerfiles("include/(**.hpp)")
 	add_files("src/**.cpp")
 
-	add_packages("glm", {public = true})
-	add_deps("lib.common", "vulkan.alloc", "vulkan.loader", {public = true})
+	add_packages("glm", "vulkan-hpp", {public = true})
+	add_deps("lib.common", "vulkan.alloc", {public = true})
 
 	for _, testfile in ipairs(os.files("test/*.cpp")) do
          add_tests(path.basename(testfile), {

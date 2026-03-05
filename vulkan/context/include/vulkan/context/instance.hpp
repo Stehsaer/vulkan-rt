@@ -107,19 +107,19 @@ namespace vulkan
 			const ReadonlyWrapper* operator->() const noexcept { return this; }
 		};
 
-		vk::raii::Context context;
 		std::unique_ptr<WindowWrapper> window;
+		vk::raii::Context context;
 		std::unique_ptr<vk::raii::Instance> instance;
 		std::unique_ptr<SurfaceWrapper> surface;
 
 		explicit InstanceContext(
-			vk::raii::Context context,
 			std::unique_ptr<WindowWrapper> window,
+			vk::raii::Context context,
 			vk::raii::Instance instance,
 			std::unique_ptr<SurfaceWrapper> surface
 		) noexcept :
-			context(std::move(context)),
 			window(std::move(window)),
+			context(std::move(context)),
 			instance(std::make_unique<vk::raii::Instance>(std::move(instance))),
 			surface(std::move(surface))
 		{}

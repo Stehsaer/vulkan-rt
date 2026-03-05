@@ -1,6 +1,7 @@
 #include "impl/common.hpp"
 
 #include <algorithm>
+#include <iterator>
 
 namespace vulkan
 {

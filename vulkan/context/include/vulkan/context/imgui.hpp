@@ -5,6 +5,7 @@
 #include "vulkan/context/instance.hpp"
 
 #include <imgui_impl_sdl3.h>
+#include <variant>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>

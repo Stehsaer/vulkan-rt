@@ -34,24 +34,30 @@ add_requires(
 	"rapidobj v1.1",
 
 	-- Vulkan
-	"vulkan-loader",
 	"vulkan-headers",
 	"vulkan-hpp",
 	"vulkan-memory-allocator 3.3.0"
 )
 
-add_requireconfs("**vulkan-hpp", {version = "1.4.309", override = true, system = false})
-add_requireconfs("**vulkan-headers", "**vulkan-loader", {version = "1.4.309+0", override = true, system = false})
+-- NOTE: temporary fix for imgui. Remove after upstream xrepo gets the fix
+add_repositories("repo repo")
+add_requires("imgui-vk-noproto v1.92.6-docking", {configs = {sdl3 = true, freetype = true, vulkan_no_proto = true}, alias = "imgui"})
 
-add_requires("imgui v1.92.6-docking", {configs = {sdl3 = true, vulkan = true, freetype = true}})
+add_requireconfs("**vulkan-hpp", {version = "1.4.309", override = true, system = false})
+add_requireconfs("**vulkan-headers", {version = "1.4.309+0", override = true, system = false})
 
 -- Global defines
 add_defines(
 	"GLM_FORCE_DEPTH_ZERO_TO_ONE", 
 	"GLM_ENABLE_EXPERIMENTAL"
 )
-add_defines("TINYGLTF_NOEXCEPTION")
+
+-- Vulkan specific
 add_defines(
+	"VK_NO_PROTOTYPES",
+	"VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1",
+	"VMA_DYNAMIC_VULKAN_FUNCTIONS",
+	"VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0",
 	"VULKAN_HPP_NO_EXCEPTIONS", 
 	"VULKAN_HPP_NO_STRUCT_CONSTRUCTORS", 
 	"VULKAN_HPP_ASSERT_ON_RESULT=;"

@@ -11,6 +11,12 @@
 
 namespace vulkan
 {
+	static PFN_vkVoidFunction imgui_load_vk_function(const char* function_name, void* user_data) noexcept
+	{
+		auto& instance_ref = *reinterpret_cast<std::reference_wrapper<const InstanceContext>*>(user_data);
+		return instance_ref.get()->instance.getProcAddr(function_name);
+	}
+
 	std::expected<ImGuiContext, Error> ImGuiContext::create(
 		const InstanceContext& instance_context,
 		const DeviceContext& device_context,
@@ -47,6 +53,10 @@ namespace vulkan
 		}
 
 		/* Initialize ImGui Vulkan Backend */
+
+		if (auto instance_ref = std::cref(instance_context);
+			!ImGui_ImplVulkan_LoadFunctions(api_version, imgui_load_vk_function, &instance_ref))
+			return Error("Load functions for ImGui vulkan backend failed");
 
 		const auto pipeline_info = std::visit(
 			[](const auto& scheme) -> ImGui_ImplVulkan_PipelineInfo {

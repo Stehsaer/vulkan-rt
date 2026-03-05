@@ -141,8 +141,11 @@ namespace vulkan
 		) noexcept
 		{
 			const auto extensions = get_required_extensions(config);
-			const auto available_extensions = phy_device.enumerateDeviceExtensionProperties()
-				| std::views::transform(&vk::ExtensionProperties::extensionName)
+			const auto available_extensions =
+				phy_device.enumerateDeviceExtensionProperties()
+				| std::views::transform([](const vk::ExtensionProperties& properties) {
+					  return std::string(properties.extensionName.data());
+				  })
 				| std::ranges::to<std::set<std::string>>();
 
 			const auto unsupported_extensions = extensions - available_extensions;
@@ -418,10 +421,10 @@ namespace vulkan
 						  const auto& [device, result] = test_result;
 						  const auto properties = device.getProperties();
 						  return std::format(
-							  "Device: {}, Type: {}, Suitability check error: {}",
+							  "Device: {:s}, Type: {}, Suitability check error: {}",
 							  properties.deviceName,
 							  properties.deviceType,
-							  result.error().message
+							  std::format("{}", result.error().chain())
 						  );
 					  })
 					| std::views::join

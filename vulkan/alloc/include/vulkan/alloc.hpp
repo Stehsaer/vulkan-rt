@@ -5,6 +5,7 @@
 #include <memory>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
 namespace vulkan::alloc
@@ -160,9 +161,9 @@ namespace vulkan::alloc
 		///
 		[[nodiscard]]
 		static std::expected<Allocator, Error> create(
-			const vk::Instance& instance,
-			const vk::PhysicalDevice& physical_device,
-			const vk::Device& device
+			const vk::raii::Instance& instance,
+			const vk::raii::PhysicalDevice& physical_device,
+			const vk::raii::Device& device
 		) noexcept;
 
 		///

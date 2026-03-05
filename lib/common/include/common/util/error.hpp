@@ -650,7 +650,5 @@ class std::formatter<Error, char>
 			return it;
 		}
 		}
-
-		throw std::format_error("Invalid format specifier");
 	}
 };

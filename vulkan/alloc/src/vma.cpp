@@ -33,19 +33,24 @@ namespace vulkan::alloc
 	}
 
 	std::expected<Allocator, Error> Allocator::create(
-		const vk::Instance& instance,
-		const vk::PhysicalDevice& physical_device,
-		const vk::Device& device
+		const vk::raii::Instance& instance,
+		const vk::raii::PhysicalDevice& physical_device,
+		const vk::raii::Device& device
 	) noexcept
 	{
 		auto create_info = VmaAllocatorCreateInfo{};
 
+		auto vma_vulkan_funcs = VmaVulkanFunctions{};
+		vma_vulkan_funcs.vkGetInstanceProcAddr = instance.getDispatcher()->vkGetInstanceProcAddr;
+		vma_vulkan_funcs.vkGetDeviceProcAddr = device.getDispatcher()->vkGetDeviceProcAddr;
+
 		create_info.vulkanApiVersion = vk::ApiVersion14;
 		// create_info.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
 
-		create_info.physicalDevice = physical_device;
-		create_info.device = device;
-		create_info.instance = instance;
+		create_info.physicalDevice = *physical_device;
+		create_info.device = *device;
+		create_info.instance = *instance;
+		create_info.pVulkanFunctions = &vma_vulkan_funcs;
 
 		VmaAllocator allocator;
 		const auto result = vmaCreateAllocator(&create_info, &allocator);

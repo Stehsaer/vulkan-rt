@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_vulkan.h>
+#include <print>
 #include <set>
 #include <string>
 #include <vulkan/vulkan_raii.hpp>
@@ -42,6 +43,7 @@ namespace vulkan
 	static std::expected<SDL_Window*, Error> create_window(const InstanceContext::Config& config) noexcept
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO)) return Error("Initialize SDL failed", SDL_GetError());
+		if (!SDL_Vulkan_LoadLibrary(nullptr)) return Error("Load vulkan library failed", SDL_GetError());
 
 		const auto window_ptr = SDL_CreateWindow(
 			config.title.c_str(),
@@ -73,8 +75,11 @@ namespace vulkan
 
 		std::set<std::string> requested_layers = get_instance_layers(config);
 		{
-			const auto available_layers = context.enumerateInstanceLayerProperties()
-				| std::views::transform(&vk::LayerProperties::layerName)
+			const auto available_layers =
+				context.enumerateInstanceLayerProperties()
+				| std::views::transform([](const vk::LayerProperties& layer_properties) {
+					  return std::string(layer_properties.layerName.data());
+				  })
 				| std::ranges::to<std::set<std::string>>();
 
 			const auto unsupported_layers = requested_layers - available_layers;
@@ -92,8 +97,11 @@ namespace vulkan
 		const auto instance_extensions = std::move(*instance_extensions_result);
 		requested_extensions.insert_range(instance_extensions);
 		{
-			const auto available_extensions = context.enumerateInstanceExtensionProperties()
-				| std::views::transform(&vk::ExtensionProperties::extensionName)
+			const auto available_extensions =
+				context.enumerateInstanceExtensionProperties()
+				| std::views::transform([](const vk::ExtensionProperties& properties) {
+					  return std::string(properties.extensionName.data());
+				  })
 				| std::ranges::to<std::set<std::string>>();
 
 			const auto unsupported_extensions = requested_extensions - available_extensions;
@@ -125,15 +133,16 @@ namespace vulkan
 
 	std::expected<InstanceContext, Error> InstanceContext::create(const Config& config) noexcept
 	{
-		/* Step 1: Vulkan Context */
-
-		vk::raii::Context context;
-
-		/* Step 2: SDL Initialization */
+		/* Step 1: SDL Initialization */
 
 		auto window_ptr_result = create_window(config);
 		if (!window_ptr_result) return window_ptr_result.error().forward("Create window failed");
 		auto window = std::make_unique<WindowWrapper>(*window_ptr_result);
+
+		/* Step 2: Vulkan Context */
+
+		vk::raii::Context context =
+			reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr());
 
 		/* Step 3: Instance */
 
@@ -149,8 +158,8 @@ namespace vulkan
 		auto surface = std::make_unique<SurfaceWrapper>(*instance, surface_raw);
 
 		return InstanceContext(
-			std::move(context),
 			std::move(window),
+			std::move(context),
 			std::move(instance),
 			std::move(surface)
 		);
