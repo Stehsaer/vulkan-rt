@@ -39,9 +39,7 @@ add_requires(
 	"vulkan-memory-allocator 3.3.0"
 )
 
--- NOTE: temporary fix for imgui. Remove after upstream xrepo gets the fix
-add_repositories("repo repo")
-add_requires("imgui-vk-noproto v1.92.6-docking", {configs = {sdl3 = true, freetype = true, vulkan_no_proto = true}, alias = "imgui"})
+add_requires("imgui v1.92.6-docking", {configs = {sdl3 = true, freetype = true, vulkan_no_proto = true}})
 
 add_requireconfs("**vulkan-hpp", {version = "1.4.309", override = true, system = false})
 add_requireconfs("**vulkan-headers", {version = "1.4.309+0", override = true, system = false})
