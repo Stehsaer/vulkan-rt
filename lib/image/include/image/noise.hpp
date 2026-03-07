@@ -1,6 +1,6 @@
 #pragma once
 
-#include "raw-image.hpp"
+#include "image.hpp"
 
 namespace image
 {
@@ -10,5 +10,5 @@ namespace image
 	/// @return Blue noise image or an error
 	///
 	[[nodiscard]]
-	std::expected<RawUnorm16_RGBA, Error> get_blue_noise() noexcept;
+	std::expected<Image<Format::Unorm16, Layout::RGBA>, Error> get_blue_noise() noexcept;
 }

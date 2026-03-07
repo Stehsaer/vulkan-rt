@@ -8,13 +8,13 @@
 
 namespace image
 {
-	static std::array<RawPixel<Precision::Uint8, Layout::RGBA>, 16> slice_block(
-		const RawImage<Precision::Uint8, Layout::RGBA>& raw_image,
+	static std::array<Pixel<Format::Unorm8, Layout::RGBA>, 16> slice_block(
+		const Image<Format::Unorm8, Layout::RGBA>& raw_image,
 		glm::u32vec2 block
 	) noexcept
 	{
-		std::array<RawPixel<Precision::Uint8, Layout::RGBA>, 16> pixel_block;
-		const std::span<RawPixel<Precision::Uint8, Layout::RGBA>> pixel_block_span(pixel_block);
+		std::array<Pixel<Format::Unorm8, Layout::RGBA>, 16> pixel_block;
+		const std::span<Pixel<Format::Unorm8, Layout::RGBA>> pixel_block_span(pixel_block);
 
 		const auto dst_row0 = pixel_block_span.subspan(0, 4);
 		const auto dst_row1 = pixel_block_span.subspan(4, 4);
@@ -39,7 +39,7 @@ namespace image
 	}
 
 	void BlockCompressedImage::iterate_blocks(
-		const RawImage<Precision::Uint8, Layout::RGBA>& raw_image,
+		const Image<Format::Unorm8, Layout::RGBA>& raw_image,
 		auto process_func
 	) noexcept
 	{
@@ -56,7 +56,7 @@ namespace image
 
 	static void encode_bc3_block(
 		CompressionBlock& block,
-		const std::array<RawPixel<Precision::Uint8, Layout::RGBA>, 16>& pixel_block
+		const std::array<Pixel<Format::Unorm8, Layout::RGBA>, 16>& pixel_block
 	)
 	{
 		stb_compress_dxt_block(
@@ -69,7 +69,7 @@ namespace image
 
 	static void encode_bc5_block(
 		CompressionBlock& block,
-		const std::array<RawPixel<Precision::Uint8, Layout::RGBA>, 16>& pixel_block
+		const std::array<Pixel<Format::Unorm8, Layout::RGBA>, 16>& pixel_block
 	)
 	{
 		rgbcx::encode_bc5(
@@ -79,7 +79,7 @@ namespace image
 	}
 
 	std::expected<BlockCompressedImage, Error> BlockCompressedImage::encode_bc3(
-		const RawImage<Precision::Uint8, Layout::RGBA>& raw_image
+		const Image<Format::Unorm8, Layout::RGBA>& raw_image
 	) noexcept
 	{
 		BlockCompressedImage bc3_image(BCnFormat::BC3, raw_image.size / uint32_t(4));
@@ -88,7 +88,7 @@ namespace image
 	}
 
 	std::expected<BlockCompressedImage, Error> BlockCompressedImage::encode_bc5(
-		const RawImage<Precision::Uint8, Layout::RGBA>& raw_image
+		const Image<Format::Unorm8, Layout::RGBA>& raw_image
 	) noexcept
 	{
 		BlockCompressedImage bc5_image(BCnFormat::BC5, raw_image.size / uint32_t(4));
@@ -97,7 +97,7 @@ namespace image
 	}
 
 	std::expected<BlockCompressedImage, Error> BlockCompressedImage::encode_bc7(
-		const RawImage<Precision::Uint8, Layout::RGBA>& raw_image
+		const Image<Format::Unorm8, Layout::RGBA>& raw_image
 	) noexcept
 	{
 		static std::once_flag bc7_init_flag;
@@ -113,7 +113,7 @@ namespace image
 		const auto encode_bc7_block =
 			[&params](
 				CompressionBlock& block,
-				const std::array<RawPixel<Precision::Uint8, Layout::RGBA>, 16>& pixel_block
+				const std::array<Pixel<Format::Unorm8, Layout::RGBA>, 16>& pixel_block
 			) {
 				bc7enc_compress_block(
 					reinterpret_cast<uint8_t*>(block.data.data()),
@@ -127,7 +127,7 @@ namespace image
 	}
 
 	std::expected<BlockCompressedImage, Error> BlockCompressedImage::encode(
-		const RawImage<Precision::Uint8, Layout::RGBA>& raw_image,
+		const Image<Format::Unorm8, Layout::RGBA>& raw_image,
 		BCnFormat format
 	) noexcept
 	{

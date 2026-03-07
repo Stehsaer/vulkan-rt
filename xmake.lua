@@ -28,7 +28,6 @@ add_requires(
 
 	-- Graphics
 	"libsdl3 3.4.0",
-	"stb 2025.03.14",
 	"glm 1.0.2",
 	"meshoptimizer v0.25",
 	"rapidobj v1.1",

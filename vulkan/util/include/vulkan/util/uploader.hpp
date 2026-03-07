@@ -11,6 +11,7 @@ namespace vulkan
 	///
 	/// @brief Simple uploader for buffer and image data using staging buffers.
 	/// @note The implementation isn't the most optimized, but good enough for initializing resources.
+	/// @warning Do not upload the same subresource layer of the same image multiple times in one execution
 	/// @details
 	/// #### Add upload task
 	/// Add upload tasks by filling in `BufferUploadParam` and `ImageUploadParam` and calling `upload_buffer`

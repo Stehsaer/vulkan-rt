@@ -1,0 +1,51 @@
+#pragma once
+
+#include <print>  // IWYU pragma: keep
+
+#define EXPECT_FAIL(arg)                                                                                     \
+	if (!(arg).has_value())                                                                                  \
+	{                                                                                                        \
+		std::println(std::cout, "Expected Error: {0:msg}: {0:detail}", (arg).error());                       \
+	}                                                                                                        \
+	REQUIRE_FALSE((arg).has_value());
+
+#define EXPECT_SUCCESS(arg)                                                                                  \
+	if (!(arg).has_value())                                                                                  \
+	{                                                                                                        \
+		std::println(std::cout, "Unexpected Error: {0:msg}: {0:detail}", (arg).error());                     \
+	}                                                                                                        \
+	REQUIRE((arg).has_value());
+
+#define CHECK_VEC4_EQ(val, x_comp, y_comp, z_comp, w_comp)                                                   \
+	CHECK_EQ((val).x, x_comp);                                                                               \
+	CHECK_EQ((val).y, y_comp);                                                                               \
+	CHECK_EQ((val).z, z_comp);                                                                               \
+	CHECK_EQ((val).w, w_comp);
+
+#define CHECK_VEC3_EQ(val, x_comp, y_comp, z_comp)                                                           \
+	CHECK_EQ((val).x, x_comp);                                                                               \
+	CHECK_EQ((val).y, y_comp);                                                                               \
+	CHECK_EQ((val).z, z_comp);
+
+#define CHECK_VEC2_EQ(val, x_comp, y_comp)                                                                   \
+	CHECK_EQ((val).x, x_comp);                                                                               \
+	CHECK_EQ((val).y, y_comp);
+
+#define CHECK_VEC1_EQ CHECK_EQ
+
+#define REQUIRE_VEC4_EQ(val, x_comp, y_comp, z_comp, w_comp)                                                 \
+	REQUIRE_EQ((val).x, x_comp);                                                                             \
+	REQUIRE_EQ((val).y, y_comp);                                                                             \
+	REQUIRE_EQ((val).z, z_comp);                                                                             \
+	REQUIRE_EQ((val).w, w_comp);
+
+#define REQUIRE_VEC3_EQ(val, x_comp, y_comp, z_comp)                                                         \
+	REQUIRE_EQ((val).x, x_comp);                                                                             \
+	REQUIRE_EQ((val).y, y_comp);                                                                             \
+	REQUIRE_EQ((val).z, z_comp);
+
+#define REQUIRE_VEC2_EQ(val, x_comp, y_comp)                                                                 \
+	REQUIRE_EQ((val).x, x_comp);                                                                             \
+	REQUIRE_EQ((val).y, y_comp);
+
+#define REQUIRE_VEC1_EQ REQUIRE_EQ

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "image/common.hpp"
-#include "image/raw-image.hpp"
+#include "image/image.hpp"
 
 #include <expected>
 
@@ -33,7 +33,7 @@ namespace image
 	struct BlockCompressedImage : public Container<CompressionBlock>
 	{
 		BCnFormat format;
-		glm::u32vec2 block_dim;
+		glm::u32vec2 block_dim;  // Dimension, in 4x4 pixel blocks
 
 		///
 		/// @brief Encode a raw image into a BCn compressed image
@@ -44,7 +44,7 @@ namespace image
 		///
 		[[nodiscard]]
 		static std::expected<BlockCompressedImage, Error> encode(
-			const RawImage<Precision::Uint8, Layout::RGBA>& raw_image,
+			const Image<Format::Unorm8, Layout::RGBA>& raw_image,
 			BCnFormat format
 		) noexcept;
 
@@ -68,24 +68,24 @@ namespace image
 		}
 
 		// (Helper) Iterate over all blocks in the image and apply a function
-		void iterate_blocks(const RawImage<Precision::Uint8, Layout::RGBA>& raw_image, auto func) noexcept;
+		void iterate_blocks(const Image<Format::Unorm8, Layout::RGBA>& raw_image, auto func) noexcept;
 
 		/// (Helper) Encode a single BC3 block
 		[[nodiscard]]
 		static std::expected<BlockCompressedImage, Error> encode_bc3(
-			const RawImage<Precision::Uint8, Layout::RGBA>& raw_image
+			const Image<Format::Unorm8, Layout::RGBA>& raw_image
 		) noexcept;
 
 		// (Helper) Encode a single BC5 block
 		[[nodiscard]]
 		static std::expected<BlockCompressedImage, Error> encode_bc5(
-			const RawImage<Precision::Uint8, Layout::RGBA>& raw_image
+			const Image<Format::Unorm8, Layout::RGBA>& raw_image
 		) noexcept;
 
 		// (Helper) Encode a single BC7 block
 		[[nodiscard]]
 		static std::expected<BlockCompressedImage, Error> encode_bc7(
-			const RawImage<Precision::Uint8, Layout::RGBA>& raw_image
+			const Image<Format::Unorm8, Layout::RGBA>& raw_image
 		) noexcept;
 
 	  public:

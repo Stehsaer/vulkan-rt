@@ -1,4 +1,4 @@
-#include "image/raw-image.hpp"
+#include "image/impl/decode.hpp"
 #include "common/util/error.hpp"
 
 #include <stb_image.h>
@@ -6,7 +6,7 @@
 namespace image::impl
 {
 	template <>
-	std::expected<DecodeResult<Precision::Uint8>, Error> decode_img<Precision::Uint8>(
+	std::expected<DecodeResult<Format::Unorm8>, Error> decode_img<Format::Unorm8>(
 		std::span<const std::byte> encoded_data,
 		Layout layout
 	) noexcept
@@ -24,7 +24,7 @@ namespace image::impl
 		);
 		if (data == nullptr) return Error(std::format("Decode image failed: {}", stbi_failure_reason()));
 
-		auto result = DecodeResult<Precision::Uint8>{
+		auto result = DecodeResult<Format::Unorm8>{
 			.data = std::vector<uint8_t>(std::from_range, std::span(data, width * height * desired_channels)),
 			.width = static_cast<uint32_t>(width),
 			.height = static_cast<uint32_t>(height)
@@ -34,7 +34,7 @@ namespace image::impl
 	}
 
 	template <>
-	std::expected<DecodeResult<Precision::Uint16>, Error> decode_img<Precision::Uint16>(
+	std::expected<DecodeResult<Format::Unorm16>, Error> decode_img<Format::Unorm16>(
 		std::span<const std::byte> encoded_data,
 		Layout layout
 	) noexcept
@@ -52,7 +52,7 @@ namespace image::impl
 		);
 		if (data == nullptr) return Error(std::format("Decode image failed: {}", stbi_failure_reason()));
 
-		auto result = DecodeResult<Precision::Uint16>{
+		auto result = DecodeResult<Format::Unorm16>{
 			.data =
 				std::vector<uint16_t>(std::from_range, std::span(data, width * height * desired_channels)),
 			.width = static_cast<uint32_t>(width),
@@ -64,7 +64,7 @@ namespace image::impl
 	}
 
 	template <>
-	std::expected<DecodeResult<Precision::Float32>, Error> decode_img<Precision::Float32>(
+	std::expected<DecodeResult<Format::Float32>, Error> decode_img<Format::Float32>(
 		std::span<const std::byte> encoded_data,
 		Layout layout
 	) noexcept
@@ -82,7 +82,7 @@ namespace image::impl
 		);
 		if (data == nullptr) return Error(std::format("Decode image failed: {}", stbi_failure_reason()));
 
-		auto result = DecodeResult<Precision::Float32>{
+		auto result = DecodeResult<Format::Float32>{
 			.data = std::vector<float>(std::from_range, std::span(data, width * height * desired_channels)),
 			.width = static_cast<uint32_t>(width),
 			.height = static_cast<uint32_t>(height)
@@ -90,18 +90,5 @@ namespace image::impl
 		stbi_image_free(data);
 
 		return result;
-	}
-}
-
-namespace image
-{
-	bool encoded_data_is_16bit(std::span<const std::byte> encoded_data) noexcept
-	{
-		const auto result = stbi_is_16_bit_from_memory(
-			reinterpret_cast<const stbi_uc*>(encoded_data.data()),
-			int(encoded_data.size())
-		);
-
-		return result != 0;
 	}
 }

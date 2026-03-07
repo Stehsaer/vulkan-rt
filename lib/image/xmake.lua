@@ -1,6 +1,7 @@
 -- Third-party libraries
 includes("package/*.lua")
 add_requires("stb_dxt", "bc7enc")
+add_requires("stb 2025.03.14")
 
 -- Image decoding library
 target("lib.image")
