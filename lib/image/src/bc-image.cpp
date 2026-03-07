@@ -38,14 +38,14 @@ namespace image
 		return pixel_block;
 	}
 
-	void BlockCompressedImage::iterate_blocks(
+	void BCnImage::iterate_blocks(
 		const Image<Format::Unorm8, Layout::RGBA>& raw_image,
 		auto process_func
 	) noexcept
 	{
 		for (const auto [y, x] : std::views::cartesian_product(
-				 std::views::iota(uint32_t(0), block_dim.y),
-				 std::views::iota(uint32_t(0), block_dim.x)
+				 std::views::iota(uint32_t(0), size.y),
+				 std::views::iota(uint32_t(0), size.x)
 			 ))
 		{
 			const glm::u32vec2 coord{x, y};
@@ -55,7 +55,7 @@ namespace image
 	}
 
 	static void encode_bc3_block(
-		CompressionBlock& block,
+		BCnBlock& block,
 		const std::array<Pixel<Format::Unorm8, Layout::RGBA>, 16>& pixel_block
 	)
 	{
@@ -68,7 +68,7 @@ namespace image
 	}
 
 	static void encode_bc5_block(
-		CompressionBlock& block,
+		BCnBlock& block,
 		const std::array<Pixel<Format::Unorm8, Layout::RGBA>, 16>& pixel_block
 	)
 	{
@@ -78,31 +78,31 @@ namespace image
 		);
 	}
 
-	std::expected<BlockCompressedImage, Error> BlockCompressedImage::encode_bc3(
+	std::expected<BCnImage, Error> BCnImage::encode_bc3(
 		const Image<Format::Unorm8, Layout::RGBA>& raw_image
 	) noexcept
 	{
-		BlockCompressedImage bc3_image(BCnFormat::BC3, raw_image.size / uint32_t(4));
+		BCnImage bc3_image(BCnFormat::BC3, raw_image.size / uint32_t(4));
 		bc3_image.iterate_blocks(raw_image, encode_bc3_block);
 		return bc3_image;
 	}
 
-	std::expected<BlockCompressedImage, Error> BlockCompressedImage::encode_bc5(
+	std::expected<BCnImage, Error> BCnImage::encode_bc5(
 		const Image<Format::Unorm8, Layout::RGBA>& raw_image
 	) noexcept
 	{
-		BlockCompressedImage bc5_image(BCnFormat::BC5, raw_image.size / uint32_t(4));
+		BCnImage bc5_image(BCnFormat::BC5, raw_image.size / uint32_t(4));
 		bc5_image.iterate_blocks(raw_image, encode_bc5_block);
 		return bc5_image;
 	}
 
-	std::expected<BlockCompressedImage, Error> BlockCompressedImage::encode_bc7(
+	std::expected<BCnImage, Error> BCnImage::encode_bc7(
 		const Image<Format::Unorm8, Layout::RGBA>& raw_image
 	) noexcept
 	{
 		static std::once_flag bc7_init_flag;
 
-		BlockCompressedImage bc7_image(BCnFormat::BC7, raw_image.size / uint32_t(4));
+		BCnImage bc7_image(BCnFormat::BC7, raw_image.size / uint32_t(4));
 
 		std::call_once(bc7_init_flag, [] { bc7enc_compress_block_init(); });
 
@@ -112,7 +112,7 @@ namespace image
 
 		const auto encode_bc7_block =
 			[&params](
-				CompressionBlock& block,
+				BCnBlock& block,
 				const std::array<Pixel<Format::Unorm8, Layout::RGBA>, 16>& pixel_block
 			) {
 				bc7enc_compress_block(
@@ -126,7 +126,7 @@ namespace image
 		return bc7_image;
 	}
 
-	std::expected<BlockCompressedImage, Error> BlockCompressedImage::encode(
+	std::expected<BCnImage, Error> BCnImage::encode(
 		const Image<Format::Unorm8, Layout::RGBA>& raw_image,
 		BCnFormat format
 	) noexcept

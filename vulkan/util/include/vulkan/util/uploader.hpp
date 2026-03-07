@@ -1,9 +1,14 @@
 #pragma once
 
 #include "common/util/error.hpp"
+#include "common/util/span.hpp"
+#include "image/bc-image.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
 #include "vulkan/alloc.hpp"
 
 #include <vector>
+#include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace vulkan
@@ -37,13 +42,13 @@ namespace vulkan
 			allocator(allocator)
 		{}
 
-		struct BufferUploadParam
+		struct BufferUploadInfo
 		{
 			vk::Buffer dst_buffer;            // Destination buffer for uploading
 			std::span<const std::byte> data;  // Data to upload
 		};
 
-		struct ImageUploadParam
+		struct ImageUploadInfo
 		{
 			vk::Image dst_image;                            // Destination image for uploading
 			std::span<const std::byte> data;                // Data to upload
@@ -52,6 +57,57 @@ namespace vulkan
 			vk::ImageSubresourceLayers subresource_layers;  // Subresource layers to upload to
 			vk::Extent3D image_extent;                      // Extent of the image to upload
 			vk::ImageLayout dst_layout;                     // Final layout of the image after upload
+
+			template <image::Format T, image::Layout L>
+			static ImageUploadInfo color_image(
+				vk::Image dst_image,
+				const image::Image<T, L>& src_image,
+				uint32_t mipmap_level,
+				vk::ImageLayout dst_layout = vk::ImageLayout::eShaderReadOnlyOptimal
+			) noexcept
+			{
+				const auto layer = vk::ImageSubresourceLayers{
+					.aspectMask = vk::ImageAspectFlagBits::eColor,
+					.mipLevel = mipmap_level,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				};
+
+				return {
+					.dst_image = dst_image,
+					.data = util::as_bytes(src_image.data).buffer_row_length = src_image.size.x,
+					.buffer_image_height = src_image.size.y,
+					.subresource_layers = layer,
+					.image_extent = {.width = src_image.size.x, .height = src_image.size.y, .depth = 1},
+					.dst_layout = dst_layout
+				};
+			}
+
+			static ImageUploadInfo bcn_image(
+				vk::Image dst_image,
+				const image::BCnImage& src_image,
+				uint32_t mipmap_level,
+				vk::ImageLayout dst_layout = vk::ImageLayout::eShaderReadOnlyOptimal
+			) noexcept
+			{
+				const auto layer = vk::ImageSubresourceLayers{
+					.aspectMask = vk::ImageAspectFlagBits::eColor,
+					.mipLevel = mipmap_level,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				};
+
+				return {
+					.dst_image = dst_image,
+					.data = util::as_bytes(src_image.data),
+					.buffer_row_length = src_image.size.x,
+					.buffer_image_height = src_image.size.y,
+					.subresource_layers = layer,
+					.image_extent =
+						{.width = src_image.size.x * 4, .height = src_image.size.y * 4, .depth = 1},
+					.dst_layout = dst_layout
+				};
+			}
 		};
 
 		///
@@ -64,7 +120,7 @@ namespace vulkan
 		/// @return `void` on success, `Error` on failure
 		///
 		[[nodiscard]]
-		std::expected<void, Error> upload_buffer(const BufferUploadParam& param) noexcept;
+		std::expected<void, Error> upload_buffer(const BufferUploadInfo& param) noexcept;
 
 		///
 		/// @brief Add image upload task
@@ -76,7 +132,7 @@ namespace vulkan
 		/// @return `void` on success, `Error` on failure
 		///
 		[[nodiscard]]
-		std::expected<void, Error> upload_image(const ImageUploadParam& param) noexcept;
+		std::expected<void, Error> upload_image(const ImageUploadInfo& param) noexcept;
 
 		///
 		/// @brief Execute the actual uploading of all added tasks.

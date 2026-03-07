@@ -11,13 +11,13 @@ namespace image
 	/// @brief Block for BCn compression formats
 	/// @note 16 bytes in size, deliberately aligned to 16 bytes for optimal access
 	///
-	struct alignas(16) CompressionBlock
+	struct alignas(16) BCnBlock
 	{
 		std::array<std::byte, 16> data;
 	};
 
 	template <>
-	inline constexpr bool indexable_pixel_type_flag<CompressionBlock> = false;
+	inline constexpr bool indexable_pixel_type_flag<BCnBlock> = false;
 
 	enum class BCnFormat
 	{
@@ -28,12 +28,11 @@ namespace image
 
 	///
 	/// @brief Block-compress format image, 8 bits per pixel
+	/// @note The @p size member contains the dimensions in 4x4 BCn Block, not the actual pixels
 	///
-	///
-	struct BlockCompressedImage : public Container<CompressionBlock>
+	struct BCnImage : public Container<BCnBlock>
 	{
 		BCnFormat format;
-		glm::u32vec2 block_dim;  // Dimension, in 4x4 pixel blocks
 
 		///
 		/// @brief Encode a raw image into a BCn compressed image
@@ -43,28 +42,24 @@ namespace image
 		/// @return Encoded block compressed image or an error
 		///
 		[[nodiscard]]
-		static std::expected<BlockCompressedImage, Error> encode(
+		static std::expected<BCnImage, Error> encode(
 			const Image<Format::Unorm8, Layout::RGBA>& raw_image,
 			BCnFormat format
 		) noexcept;
 
 	  private:
 
-		BlockCompressedImage(BCnFormat format, glm::u32vec2 block_dim) noexcept :
-			Container<CompressionBlock>{
-				.size = block_dim * uint32_t(4),
-				.data = std::vector<CompressionBlock>(block_dim.x * block_dim.y)
-			},
-			format(format),
-			block_dim(block_dim)
+		BCnImage(BCnFormat format, glm::u32vec2 block_dim) noexcept :
+			Container<BCnBlock>{.size = block_dim, .data = std::vector<BCnBlock>(block_dim.x * block_dim.y)},
+			format(format)
 		{}
 
 		// (Helper) Get block at specified block coordinates
 		[[nodiscard]]
 		auto& block_at(this auto& self, glm::u32vec2 block_coord) noexcept
 		{
-			assert(block_coord.x < self.block_dim.x && block_coord.y < self.block_dim.y);
-			return self.data[block_coord.y * self.block_dim.x + block_coord.x];
+			assert(block_coord.x < self.size.x && block_coord.y < self.size.y);
+			return self.data[block_coord.y * self.size.x + block_coord.x];
 		}
 
 		// (Helper) Iterate over all blocks in the image and apply a function
@@ -72,27 +67,27 @@ namespace image
 
 		/// (Helper) Encode a single BC3 block
 		[[nodiscard]]
-		static std::expected<BlockCompressedImage, Error> encode_bc3(
+		static std::expected<BCnImage, Error> encode_bc3(
 			const Image<Format::Unorm8, Layout::RGBA>& raw_image
 		) noexcept;
 
 		// (Helper) Encode a single BC5 block
 		[[nodiscard]]
-		static std::expected<BlockCompressedImage, Error> encode_bc5(
+		static std::expected<BCnImage, Error> encode_bc5(
 			const Image<Format::Unorm8, Layout::RGBA>& raw_image
 		) noexcept;
 
 		// (Helper) Encode a single BC7 block
 		[[nodiscard]]
-		static std::expected<BlockCompressedImage, Error> encode_bc7(
+		static std::expected<BCnImage, Error> encode_bc7(
 			const Image<Format::Unorm8, Layout::RGBA>& raw_image
 		) noexcept;
 
 	  public:
 
-		BlockCompressedImage(const BlockCompressedImage&) = default;
-		BlockCompressedImage(BlockCompressedImage&&) = default;
-		BlockCompressedImage& operator=(const BlockCompressedImage&) = default;
-		BlockCompressedImage& operator=(BlockCompressedImage&&) = default;
+		BCnImage(const BCnImage&) = default;
+		BCnImage(BCnImage&&) = default;
+		BCnImage& operator=(const BCnImage&) = default;
+		BCnImage& operator=(BCnImage&&) = default;
 	};
 }

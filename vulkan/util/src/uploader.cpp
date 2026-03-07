@@ -2,7 +2,7 @@
 
 namespace vulkan
 {
-	std::expected<void, Error> Uploader::upload_buffer(const BufferUploadParam& param) noexcept
+	std::expected<void, Error> Uploader::upload_buffer(const BufferUploadInfo& param) noexcept
 	{
 		auto staging_buffer_result = allocator.create_buffer(
 			vk::BufferCreateInfo{
@@ -30,7 +30,7 @@ namespace vulkan
 		return {};
 	}
 
-	std::expected<void, Error> Uploader::upload_image(const ImageUploadParam& param) noexcept
+	std::expected<void, Error> Uploader::upload_image(const ImageUploadInfo& param) noexcept
 	{
 		auto staging_buffer_result = allocator.create_buffer(
 			vk::BufferCreateInfo{
@@ -64,6 +64,8 @@ namespace vulkan
 
 	std::expected<void, Error> Uploader::execute() noexcept
 	{
+		/* Create command pool */
+
 		auto command_pool_result =
 			device
 				.createCommandPool(
@@ -72,6 +74,8 @@ namespace vulkan
 				.transform_error(Error::from<vk::Result>());
 		if (!command_pool_result) return command_pool_result.error().forward("Create command pool failed");
 		auto command_pool = std::move(*command_pool_result);
+
+		/* Create command buffer */
 
 		auto allocated_command_buffers_result =
 			device
@@ -86,11 +90,15 @@ namespace vulkan
 		auto allocated_command_buffers = std::move(*allocated_command_buffers_result);
 		auto command_buffer = std::move(allocated_command_buffers[0]);
 
+		/* Create fence */
+
 		auto fence_result = device.createFence({}).transform_error(Error::from<vk::Result>());
 		if (!fence_result) return fence_result.error().forward("Create fence failed");
 		auto fence = std::move(*fence_result);
 
-		const auto buffer_barriers_after_copying =
+		/* Barriers */
+
+		const auto buffer_barriers_post =
 			buffer_upload_tasks
 			| std::views::transform([](const auto& task) {
 				  return vk::BufferMemoryBarrier2{
@@ -107,7 +115,7 @@ namespace vulkan
 			  })
 			| std::ranges::to<std::vector>();
 
-		const auto barrier_before_transition =
+		const auto image_barriers_pre =
 			image_upload_tasks
 			| std::views::transform([](const auto& task) {
 				  return vk::ImageMemoryBarrier2{
@@ -131,7 +139,7 @@ namespace vulkan
 			  })
 			| std::ranges::to<std::vector>();
 
-		const auto barrier_after_transition =
+		const auto image_barriers_post =
 			image_upload_tasks
 			| std::views::transform([](const ImageUploadTask& task) {
 				  return vk::ImageMemoryBarrier2{
@@ -157,7 +165,7 @@ namespace vulkan
 
 		command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 		{
-
+			// Copy buffers
 			for (const auto& task : buffer_upload_tasks)
 			{
 				const auto copy_region = vk::BufferCopy{
@@ -170,8 +178,8 @@ namespace vulkan
 
 			command_buffer.pipelineBarrier2(
 				vk::DependencyInfo{}
-					.setBufferMemoryBarriers(buffer_barriers_after_copying)
-					.setImageMemoryBarriers(barrier_before_transition)
+					.setBufferMemoryBarriers(buffer_barriers_post)
+					.setImageMemoryBarriers(image_barriers_pre)
 			);
 
 			for (const auto& task : image_upload_tasks)
@@ -192,9 +200,7 @@ namespace vulkan
 				);
 			}
 
-			command_buffer.pipelineBarrier2(
-				vk::DependencyInfo{}.setImageMemoryBarriers(barrier_after_transition)
-			);
+			command_buffer.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(image_barriers_post));
 		}
 		command_buffer.end();
 

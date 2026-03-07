@@ -152,14 +152,14 @@ ModelBuffer ModelBuffer::create(const vulkan::DeviceContext& context, const Mode
 	);
 
 	uploader.upload_buffer(
-		vulkan::Uploader::BufferUploadParam{
+		vulkan::Uploader::BufferUploadInfo{
 			.dst_buffer = vertex_buffer,
 			.data = util::as_bytes(model.vertices)
 		}
 	) | Error::unwrap("Upload vertex buffer failed");
 
 	uploader.upload_buffer(
-		vulkan::Uploader::BufferUploadParam{.dst_buffer = index_buffer, .data = util::as_bytes(model.indices)}
+		vulkan::Uploader::BufferUploadInfo{.dst_buffer = index_buffer, .data = util::as_bytes(model.indices)}
 	) | Error::unwrap("Upload index buffer failed");
 
 	uploader.execute() | Error::unwrap("Execute buffer upload failed");
