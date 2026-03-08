@@ -80,6 +80,8 @@
 ///
 /// #### Accessing Error Chain
 ///
+/// `Error` provides convenient ways to access the entire chain of error.
+///
 /// - Iterate over the error chain:
 ///   ```cpp
 ///   for (const auto& entry : error.chain())
@@ -94,6 +96,11 @@
 ///   {
 ///       ... // process each entry with index
 ///   }
+///   ```
+///
+/// - Call @p root to directly get the root cause:
+///   ```cpp
+///   std::println("{:msg}", error.root());
 ///   ```
 ///
 /// #### Interpreting Error
@@ -490,6 +497,9 @@ class Error
 		}
 	};
 
+	static_assert(std::forward_iterator<Iterator>);
+	static_assert(std::ranges::forward_range<ErrorChain>);
+
   public:
 
 	///
@@ -503,6 +513,14 @@ class Error
 	{
 		return ErrorChain(*this);
 	}
+
+	///
+	/// @brief Get the root cause
+	///
+	/// @return Last element of the error chain, which represents the root cause
+	///
+	[[nodiscard]]
+	const Error& root() const noexcept;
 
 #pragma endregion
 

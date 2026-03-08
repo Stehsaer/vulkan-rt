@@ -44,3 +44,12 @@ Error Error::FromFunctor<std::exception>::operator()(const std::exception& e) co
 {
 	return Error(std::format("Error (std::exception): {}", e.what()), location);
 }
+
+const Error& Error::root() const noexcept
+{
+	const auto error_chain = chain();
+	const auto dist = std::distance(error_chain.begin(), error_chain.end());
+	assert(dist >= 1);
+
+	return *std::next(error_chain.begin(), dist - 1);
+}

@@ -166,6 +166,14 @@ TEST_CASE("Error chaining")
 		CHECK_EQ(messages[1], "Level 1");
 		CHECK_EQ(messages[2], "Level 0");
 	}
+
+	SUBCASE("Get root cause")
+	{
+		CHECK_EQ(error.root().message, "Level 0");
+		CHECK_EQ(error.root().cause, nullptr);
+		CHECK_EQ(&error.root(), &error.root().root());
+		CHECK_EQ(&error.root(), &error.root().root().root());
+	}
 }
 
 TEST_CASE("Error collecting")

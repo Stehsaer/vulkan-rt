@@ -9,6 +9,7 @@
 #include <ranges>
 #include <set>
 #include <vector>
+#include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace vulkan
@@ -156,6 +157,30 @@ namespace vulkan
 		}
 
 		[[nodiscard]]
+		std::expected<void, Error> test_device_api_version(
+			const vk::raii::PhysicalDevice& phy_device
+		) noexcept
+		{
+			const auto properties = phy_device.getProperties();
+
+			if (properties.apiVersion < api_version)
+				return Error(
+					"Vulkan API version too low",
+					std::format(
+						"Expecting > {}.{}, got {}.{}",
+						VK_VERSION_MAJOR(api_version),
+						VK_VERSION_MINOR(api_version),
+						VK_VERSION_MAJOR(properties.apiVersion),
+						VK_VERSION_MINOR(properties.apiVersion)
+					)
+				);
+
+			VK_MAKE_API_VERSION(0, 0, 0, 0);
+
+			return {};
+		}
+
+		[[nodiscard]]
 		std::expected<void, Error> test_device_limits(
 			const vk::raii::PhysicalDevice& phy_device [[maybe_unused]],
 			const DeviceContext::Config& config [[maybe_unused]]
@@ -171,15 +196,23 @@ namespace vulkan
 			const DeviceContext::Config& config [[maybe_unused]]
 		) noexcept
 		{
-			const auto properties = phy_device.getProperties();
-			if (properties.deviceType != vk::PhysicalDeviceType::eDiscreteGpu
-				&& properties.deviceType != vk::PhysicalDeviceType::eIntegratedGpu)
+			const auto device_type = phy_device.getProperties().deviceType;
+
+			switch (device_type)
+			{
+			case vk::PhysicalDeviceType::eIntegratedGpu:
+			case vk::PhysicalDeviceType::eDiscreteGpu:
+				return {};
+
+			case vk::PhysicalDeviceType::eOther:
+			case vk::PhysicalDeviceType::eVirtualGpu:
+			case vk::PhysicalDeviceType::eCpu:
+			default:
 				return Error(
 					"Hardware acceleration unavailable",
-					std::format("Device type: {}", properties.deviceType)
+					std::format("Device type: {}", device_type)
 				);
-
-			return {};
+			}
 		}
 
 		[[nodiscard]]
@@ -315,6 +348,10 @@ namespace vulkan
 			const DeviceContext::Config& config
 		) noexcept
 		{
+			auto api_version_result = test_device_api_version(phy_device);
+			if (!api_version_result)
+				return api_version_result.error().forward("Device does not meet API version requirements");
+
 			auto features_result = test_device_features(phy_device, config);
 			if (!features_result)
 				return features_result.error().forward("Device does not support required features");
@@ -403,38 +440,37 @@ namespace vulkan
 		auto phy_device_test_results =
 			phy_devices
 			| std::views::transform([&config, &context](const vk::raii::PhysicalDevice& device) {
-				  return std::make_pair(device, test_device_suitability(device, context, config));
+				  return test_device_suitability(device, context, config);
 			  })
 			| std::ranges::to<std::vector>();
 
-		if (std::ranges::none_of(phy_device_test_results, [](const auto& test_result) {
-				return test_result.second.has_value();
-			}))
+		const auto suitable_device_found =
+			std::ranges::any_of(phy_device_test_results, [](const auto& test_result) {
+				return test_result.has_value();
+			});
+
+		// No suitable device, report error
+		if (!suitable_device_found)
 		{
-			return Error(
-				"No suitable physical device found",
+			const auto results = std::views::zip_transform(
+				[](const vk::raii::PhysicalDevice& device, const auto& test_result) {
+					const auto device_properties = device.getProperties();
+					return std::make_pair(
+						std::format("{:s}", device_properties.deviceName),
+						std::format("{0:msg} - {0:detail}", test_result.error().root())
+					);
+				},
+				phy_devices,
 				phy_device_test_results
-					| std::views::filter([](const auto& test_result) {
-						  return !test_result.second.has_value();
-					  })
-					| std::views::transform([](const auto& test_result) {
-						  const auto& [device, result] = test_result;
-						  const auto properties = device.getProperties();
-						  return std::format(
-							  "Device: {:s}, Type: {}, Suitability check error: {}",
-							  properties.deviceName,
-							  properties.deviceType,
-							  std::format("{}", result.error().chain())
-						  );
-					  })
-					| std::views::join
-					| std::ranges::to<std::string>()
 			);
+
+			return Error("No suitable physical device found", std::format("Check results: {}", results));
 		}
 
 		const auto suitable_devices = phy_device_test_results
-			| std::views::filter([](const auto& test_result) { return test_result.second.has_value(); })
-			| std::views::transform([](auto& test_result) { return std::move(test_result.second.value()); })
+			| std::views::as_rvalue
+			| std::views::filter([](const auto& test_result) { return test_result.has_value(); })
+			| std::views::transform([](auto&& test_result) { return std::move(test_result.value()); })
 			| std::ranges::to<std::vector>();
 
 		/* Step 3: Rank & sort device */
