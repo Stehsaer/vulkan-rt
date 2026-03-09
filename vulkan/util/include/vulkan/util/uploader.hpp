@@ -52,8 +52,8 @@ namespace vulkan
 		{
 			vk::Image dst_image;                            // Destination image for uploading
 			std::span<const std::byte> data;                // Data to upload
-			size_t buffer_row_length;                       // In texels
-			size_t buffer_image_height;                     // In texels
+			size_t buffer_row_length = 0;                   // In texels, set to 0 if tightly packed
+			size_t buffer_image_height = 0;                 // In texels, set to 0 if tightly packed
 			vk::ImageSubresourceLayers subresource_layers;  // Subresource layers to upload to
 			vk::Extent3D image_extent;                      // Extent of the image to upload
 			vk::ImageLayout dst_layout;                     // Final layout of the image after upload
@@ -75,8 +75,7 @@ namespace vulkan
 
 				return {
 					.dst_image = dst_image,
-					.data = util::as_bytes(src_image.data).buffer_row_length = src_image.size.x,
-					.buffer_image_height = src_image.size.y,
+					.data = util::as_bytes(src_image.data),
 					.subresource_layers = layer,
 					.image_extent = {.width = src_image.size.x, .height = src_image.size.y, .depth = 1},
 					.dst_layout = dst_layout
@@ -100,8 +99,6 @@ namespace vulkan
 				return {
 					.dst_image = dst_image,
 					.data = util::as_bytes(src_image.data),
-					.buffer_row_length = src_image.size.x,
-					.buffer_image_height = src_image.size.y,
 					.subresource_layers = layer,
 					.image_extent =
 						{.width = src_image.size.x * 4, .height = src_image.size.y * 4, .depth = 1},

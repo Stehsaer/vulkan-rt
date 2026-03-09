@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/util/error.hpp"
+
 #include <SDL3/SDL_video.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -10,63 +11,129 @@ namespace vulkan
 	static constexpr uint32_t api_version = vk::ApiVersion14;
 
 	///
-	/// @brief Manages SDL window and Vulkan instance and surface
-	/// @details
-	/// - Call @p create to create an instance context. Customize options by modifying the @p Config struct
-	/// - Use @p operator-> to access the Vulkan instance, SDL window and Vulkan surface
-	///   ```cpp
-	///   InstanceContext instance_context = ...;
-	///   SDL_Window* window = instance_context->window;
-	///   ```
+	/// @brief Instance related config
+	/// @note Some layers and extensions are not controlled by this config
 	///
-	class InstanceContext
+	struct InstanceConfig
+	{
+#ifdef NDEBUG
+		static constexpr bool default_enable_validation = false;
+#else
+		static constexpr bool default_enable_validation = true;
+#endif
+
+		std::string application_name = "Vulkan Application";
+		std::string engine_name = "No Engine";
+		uint32_t application_version = VK_MAKE_VERSION(0, 0, 0);
+		uint32_t engine_version = VK_MAKE_VERSION(0, 0, 0);
+
+		bool validation = default_enable_validation;
+	};
+
+	///
+	/// @brief SDL window related config
+	///
+	///
+	struct WindowConfig
+	{
+		std::string title = "Vulkan Window";
+		glm::u32vec2 initial_size = glm::u32vec2(800, 600);  // Initial window size in pixels
+
+		bool resizable = true;
+		bool initial_fullscreen = false;
+	};
+
+	///
+	/// @brief Helper class for destroying SDL context upon destruction
+	///
+	///
+	struct SDLContextDestroyer
+	{
+		~SDLContextDestroyer();
+	};
+
+	///
+	/// @brief Vulkan context and instance, designed to work with window-less (headless) scenario
+	///
+	///
+	class HeadlessInstanceContext
 	{
 	  public:
 
-		struct Config
-		{
-#ifdef NDEBUG
-			static constexpr bool default_enable_validation = false;
-#else
-			static constexpr bool default_enable_validation = true;
-#endif
-
-			std::string title = "Vulkan Window";
-			glm::u32vec2 initial_size = glm::u32vec2(800, 600);  // Initial window size in pixels
-
-			bool resizable = true;
-			bool initial_fullscreen = false;
-
-			std::string application_name = "Vulkan Application";
-			std::string engine_name = "No Engine";
-			uint32_t application_version = VK_MAKE_VERSION(0, 0, 0);
-			uint32_t engine_version = VK_MAKE_VERSION(0, 0, 0);
-
-			bool validation = default_enable_validation;
-		};
-
 		///
-		/// @brief Create an instance context with the given configuration
+		/// @brief Create a headless instance context
 		///
-		/// @param config Configuration
-		/// @return Instance context or error
+		/// @param instance_config Instance config
+		/// @return Create headless instance context, or error
 		///
 		[[nodiscard]]
-		static std::expected<InstanceContext, Error> create(const Config& config) noexcept;
+		static std::expected<HeadlessInstanceContext, Error> create(
+			const InstanceConfig& instance_config
+		) noexcept;
 
 	  private:
 
-		class WindowWrapper
+		std::unique_ptr<SDLContextDestroyer> context_destroyer;
+		vk::raii::Context context;
+		std::unique_ptr<vk::raii::Instance> instance;
+
+		explicit HeadlessInstanceContext(vk::raii::Context context, vk::raii::Instance instance) :
+			context_destroyer(std::make_unique<SDLContextDestroyer>()),
+			context(std::move(context)),
+			instance(std::make_unique<vk::raii::Instance>(std::move(instance)))
+		{}
+
+		struct VisitProxy
+		{
+			const vk::raii::Instance& instance;
+
+			const VisitProxy* operator->() const noexcept { return this; }
+		};
+
+	  public:
+
+		VisitProxy operator->() const noexcept { return {.instance = *instance}; }
+
+		HeadlessInstanceContext(const HeadlessInstanceContext&) = delete;
+		HeadlessInstanceContext(HeadlessInstanceContext&&) = default;
+		HeadlessInstanceContext& operator=(const HeadlessInstanceContext&) = delete;
+		HeadlessInstanceContext& operator=(HeadlessInstanceContext&&) = default;
+	};
+
+	///
+	/// @brief Manages SDL window and Vulkan instance and surface
+	///
+	///
+	class SurfaceInstanceContext
+	{
+	  public:
+
+		///
+		/// @brief Create a surface instance context with the given configuration
+		///
+		/// @param window_config SDL window config
+		/// @param instance_config Instance config
+		/// @return Created surface instance context or error
+		///
+		[[nodiscard]]
+		static std::expected<SurfaceInstanceContext, Error> create(
+			const WindowConfig& window_config,
+			const InstanceConfig& instance_config
+		) noexcept;
+
+	  private:
+
+		class Window
 		{
 			SDL_Window* window;
 
 		  public:
 
-			explicit WindowWrapper(SDL_Window* window_ptr) noexcept :
+			explicit Window(SDL_Window* window_ptr) noexcept :
 				window(window_ptr)
 			{}
 
-			~WindowWrapper() noexcept;
+			~Window() noexcept;
 
 			[[nodiscard]]
 			SDL_Window* get() const noexcept
@@ -75,16 +142,16 @@ namespace vulkan
 			}
 		};
 
-		class SurfaceWrapper
+		class Surface
 		{
 		  public:
 
-			explicit SurfaceWrapper(vk::Instance instance, vk::SurfaceKHR surface) noexcept :
+			explicit Surface(vk::Instance instance, vk::SurfaceKHR surface) noexcept :
 				instance(instance),
 				surface(surface)
 			{}
 
-			~SurfaceWrapper() noexcept;
+			~Surface() noexcept;
 
 			[[nodiscard]]
 			vk::SurfaceKHR get() const noexcept
@@ -98,42 +165,44 @@ namespace vulkan
 			vk::SurfaceKHR surface;
 		};
 
-		struct ReadonlyWrapper
+		std::unique_ptr<SDLContextDestroyer> context_destroyer;
+		vk::raii::Context context;
+		std::unique_ptr<Window> window;
+		std::unique_ptr<vk::raii::Instance> instance;
+		std::unique_ptr<Surface> surface;
+
+		explicit SurfaceInstanceContext(
+			vk::raii::Context context,
+			std::unique_ptr<Window> window,
+			vk::raii::Instance instance,
+			std::unique_ptr<Surface> surface
+		) noexcept :
+			context_destroyer(std::make_unique<SDLContextDestroyer>()),
+			context(std::move(context)),
+			window(std::move(window)),
+			instance(std::make_unique<vk::raii::Instance>(std::move(instance))),
+			surface(std::move(surface))
+		{}
+
+		struct VisitProxy
 		{
 			const vk::raii::Instance& instance;
 			SDL_Window* window;
 			vk::SurfaceKHR surface;
 
-			const ReadonlyWrapper* operator->() const noexcept { return this; }
+			const VisitProxy* operator->() const noexcept { return this; }
 		};
-
-		std::unique_ptr<WindowWrapper> window;
-		vk::raii::Context context;
-		std::unique_ptr<vk::raii::Instance> instance;
-		std::unique_ptr<SurfaceWrapper> surface;
-
-		explicit InstanceContext(
-			std::unique_ptr<WindowWrapper> window,
-			vk::raii::Context context,
-			vk::raii::Instance instance,
-			std::unique_ptr<SurfaceWrapper> surface
-		) noexcept :
-			window(std::move(window)),
-			context(std::move(context)),
-			instance(std::make_unique<vk::raii::Instance>(std::move(instance))),
-			surface(std::move(surface))
-		{}
 
 	  public:
 
-		ReadonlyWrapper operator->() const noexcept
+		VisitProxy operator->() const noexcept
 		{
-			return ReadonlyWrapper{.instance = *instance, .window = window->get(), .surface = surface->get()};
+			return VisitProxy{.instance = *instance, .window = window->get(), .surface = surface->get()};
 		}
 
-		InstanceContext(const InstanceContext&) = delete;
-		InstanceContext(InstanceContext&&) = default;
-		InstanceContext& operator=(const InstanceContext&) = delete;
-		InstanceContext& operator=(InstanceContext&&) = default;
+		SurfaceInstanceContext(const SurfaceInstanceContext&) = delete;
+		SurfaceInstanceContext(SurfaceInstanceContext&&) = default;
+		SurfaceInstanceContext& operator=(const SurfaceInstanceContext&) = delete;
+		SurfaceInstanceContext& operator=(SurfaceInstanceContext&&) = default;
 	};
 }

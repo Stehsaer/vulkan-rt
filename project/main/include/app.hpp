@@ -33,8 +33,8 @@ class App
 
   private:
 
-	vulkan::InstanceContext instance_context;
-	vulkan::DeviceContext device_context;
+	vulkan::SurfaceInstanceContext instance_context;
+	vulkan::SurfaceDeviceContext device_context;
 	vulkan::SwapchainContext swapchain_context;
 	vulkan::ImGuiContext imgui_context;
 
@@ -60,8 +60,8 @@ class App
 	scene::camera::PerspectiveProjection projection{.fov_degrees = 50.0, .near = 0.01, .far = 100.0};
 
 	explicit App(
-		vulkan::InstanceContext instance_context,
-		vulkan::DeviceContext device_context,
+		vulkan::SurfaceInstanceContext instance_context,
+		vulkan::SurfaceDeviceContext device_context,
 		vulkan::SwapchainContext swapchain_context,
 		vulkan::ImGuiContext imgui_context,
 		vk::raii::CommandPool command_pool,

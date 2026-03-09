@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "pipeline.hpp"
 #include "resource.hpp"
+#include "vulkan/context/device.hpp"
 #include "vulkan/context/imgui.hpp"
 #include "vulkan/context/instance.hpp"
 #include "vulkan/context/swapchain.hpp"
@@ -14,12 +15,13 @@
 
 App App::create(const Argument& argument)
 {
-	const auto instance_context_config = vulkan::InstanceContext::Config{};
-	auto instance_context = vulkan::InstanceContext::create(instance_context_config)
+	const auto instance_config = vulkan::InstanceConfig{};
+	const auto window_config = vulkan::WindowConfig{};
+	auto instance_context = vulkan::SurfaceInstanceContext::create(window_config, instance_config)
 		| Error::unwrap("Create instance context failed");
 
-	const auto device_context_config = vulkan::DeviceContext::Config{};
-	auto device_context = vulkan::DeviceContext::create(instance_context, device_context_config)
+	const auto device_context_config = vulkan::DeviceConfig{};
+	auto device_context = vulkan::SurfaceDeviceContext::create(instance_context, device_context_config)
 		| Error::unwrap("Create device context failed");
 
 	const auto swapchain_context_config =
@@ -41,16 +43,16 @@ App App::create(const Argument& argument)
 		| Error::unwrap("Create ImGui context failed");
 
 	auto command_pool =
-		device_context.device
+		device_context->device
 			.createCommandPool(
 				{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-				 .queueFamilyIndex = device_context.render_queue.family_index}
+				 .queueFamilyIndex = device_context->render_queue.family_index}
 			)
 			.transform_error(Error::from<vk::Result>())
 		| Error::unwrap("Create command pool failed");
 
 	auto command_buffers =
-		device_context.device
+		device_context->device
 			.allocateCommandBuffers({
 				.commandPool = *command_pool,
 				.level = vk::CommandBufferLevel::ePrimary,
@@ -71,7 +73,7 @@ App App::create(const Argument& argument)
 	auto model_buffer = ModelBuffer::create(device_context, model);
 
 	auto descriptor_pool =
-		resource::DescriptorPool::create(device_context.device, resource_layout, resource::inflight_frames);
+		resource::DescriptorPool::create(device_context->device, resource_layout, resource::inflight_frames);
 	auto descriptor_sets =
 		descriptor_pool.get_frame_descriptor_sets() | vulkan::Cycle<resource::FrameDescriptorSet>::into;
 
@@ -105,7 +107,7 @@ App::FramePrepareResult App::prepare_frame()
 
 	/* Wait for command buffer */
 
-	if (const auto wait_result = device_context.device.waitForFences(
+	if (const auto wait_result = device_context->device.waitForFences(
 			{sync_primitives.current().draw_fence},
 			vk::True,
 			std::numeric_limits<uint64_t>::max()
@@ -125,7 +127,7 @@ App::FramePrepareResult App::prepare_frame()
 
 	if (swapchain_result.extent_changed)
 	{
-		device_context.device.waitIdle();
+		device_context->device.waitIdle();
 
 		frame_resources =
 			std::views::iota(0zu, 3zu)
@@ -138,7 +140,7 @@ App::FramePrepareResult App::prepare_frame()
 			 std::views::zip(frame_descriptor_sets.iterate(), frame_resources.iterate_pair()))
 		{
 			const auto& [prev_resource, current_resource] = frame_pair;
-			descriptor_set.bind_resource(device_context.device, prev_resource, current_resource);
+			descriptor_set.bind_resource(device_context->device, prev_resource, current_resource);
 		}
 	}
 	else
@@ -342,8 +344,8 @@ bool App::draw_frame()
 				.setSignalSemaphores(signal_semaphores)
 				.setWaitDstStageMask(wait_stages);
 
-		device_context.device.resetFences({*sync.draw_fence});
-		device_context.render_queue.queue->submit(graphic_submit_info, *sync.draw_fence);
+		device_context->device.resetFences({*sync.draw_fence});
+		device_context->render_queue.queue->submit(graphic_submit_info, *sync.draw_fence);
 	}
 
 	/* Present */
@@ -379,5 +381,5 @@ void App::draw_ui()
 
 App::~App() noexcept
 {
-	device_context.device.waitIdle();
+	device_context->device.waitIdle();
 }

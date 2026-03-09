@@ -13,12 +13,13 @@ namespace vulkan
 {
 	static PFN_vkVoidFunction imgui_load_vk_function(const char* function_name, void* user_data) noexcept
 	{
-		auto& instance_ref = *reinterpret_cast<std::reference_wrapper<const InstanceContext>*>(user_data);
+		auto& instance_ref =
+			*reinterpret_cast<std::reference_wrapper<const SurfaceInstanceContext>*>(user_data);
 		return instance_ref.get()->instance.getProcAddr(function_name);
 	}
 
 	std::expected<ImGuiContext, Error> ImGuiContext::create(
-		const InstanceContext& instance_context,
+		const SurfaceInstanceContext& instance_context,
 		const DeviceContext& device_context,
 		const Config& config
 	) noexcept
@@ -100,10 +101,10 @@ namespace vulkan
 		auto init_info = ImGui_ImplVulkan_InitInfo{
 			.ApiVersion = api_version,
 			.Instance = *instance_context->instance,
-			.PhysicalDevice = *device_context.phy_device,
-			.Device = *device_context.device,
-			.QueueFamily = device_context.render_queue.family_index,
-			.Queue = **device_context.render_queue.queue,
+			.PhysicalDevice = *device_context->phy_device,
+			.Device = *device_context->device,
+			.QueueFamily = device_context->render_queue.family_index,
+			.Queue = **device_context->render_queue.queue,
 			.DescriptorPool = nullptr,
 			.DescriptorPoolSize = IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE,
 			.MinImageCount = 2,

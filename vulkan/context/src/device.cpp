@@ -1,433 +1,22 @@
 #include "vulkan/context/device.hpp"
-#include "impl/common.hpp"
+#include "impl/device.hpp"
+#include "vulkan/alloc.hpp"
 #include "vulkan/context/instance.hpp"
-#include "vulkan/util/linked-struct.hpp"
 
 #include <algorithm>
-#include <functional>
-#include <map>
 #include <ranges>
-#include <set>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace vulkan
 {
-	namespace
-	{
-#define CHECK_FIELD(value, field)                                                                            \
-	if ((value).field == vk::False) return Error("Required feature '" #field "' is not supported");
-
-		[[nodiscard]]
-		std::expected<vk::PhysicalDeviceFeatures, Error> test_vulkan10_features(
-			vk::PhysicalDeviceFeatures available,
-			const DeviceContext::Config& config [[maybe_unused]]
-		) noexcept
-		{
-			CHECK_FIELD(available, robustBufferAccess);
-			CHECK_FIELD(available, samplerAnisotropy);
-			CHECK_FIELD(available, textureCompressionBC);
-			CHECK_FIELD(available, pipelineStatisticsQuery);
-
-			return vk::PhysicalDeviceFeatures{
-				.robustBufferAccess = vk::True,
-				.samplerAnisotropy = vk::True,
-				.textureCompressionBC = vk::True,
-				.pipelineStatisticsQuery = vk::True,
-			};
-		}
-
-		[[nodiscard]]
-		std::expected<vk::PhysicalDeviceVulkan11Features, Error> test_vulkan11_features(
-			vk::PhysicalDeviceVulkan11Features available,
-			const DeviceContext::Config& config [[maybe_unused]]
-		) noexcept
-		{
-			CHECK_FIELD(available, shaderDrawParameters);
-
-			return vk::PhysicalDeviceVulkan11Features{
-				.shaderDrawParameters = vk::True,
-			};
-		}
-
-		[[nodiscard]]
-		std::expected<vk::PhysicalDeviceVulkan12Features, Error> test_vulkan12_features(
-			vk::PhysicalDeviceVulkan12Features available,
-			const DeviceContext::Config& config [[maybe_unused]]
-		) noexcept
-		{
-			CHECK_FIELD(available, shaderFloat16);
-
-			return vk::PhysicalDeviceVulkan12Features{
-				.shaderFloat16 = vk::True,
-			};
-		}
-
-		[[nodiscard]]
-		std::expected<vk::PhysicalDeviceVulkan13Features, Error> test_vulkan13_features(
-			vk::PhysicalDeviceVulkan13Features available,
-			const DeviceContext::Config& config [[maybe_unused]]
-		) noexcept
-		{
-			CHECK_FIELD(available, synchronization2);
-			CHECK_FIELD(available, dynamicRendering);
-
-			return vk::PhysicalDeviceVulkan13Features{
-				.synchronization2 = vk::True,
-				.dynamicRendering = vk::True,
-			};
-		}
-
-		[[nodiscard]]
-		std::expected<vulkan::LinkedStruct<vk::PhysicalDeviceFeatures2>, Error> test_device_features(
-			const vk::raii::PhysicalDevice& phy_device,
-			const DeviceContext::Config& config
-		)
-		{
-			const auto available_features2 = phy_device.getFeatures2<
-				vk::PhysicalDeviceFeatures2,
-				vk::PhysicalDeviceVulkan11Features,
-				vk::PhysicalDeviceVulkan12Features,
-				vk::PhysicalDeviceVulkan13Features
-			>();
-
-			const auto available_features_vulkan10 =
-				available_features2.get<vk::PhysicalDeviceFeatures2>().features;
-			const auto available_features_vulkan11 =
-				available_features2.get<vk::PhysicalDeviceVulkan11Features>();
-			const auto available_features_vulkan12 =
-				available_features2.get<vk::PhysicalDeviceVulkan12Features>();
-			const auto available_features_vulkan13 =
-				available_features2.get<vk::PhysicalDeviceVulkan13Features>();
-
-			const auto required_features_vulkan10 =
-				test_vulkan10_features(available_features_vulkan10, config);
-			const auto required_features_vulkan11 =
-				test_vulkan11_features(available_features_vulkan11, config);
-			const auto required_features_vulkan12 =
-				test_vulkan12_features(available_features_vulkan12, config);
-			const auto required_features_vulkan13 =
-				test_vulkan13_features(available_features_vulkan13, config);
-
-			if (!required_features_vulkan10.has_value()) return required_features_vulkan10.error();
-			if (!required_features_vulkan11.has_value()) return required_features_vulkan11.error();
-			if (!required_features_vulkan12.has_value()) return required_features_vulkan12.error();
-			if (!required_features_vulkan13.has_value()) return required_features_vulkan13.error();
-
-			return vulkan::LinkedStruct(vk::PhysicalDeviceFeatures2{.features = *required_features_vulkan10})
-				.push(*required_features_vulkan11)
-				.push(*required_features_vulkan12)
-				.push(*required_features_vulkan13);
-		}
-
-		constexpr auto mandatory_device_extensions =
-			std::to_array({vk::KHRSwapchainExtensionName, vk::KHRShaderNonSemanticInfoExtensionName});
-
-		[[nodiscard]]
-		std::set<std::string> get_required_extensions(
-			const DeviceContext::Config& config [[maybe_unused]]
-		) noexcept
-		{
-			std::set<std::string> extensions;
-			extensions.insert_range(mandatory_device_extensions);
-
-			return extensions;
-		}
-
-		[[nodiscard]]
-		std::expected<std::vector<std::string>, Error> test_device_extensions(
-			const vk::raii::PhysicalDevice& phy_device,
-			const DeviceContext::Config& config
-		) noexcept
-		{
-			const auto extensions = get_required_extensions(config);
-			const auto available_extensions =
-				phy_device.enumerateDeviceExtensionProperties()
-				| std::views::transform([](const vk::ExtensionProperties& properties) {
-					  return std::string(properties.extensionName.data());
-				  })
-				| std::ranges::to<std::set<std::string>>();
-
-			const auto unsupported_extensions = extensions - available_extensions;
-			if (!unsupported_extensions.empty())
-				return Error("Missing required device extensions", std::format("{}", unsupported_extensions));
-
-			return extensions | std::ranges::to<std::vector>();
-		}
-
-		[[nodiscard]]
-		std::expected<void, Error> test_device_api_version(
-			const vk::raii::PhysicalDevice& phy_device
-		) noexcept
-		{
-			const auto properties = phy_device.getProperties();
-
-			if (properties.apiVersion < api_version)
-				return Error(
-					"Vulkan API version too low",
-					std::format(
-						"Expecting > {}.{}, got {}.{}",
-						VK_VERSION_MAJOR(api_version),
-						VK_VERSION_MINOR(api_version),
-						VK_VERSION_MAJOR(properties.apiVersion),
-						VK_VERSION_MINOR(properties.apiVersion)
-					)
-				);
-
-			VK_MAKE_API_VERSION(0, 0, 0, 0);
-
-			return {};
-		}
-
-		[[nodiscard]]
-		std::expected<void, Error> test_device_limits(
-			const vk::raii::PhysicalDevice& phy_device [[maybe_unused]],
-			const DeviceContext::Config& config [[maybe_unused]]
-		) noexcept
-		{
-			// TBD
-			return {};
-		}
-
-		[[nodiscard]]
-		std::expected<void, Error> test_device_type(
-			const vk::raii::PhysicalDevice& phy_device,
-			const DeviceContext::Config& config [[maybe_unused]]
-		) noexcept
-		{
-			const auto device_type = phy_device.getProperties().deviceType;
-
-			switch (device_type)
-			{
-			case vk::PhysicalDeviceType::eIntegratedGpu:
-			case vk::PhysicalDeviceType::eDiscreteGpu:
-				return {};
-
-			case vk::PhysicalDeviceType::eOther:
-			case vk::PhysicalDeviceType::eVirtualGpu:
-			case vk::PhysicalDeviceType::eCpu:
-			default:
-				return Error(
-					"Hardware acceleration unavailable",
-					std::format("Device type: {}", device_type)
-				);
-			}
-		}
-
-		[[nodiscard]]
-		std::optional<uint32_t> find_queue_family_index(
-			const vk::raii::PhysicalDevice& device,
-			vk::QueueFlags required_flags
-		)
-		{
-			const auto queue_families = device.getQueueFamilyProperties();
-			for (const auto [idx, queue_family] : std::views::enumerate(queue_families))
-				if ((queue_family.queueFlags & required_flags) == required_flags) return idx;
-			return std::nullopt;
-		}
-
-		// Returns (render, present)
-		[[nodiscard]]
-		std::expected<std::tuple<uint32_t, uint32_t>, Error> find_device_queue_families(
-			const vk::raii::PhysicalDevice& phy_device,
-			const VkSurfaceKHR& surface,
-			const DeviceContext::Config& config [[maybe_unused]]
-		) noexcept
-		{
-			const auto render_index = find_queue_family_index(
-				phy_device,
-				vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer
-			);
-			if (!render_index)
-				return Error(
-					"Find render queue family failed",
-					"No queue family with graphics & compute & transfer support was found. This is violating "
-					"the vulkan spec."
-				);
-
-			uint32_t present_index;
-			if (phy_device.getSurfaceSupportKHR(*render_index, surface) == vk::True)
-			{
-				present_index = *render_index;
-			}
-			else
-			{
-				const auto queue_families = phy_device.getQueueFamilyProperties();
-				auto find = std::ranges::find_if(
-					std::views::iota(0u, static_cast<uint32_t>(queue_families.size())),
-					[&](uint32_t idx) { return phy_device.getSurfaceSupportKHR(idx, surface) == vk::True; }
-				);
-				if (*find == static_cast<uint32_t>(queue_families.size()))
-					return Error(
-						"Find present queue family failed",
-						"No queue family with present support was found"
-					);
-
-				present_index = *find;
-			}
-
-			return std::make_tuple(*render_index, present_index);
-		}
-
-		struct DeviceCreateResult
-		{
-			vk::raii::PhysicalDevice phy_device;
-			vk::raii::Device device;
-			DeviceContext::Queue render_queue;
-			DeviceContext::Queue present_queue;
-		};
-
-		struct DeviceCreateInfo
-		{
-			vk::raii::PhysicalDevice phy_device;
-			vulkan::LinkedStruct<vk::PhysicalDeviceFeatures2> features_chain;
-			std::vector<std::string> extensions;
-			uint32_t render_family_index;
-			uint32_t present_family_index;
-
-			[[nodiscard]]
-			std::expected<DeviceCreateResult, Error> create_logical_device() const noexcept;
-		};
-
-		std::expected<DeviceCreateResult, Error> DeviceCreateInfo::create_logical_device() const noexcept
-		{
-			const std::set<uint32_t> unique_queue_indices = {render_family_index, present_family_index};
-
-			const float queue_priority = 1.0f;
-
-			const auto queue_create_infos =
-				unique_queue_indices
-				| std::views::transform([&queue_priority](uint32_t index) {
-					  return vk::DeviceQueueCreateInfo{
-						  .queueFamilyIndex = index,
-						  .queueCount = 1,
-						  .pQueuePriorities = &queue_priority
-					  };
-				  })
-				| std::ranges::to<std::vector>();
-
-			const std::vector<const char*> extensions_cstr = extensions
-				| std::views::transform([](const std::string& ext) { return ext.c_str(); })
-				| std::ranges::to<std::vector>();
-
-			const auto device_create_info =
-				vk::DeviceCreateInfo{.pNext = &features_chain.get()}
-					.setQueueCreateInfos(queue_create_infos)
-					.setPEnabledExtensionNames(extensions_cstr);
-
-			auto device_result =
-				phy_device.createDevice(device_create_info).transform_error(Error::from<vk::Result>());
-			if (!device_result) return device_result.error();
-			auto device = std::move(*device_result);
-
-			std::map<uint32_t, std::shared_ptr<vk::raii::Queue>> queues_map;
-			for (const auto index : unique_queue_indices)
-			{
-				auto queue_result = device.getQueue(index, 0).transform_error(Error::from<vk::Result>());
-				if (!queue_result)
-					return queue_result.error().forward(std::format("Get queue at index {} failed", index));
-
-				queues_map[index] = std::make_shared<vk::raii::Queue>(std::move(*queue_result));
-			}
-
-			return DeviceCreateResult{
-				.phy_device = phy_device,
-				.device = std::move(device),
-				.render_queue =
-					{.queue = queues_map.at(render_family_index),  .family_index = render_family_index },
-				.present_queue =
-					{.queue = queues_map.at(present_family_index), .family_index = present_family_index},
-			};
-		}
-
-		[[nodiscard]]
-		std::expected<DeviceCreateInfo, Error> test_device_suitability(
-			const vk::raii::PhysicalDevice& phy_device,
-			const InstanceContext& context,
-			const DeviceContext::Config& config
-		) noexcept
-		{
-			auto api_version_result = test_device_api_version(phy_device);
-			if (!api_version_result)
-				return api_version_result.error().forward("Device does not meet API version requirements");
-
-			auto features_result = test_device_features(phy_device, config);
-			if (!features_result)
-				return features_result.error().forward("Device does not support required features");
-
-			auto extensions_result = test_device_extensions(phy_device, config);
-			if (!extensions_result)
-				return extensions_result.error().forward("Device does not support required extensions");
-
-			auto limits_result = test_device_limits(phy_device, config);
-			if (!limits_result) return limits_result.error().forward("Device does not meet required limits");
-
-			auto type_result = test_device_type(phy_device, config);
-			if (!type_result) return type_result.error().forward("Device is not of a suitable type");
-
-			auto queue_families_result = find_device_queue_families(phy_device, context->surface, config);
-			if (!queue_families_result)
-				return queue_families_result.error().forward("Device does not have required queue families");
-			const auto [render_family_index, present_family_index] = *queue_families_result;
-
-			return DeviceCreateInfo{
-				.phy_device = phy_device,
-				.features_chain = std::move(*features_result),
-				.extensions = std::move(*extensions_result),
-				.render_family_index = render_family_index,
-				.present_family_index = present_family_index
-			};
-		}
-
-		[[nodiscard]]
-		float rank_device_by_type(const vk::raii::PhysicalDevice& phy_device) noexcept
-		{
-			const auto properties = phy_device.getProperties();
-			switch (properties.deviceType)
-			{
-			case vk::PhysicalDeviceType::eDiscreteGpu:
-				return 2'000'000.0f;
-			case vk::PhysicalDeviceType::eIntegratedGpu:
-				return 1'000'000.0f;
-			default:
-				return 0.0f;
-			}
-		}
-
-		[[nodiscard]]
-		float rank_device_by_memory(const vk::raii::PhysicalDevice& phy_device) noexcept
-		{
-			const auto memory_properties = phy_device.getMemoryProperties();
-
-			auto device_local_heaps =
-				memory_properties.memoryHeaps | std::views::filter([](const vk::MemoryHeap& heap) -> bool {
-					return (heap.flags & vk::MemoryHeapFlagBits::eDeviceLocal)
-						== vk::MemoryHeapFlagBits::eDeviceLocal;
-				});
-
-			const auto total_heap_memory_bytes = std::ranges::fold_left(
-				device_local_heaps | std::views::transform(&vk::MemoryHeap::size),
-				0,
-				std::plus()
-			);
-
-			return static_cast<float>(total_heap_memory_bytes) / (1024.0f * 1024.0f);
-		}
-
-		[[nodiscard]]
-		float rank_device(const vk::raii::PhysicalDevice& phy_device) noexcept
-		{
-			return rank_device_by_type(phy_device) + rank_device_by_memory(phy_device);
-		}
-	}
-
-	std::expected<DeviceContext, Error> DeviceContext::create(
-		const InstanceContext& context,
-		const DeviceContext::Config& config
+	std::expected<HeadlessDeviceContext, Error> HeadlessDeviceContext::create(
+		const HeadlessInstanceContext& context,
+		const DeviceConfig& config
 	) noexcept
 	{
-		/* Step 1: List physical devices */
+		/* Enumerate physical devices */
 
 		auto phy_devices_result =
 			context->instance.enumeratePhysicalDevices().transform_error(Error::from<vk::Result>());
@@ -435,70 +24,131 @@ namespace vulkan
 			return phy_devices_result.error().forward("Enumerate physical devices failed");
 		const auto phy_devices = std::move(*phy_devices_result);
 
-		/* Step 2: Check suitability */
+		/* Check each physical device */
 
-		auto phy_device_test_results =
-			phy_devices
-			| std::views::transform([&config, &context](const vk::raii::PhysicalDevice& device) {
-				  return test_device_suitability(device, context, config);
-			  })
-			| std::ranges::to<std::vector>();
+		std::vector<impl::HeadlessDeviceInfo> pass_devices;
+		std::vector<impl::FailInfo> fail_devices;
 
-		const auto suitable_device_found =
-			std::ranges::any_of(phy_device_test_results, [](const auto& test_result) {
-				return test_result.has_value();
-			});
-
-		// No suitable device, report error
-		if (!suitable_device_found)
+		for (const auto& phy_device : phy_devices)
 		{
-			const auto results = std::views::zip_transform(
-				[](const vk::raii::PhysicalDevice& device, const auto& test_result) {
-					const auto device_properties = device.getProperties();
-					return std::make_pair(
-						std::format("{:s}", device_properties.deviceName),
-						std::format("{0:msg} - {0:detail}", test_result.error().root())
-					);
+			std::visit(
+				[&pass_devices, &fail_devices]<typename T>(T result) {
+					if constexpr (std::same_as<T, impl::HeadlessDeviceInfo>)
+						pass_devices.emplace_back(std::move(result));
+					else
+						fail_devices.emplace_back(std::move(result));
 				},
-				phy_devices,
-				phy_device_test_results
+				impl::check_headless_device(phy_device, config)
 			);
-
-			return Error("No suitable physical device found", std::format("Check results: {}", results));
 		}
 
-		const auto suitable_devices = phy_device_test_results
-			| std::views::as_rvalue
-			| std::views::filter([](const auto& test_result) { return test_result.has_value(); })
-			| std::views::transform([](auto&& test_result) { return std::move(test_result.value()); })
-			| std::ranges::to<std::vector>();
+		if (pass_devices.empty())
+		{
+			const auto error_msgs =
+				fail_devices | std::views::transform([](const impl::FailInfo& fail_info) {
+					const auto device_properties = fail_info.phy_device.getProperties();
+					return std::make_pair(
+						std::format("{:s}", device_properties.deviceName),
+						std::format("{0:msg} - {0:detail}", fail_info.error.root())
+					);
+				});
 
-		/* Step 3: Rank & sort device */
+			return Error("No suitable device found", std::format("Diagnostics: {}", error_msgs));
+		}
 
-		const auto& best_match_device =
-			*std::ranges::max_element(suitable_devices, std::less(), [](const auto& result) {
-				return rank_device(result.phy_device);
-			});
+		/* Find best device and create */
 
-		/* Step 4: Create logical device */
+		auto best_device_iter = std::ranges::max_element(pass_devices, {}, &impl::HeadlessDeviceInfo::rank);
+		assert(best_device_iter != pass_devices.end());
+		auto best_device = std::move(*best_device_iter);
 
-		auto device_result = best_match_device.create_logical_device();
-		if (!device_result) return device_result.error().forward("Create logical device failed");
-		auto device = std::move(*device_result);
+		auto device_result = best_device.create_device();
+		if (!device_result) return device_result.error().forward("Create device failed");
+		auto [device, render_queue] = std::move(*device_result);
+		const auto phy_device = best_device.phy_device;
 
-		/* Step 5: Allocator */
+		/* Create allocator */
 
-		auto allocator_result =
-			vulkan::alloc::Allocator::create(context->instance, device.phy_device, device.device);
-		if (!allocator_result) return allocator_result.error().forward("Create allocator failed");
+		auto allocator_result = vulkan::alloc::Allocator::create(context->instance, phy_device, device);
+		if (!allocator_result) return allocator_result.error().forward("Create VMA allocator failed");
 		auto allocator = std::move(*allocator_result);
 
-		return DeviceContext{
-			.phy_device = std::move(device.phy_device),
-			.device = std::move(device.device),
-			.allocator = std::move(allocator),
-			.render_queue = std::move(device.render_queue),
-			.present_queue = std::move(device.present_queue)
-		};
+		return HeadlessDeviceContext(
+			phy_device,
+			std::move(device),
+			std::move(allocator),
+			std::move(render_queue)
+		);
+	}
+
+	std::expected<SurfaceDeviceContext, Error> SurfaceDeviceContext::create(
+		const SurfaceInstanceContext& context,
+		const DeviceConfig& config
+	) noexcept
+	{
+		/* Enumerate physical devices */
+
+		auto phy_devices_result =
+			context->instance.enumeratePhysicalDevices().transform_error(Error::from<vk::Result>());
+		if (!phy_devices_result)
+			return phy_devices_result.error().forward("Enumerate physical devices failed");
+		const auto phy_devices = std::move(*phy_devices_result);
+
+		/* Check each physical device */
+
+		std::vector<impl::SurfaceDeviceInfo> pass_devices;
+		std::vector<impl::FailInfo> fail_devices;
+
+		for (const auto& phy_device : phy_devices)
+		{
+			std::visit(
+				[&pass_devices, &fail_devices]<typename T>(T result) {
+					if constexpr (std::same_as<T, impl::SurfaceDeviceInfo>)
+						pass_devices.emplace_back(std::move(result));
+					else
+						fail_devices.emplace_back(std::move(result));
+				},
+				impl::check_surface_device(phy_device, context, config)
+			);
+		}
+
+		if (pass_devices.empty())
+		{
+			const auto error_msgs =
+				fail_devices | std::views::transform([](const impl::FailInfo& fail_info) {
+					const auto device_properties = fail_info.phy_device.getProperties();
+					return std::make_pair(
+						std::format("{:s}", device_properties.deviceName),
+						std::format("{0:msg} - {0:detail}", fail_info.error.root())
+					);
+				});
+
+			return Error("No suitable device found", std::format("Diagnostics: {}", error_msgs));
+		}
+
+		/* Find best device and create */
+
+		auto best_device_iter = std::ranges::max_element(pass_devices, {}, &impl::SurfaceDeviceInfo::rank);
+		assert(best_device_iter != pass_devices.end());
+		auto best_device = std::move(*best_device_iter);
+
+		auto device_result = best_device.create_device();
+		if (!device_result) return device_result.error().forward("Create device failed");
+		auto [device, render_queue, present_queue] = std::move(*device_result);
+		const auto phy_device = best_device.phy_device;
+
+		/* Create allocator */
+
+		auto allocator_result = vulkan::alloc::Allocator::create(context->instance, phy_device, device);
+		if (!allocator_result) return allocator_result.error().forward("Create VMA allocator failed");
+		auto allocator = std::move(*allocator_result);
+
+		return SurfaceDeviceContext(
+			phy_device,
+			std::move(device),
+			std::move(allocator),
+			std::move(render_queue),
+			std::move(present_queue)
+		);
 	}
 }

@@ -5,7 +5,7 @@ namespace resource
 {
 	Layout Layout::create(const vulkan::DeviceContext& context)
 	{
-		auto camera_param_layout = interface::CameraParam::Layout::create(context.device)
+		auto camera_param_layout = interface::CameraParam::Layout::create(context->device)
 			| Error::unwrap("Create camera param descriptor set layout failed");
 
 		return Layout{.camera_param_layout = std::move(camera_param_layout)};
@@ -13,13 +13,13 @@ namespace resource
 
 	FrameResource FrameResource::create(const vulkan::DeviceContext& context, glm::u32vec2 swapchain_extent)
 	{
-		auto camera_param = interface::CameraParam::Resource::create(context.device, context.allocator)
+		auto camera_param = interface::CameraParam::Resource::create(context->device, context->allocator)
 			| Error::unwrap("Create camera param resource failed");
 
 		auto depth_buffer =
 			vulkan::FrameBuffer::create_depth(
-				context.device,
-				context.allocator,
+				context->device,
+				context->allocator,
 				swapchain_extent,
 				depth_format,
 				depth_usages
@@ -69,16 +69,16 @@ namespace resource
 	SyncPrimitive SyncPrimitive::create(const vulkan::DeviceContext& context)
 	{
 		auto fence =
-			context.device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled})
+			context->device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled})
 				.transform_error(Error::from<vk::Result>())
 			| Error::unwrap("Create draw fence failed");
 
 		auto render_finished_semaphore =
-			context.device.createSemaphore({}).transform_error(Error::from<vk::Result>())
+			context->device.createSemaphore({}).transform_error(Error::from<vk::Result>())
 			| Error::unwrap("Create render finished semaphore failed");
 
 		auto present_complete_semaphore =
-			context.device.createSemaphore({}).transform_error(Error::from<vk::Result>())
+			context->device.createSemaphore({}).transform_error(Error::from<vk::Result>())
 			| Error::unwrap("Create present complete semaphore failed");
 
 		return {

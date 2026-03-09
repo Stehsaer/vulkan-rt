@@ -69,7 +69,7 @@ namespace vulkan
 		///
 		[[nodiscard]]
 		static std::expected<ImGuiContext, Error> create(
-			const InstanceContext& instance_context,
+			const SurfaceInstanceContext& instance_context,
 			const DeviceContext& device_context,
 			const Config& config
 		) noexcept;

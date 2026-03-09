@@ -15,7 +15,7 @@ namespace vulkan
 	/// @brief Manages swapchain context.
 	/// @details
 	/// #### Creation
-	/// Call @p create to create a swapchain context. Make sure to create an `InstanceContext` and
+	/// Call @p create to create a swapchain context. Make sure to create an `SurfaceInstanceContext` and
 	/// `DeviceContext` prior to creating this context.
 	///
 	/// #### Swapchain Configuration
@@ -73,8 +73,8 @@ namespace vulkan
 		///
 		[[nodiscard]]
 		static std::expected<SwapchainContext, Error> create(
-			const InstanceContext& instance_context,
-			const DeviceContext& device_context,
+			const SurfaceInstanceContext& instance_context,
+			const SurfaceDeviceContext& device_context,
 			const Config& config
 		) noexcept;
 
@@ -93,8 +93,8 @@ namespace vulkan
 		///
 		[[nodiscard]]
 		std::expected<Frame, Error> acquire_next(
-			const InstanceContext& instance_context,
-			const DeviceContext& device_context,
+			const SurfaceInstanceContext& instance_context,
+			const SurfaceDeviceContext& device_context,
 			std::optional<vk::Semaphore> semaphore = std::nullopt,
 			std::optional<vk::Fence> fence = std::nullopt,
 			uint64_t timeout = std::numeric_limits<uint64_t>::max()
@@ -112,7 +112,7 @@ namespace vulkan
 		///
 		[[nodiscard]]
 		std::expected<void, Error> present(
-			const DeviceContext& device_context,
+			const SurfaceDeviceContext& device_context,
 			Frame frame,
 			std::optional<vk::Semaphore> wait_semaphore = std::nullopt
 		) noexcept;
@@ -152,8 +152,8 @@ namespace vulkan
 
 		[[nodiscard]]
 		std::expected<void, Error> check_and_recreate_swapchain(
-			const InstanceContext& instance_context,
-			const DeviceContext& device_context
+			const SurfaceInstanceContext& instance_context,
+			const SurfaceDeviceContext& device_context
 		) noexcept;
 
 		struct ReadonlyWrapper

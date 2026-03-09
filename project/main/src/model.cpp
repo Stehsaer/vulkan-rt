@@ -123,7 +123,7 @@ std::expected<Model, Error> Model::load_from_file(const std::string_view& path) 
 ModelBuffer ModelBuffer::create(const vulkan::DeviceContext& context, const Model& model)
 {
 	auto vertex_buffer =
-		context.allocator.create_buffer(
+		context->allocator.create_buffer(
 			vk::BufferCreateInfo{
 				.size = util::as_bytes(model.vertices).size(),
 				.usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
@@ -134,7 +134,7 @@ ModelBuffer ModelBuffer::create(const vulkan::DeviceContext& context, const Mode
 		| Error::unwrap("Create vertex buffer failed");
 
 	auto index_buffer =
-		context.allocator.create_buffer(
+		context->allocator.create_buffer(
 			vk::BufferCreateInfo{
 				.size = util::as_bytes(model.indices).size(),
 				.usage = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
@@ -145,10 +145,10 @@ ModelBuffer ModelBuffer::create(const vulkan::DeviceContext& context, const Mode
 		| Error::unwrap("Create index buffer failed");
 
 	auto uploader = vulkan::Uploader(
-		context.device,
-		*context.render_queue.queue,
-		context.render_queue.family_index,
-		context.allocator
+		context->device,
+		*context->render_queue.queue,
+		context->render_queue.family_index,
+		context->allocator
 	);
 
 	uploader.upload_buffer(
