@@ -5,6 +5,7 @@
 #include <optional>
 #include <stb_image_resize2.h>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace image
@@ -53,6 +54,24 @@ namespace image
 		RGBA = 4
 	};
 
+	namespace encode_format
+	{
+		struct Png
+		{
+			uint8_t compression_level = 8;
+		};
+
+		struct Jpg
+		{
+			uint8_t quality = 95;
+		};
+
+		struct Bmp
+		{};
+	}
+
+	using EncodeFormat = std::variant<encode_format::Png, encode_format::Jpg, encode_format::Bmp>;
+
 	namespace detail
 	{
 		/* STBIR TYPE */
@@ -89,32 +108,33 @@ namespace image
 		/* Maps format to type */
 
 		template <Format T>
-		struct FormatType
+		struct FormatTypeImpl
 		{
 			using type = void;
 		};
 
 		template <>
-		struct FormatType<Format::Unorm8>
+		struct FormatTypeImpl<Format::Unorm8>
 		{
 			using type = uint8_t;
 		};
 
 		template <>
-		struct FormatType<Format::Unorm16>
+		struct FormatTypeImpl<Format::Unorm16>
 		{
 			using type = uint16_t;
 		};
 
 		template <>
-		struct FormatType<Format::Float32>
+		struct FormatTypeImpl<Format::Float32>
 		{
 			using type = float;
 		};
 	}
 
 	template <Format T>
-	using FormatType = detail::FormatType<T>::type;
+		requires(!std::same_as<typename detail::FormatTypeImpl<T>::type, void>)
+	using FormatType = detail::FormatTypeImpl<T>::type;
 
 	///
 	/// @brief Raw pixel type with specified format and layout
@@ -123,7 +143,7 @@ namespace image
 	/// @tparam L Image layout
 	///
 	template <Format T, Layout L>
-	using Pixel = glm::vec<std::to_underlying(L), typename detail::FormatType<T>::type>;
+	using Pixel = glm::vec<std::to_underlying(L), typename detail::FormatTypeImpl<T>::type>;
 
 	namespace detail::deduce
 	{

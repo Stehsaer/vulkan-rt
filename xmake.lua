@@ -27,7 +27,7 @@ add_requires(
 	"argparse v3.2",
 
 	-- Graphics
-	"libsdl3 3.4.0",
+	"libsdl3",
 	"glm 1.0.2",
 	"meshoptimizer v0.25",
 	"rapidobj v1.1",
@@ -42,6 +42,7 @@ add_requires("imgui v1.92.6-docking", {configs = {sdl3 = true, freetype = true, 
 
 add_requireconfs("**vulkan-hpp", {version = "1.4.309", override = true, system = false})
 add_requireconfs("**vulkan-headers", {version = "1.4.309+0", override = true, system = false})
+add_requireconfs("**libsdl3", {version = "3.4.2", override = true, system = false})
 
 -- Global defines
 add_defines(

@@ -4,16 +4,13 @@
 #include "common/test-macro.hpp"
 #include "image/bc-image.hpp"
 
-extern const std::byte _binary_checker_png_start;
-extern const std::byte _binary_checker_png_end;
+#include "test-asset.hpp"
 
 using ImageType = image::Image<image::Format::Unorm8, image::Layout::RGBA>;
 
 TEST_CASE("BC3")
 {
-	const std::span<const std::byte> encoded_data(&_binary_checker_png_start, &_binary_checker_png_end);
-
-	auto decoded_image_result = ImageType::decode(encoded_data);
+	auto decoded_image_result = ImageType::decode(checker_image_data);
 	EXPECT_SUCCESS(decoded_image_result);
 
 	const auto decoded_image = std::move(decoded_image_result.value());
@@ -27,9 +24,7 @@ TEST_CASE("BC3")
 
 TEST_CASE("BC5")
 {
-	const std::span<const std::byte> encoded_data(&_binary_checker_png_start, &_binary_checker_png_end);
-
-	auto decoded_image_result = ImageType::decode(encoded_data);
+	auto decoded_image_result = ImageType::decode(checker_image_data);
 	EXPECT_SUCCESS(decoded_image_result);
 
 	const auto decoded_image = std::move(decoded_image_result.value());
@@ -43,9 +38,7 @@ TEST_CASE("BC5")
 
 TEST_CASE("BC7")
 {
-	const std::span<const std::byte> encoded_data(&_binary_checker_png_start, &_binary_checker_png_end);
-
-	auto decoded_image_result = ImageType::decode(encoded_data);
+	auto decoded_image_result = ImageType::decode(checker_image_data);
 	EXPECT_SUCCESS(decoded_image_result);
 
 	const auto decoded_image = std::move(decoded_image_result.value());
@@ -55,6 +48,48 @@ TEST_CASE("BC7")
 	EXPECT_SUCCESS(bc7_image_result);
 	CHECK_EQ(bc7_image_result->format, image::BCnFormat::BC7);
 	CHECK_VEC2_EQ(bc7_image_result->size, 64, 64);
+}
+
+TEST_CASE("BC3 Complex")
+{
+	auto decoded_image_result = ImageType::decode(complex_image_data);
+	EXPECT_SUCCESS(decoded_image_result);
+
+	const auto decoded_image = std::move(decoded_image_result.value());
+	REQUIRE_VEC2_EQ(decoded_image.size, 640, 360);
+
+	auto bc3_image_result = image::BCnImage::encode(decoded_image, image::BCnFormat::BC3);
+	EXPECT_SUCCESS(bc3_image_result);
+	CHECK_EQ(bc3_image_result->format, image::BCnFormat::BC3);
+	CHECK_VEC2_EQ(bc3_image_result->size, 160, 90);
+}
+
+TEST_CASE("BC5 Complex")
+{
+	auto decoded_image_result = ImageType::decode(complex_image_data);
+	EXPECT_SUCCESS(decoded_image_result);
+
+	const auto decoded_image = std::move(decoded_image_result.value());
+	REQUIRE_VEC2_EQ(decoded_image.size, 640, 360);
+
+	auto bc5_image_result = image::BCnImage::encode(decoded_image, image::BCnFormat::BC5);
+	EXPECT_SUCCESS(bc5_image_result);
+	CHECK_EQ(bc5_image_result->format, image::BCnFormat::BC5);
+	CHECK_VEC2_EQ(bc5_image_result->size, 160, 90);
+}
+
+TEST_CASE("BC7 Complex")
+{
+	auto decoded_image_result = ImageType::decode(complex_image_data);
+	EXPECT_SUCCESS(decoded_image_result);
+
+	const auto decoded_image = std::move(decoded_image_result.value());
+	REQUIRE_VEC2_EQ(decoded_image.size, 640, 360);
+
+	auto bc7_image_result = image::BCnImage::encode(decoded_image, image::BCnFormat::BC7);
+	EXPECT_SUCCESS(bc7_image_result);
+	CHECK_EQ(bc7_image_result->format, image::BCnFormat::BC7);
+	CHECK_VEC2_EQ(bc7_image_result->size, 160, 90);
 }
 
 TEST_CASE("Invalid dimension")

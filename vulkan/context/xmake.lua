@@ -22,7 +22,7 @@ target("vulkan.context")
 		{public = true}
 	)
 
-target("vulkan.context.unit-test")
+target("vulkan.context.test")
 	set_kind("binary")
 	set_default(false)
 

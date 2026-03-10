@@ -6,7 +6,6 @@
 #include <cstddef>
 #include <glm/glm.hpp>
 #include <span>
-#include <stb_image_resize2.h>
 
 namespace image::impl
 {

@@ -1,18 +1,12 @@
 #include <doctest/doctest.h>
+#include <print>
 #include <span>
 
 #include "common/test-macro.hpp"
 #include "common/util/span.hpp"
+#include "image/common.hpp"
 #include "image/image.hpp"
-
-extern const std::byte _binary_load8_png_start;
-extern const std::byte _binary_load8_png_end;
-
-extern const std::byte _binary_load16_png_start;
-extern const std::byte _binary_load16_png_end;
-
-extern const std::byte _binary_checker_png_start;
-extern const std::byte _binary_checker_png_end;
+#include "test-asset.hpp"
 
 TEST_SUITE("Index")
 {
@@ -52,15 +46,13 @@ TEST_SUITE("Index")
 	}
 }
 
-TEST_SUITE("Load")
+TEST_SUITE("Decode")
 {
-	TEST_CASE("Load 8bit RGBA")
+	TEST_CASE("8bit PNG")
 	{
 		using ImageType = image::Image<image::Format::Unorm8, image::Layout::RGBA>;
 
-		const std::span<const std::byte> encoded_data(&_binary_load8_png_start, &_binary_load8_png_end);
-
-		auto decoded_image_result = ImageType::decode(encoded_data);
+		auto decoded_image_result = ImageType::decode(load8_png_data);
 		EXPECT_SUCCESS(decoded_image_result);
 
 		const auto decoded_image = std::move(decoded_image_result.value());
@@ -72,13 +64,11 @@ TEST_SUITE("Load")
 		CHECK_VEC4_EQ((decoded_image[1, 1]), 255, 255, 255, 255);
 	}
 
-	TEST_CASE("Load 16bit RGBA")
+	TEST_CASE("16bit PNG")
 	{
 		using ImageType = image::Image<image::Format::Unorm16, image::Layout::RGBA>;
 
-		const std::span<const std::byte> encoded_data(&_binary_load16_png_start, &_binary_load16_png_end);
-
-		auto decoded_image_result = ImageType::decode(encoded_data);
+		auto decoded_image_result = ImageType::decode(load16_png_data);
 		EXPECT_SUCCESS(decoded_image_result);
 
 		const auto decoded_image = std::move(decoded_image_result.value());
@@ -90,26 +80,38 @@ TEST_SUITE("Load")
 		CHECK_VEC4_EQ((decoded_image[1, 1]), 65535, 65535, 65535, 65535);
 	}
 
-	TEST_CASE("Load large image")
+	TEST_CASE("8bit JPG")
 	{
 		using ImageType = image::Image<image::Format::Unorm8, image::Layout::RGBA>;
 
-		const std::span<const std::byte> encoded_data(&_binary_checker_png_start, &_binary_checker_png_end);
+		auto decoded_image_result = ImageType::decode(load8_jpg_data);
+		EXPECT_SUCCESS(decoded_image_result);
 
-		auto decoded_image_result = ImageType::decode(encoded_data);
+		const auto decoded_image = std::move(decoded_image_result.value());
+		REQUIRE_VEC2_EQ(decoded_image.size, 16, 16);
+
+		CHECK_VEC4_EQ((decoded_image[0, 0]), 254, 0, 0, 255);
+		CHECK_VEC4_EQ((decoded_image[8, 0]), 0, 255, 1, 255);
+		CHECK_VEC4_EQ((decoded_image[0, 8]), 0, 0, 254, 255);
+		CHECK_VEC4_EQ((decoded_image[8, 8]), 255, 255, 255, 255);
+	}
+
+	TEST_CASE("Large image PNG")
+	{
+		using ImageType = image::Image<image::Format::Unorm8, image::Layout::RGBA>;
+
+		auto decoded_image_result = ImageType::decode(checker_image_data);
 		EXPECT_SUCCESS(decoded_image_result);
 
 		const auto decoded_image = std::move(decoded_image_result.value());
 		REQUIRE_VEC2_EQ(decoded_image.size, 256, 256);
 	}
 
-	TEST_CASE("Load large image grey")
+	TEST_CASE("Large image grey")
 	{
 		using ImageType = image::Image<image::Format::Unorm8, image::Layout::Grey>;
 
-		const std::span<const std::byte> encoded_data(&_binary_checker_png_start, &_binary_checker_png_end);
-
-		auto decoded_image_result = ImageType::decode(encoded_data);
+		auto decoded_image_result = ImageType::decode(checker_image_data);
 		EXPECT_SUCCESS(decoded_image_result);
 
 		const auto decoded_image = std::move(decoded_image_result.value());
@@ -126,15 +128,108 @@ TEST_SUITE("Load")
 	}
 }
 
+TEST_SUITE("Encode")
+{
+	static void test_encoding(std::span<const std::byte> data, image::EncodeFormat format)
+	{
+		using ImageType = image::Image<image::Format::Unorm8, image::Layout::RGBA>;
+
+		auto decoded_image_result = ImageType::decode(data);
+		EXPECT_SUCCESS(decoded_image_result);
+		auto decoded_image = std::move(*decoded_image_result);
+
+		auto roundtrip_image_result = decoded_image.encode(format).and_then(ImageType::decode);
+		EXPECT_SUCCESS(roundtrip_image_result);
+		auto roundtrip_image = std::move(*roundtrip_image_result);
+
+		REQUIRE_VEC2_EQ_ALT(decoded_image.size, roundtrip_image.size);
+
+		if (!std::ranges::all_of(
+				std::views::zip_transform(
+					[](const glm::u8vec4& x, const glm::u8vec4& y) { return glm::all(glm::equal(x, y)); },
+					decoded_image.data,
+					roundtrip_image.data
+				),
+				std::identity()
+			))
+		{
+			FAIL("Image data mismatch");
+		}
+	}
+
+	static void test_encoding_lossy(
+		const std::string_view& name,
+		std::span<const std::byte> data,
+		image::EncodeFormat format
+	)
+	{
+		using ImageType = image::Image<image::Format::Unorm8, image::Layout::RGBA>;
+
+		auto decoded_image_result = ImageType::decode(data);
+		EXPECT_SUCCESS(decoded_image_result);
+		auto decoded_image = std::move(*decoded_image_result);
+
+		auto roundtrip_image_result = decoded_image.encode(format).and_then(ImageType::decode);
+		EXPECT_SUCCESS(roundtrip_image_result);
+		auto roundtrip_image = std::move(*roundtrip_image_result);
+
+		REQUIRE_VEC2_EQ_ALT(decoded_image.size, roundtrip_image.size);
+
+		const auto square_error = std::views::zip_transform(
+			[](const glm::u8vec4& x, const glm::u8vec4& y) {
+				const auto diff = glm::f32vec4(x) - glm::f32vec4(y);
+				const auto diff2 = diff * diff;
+				return (diff2.x + diff2.y + diff2.z + diff2.w) / 4.0f;
+			},
+			decoded_image.data,
+			roundtrip_image.data
+		);
+		const auto mse = std::ranges::fold_left_first(square_error, std::plus()).value()
+			/ (decoded_image.size.x * decoded_image.size.y);
+
+		std::println("(Lossy Encoding, {}) MSE = {:.2f}", name, mse);
+
+		if (mse > 10) FAIL("MSE too large");
+	}
+
+	TEST_CASE("PNG")
+	{
+		test_encoding(checker_image_data, image::encode_format::Png());
+	}
+
+	TEST_CASE("PNG Complex")
+	{
+		test_encoding(complex_image_data, image::encode_format::Png());
+	}
+
+	TEST_CASE("JPG")
+	{
+		test_encoding_lossy("JPG Checker", checker_image_data, image::encode_format::Jpg());
+	}
+
+	TEST_CASE("JPG Complex")
+	{
+		test_encoding_lossy("JPG Complex", complex_image_data, image::encode_format::Jpg());
+	}
+
+	TEST_CASE("BMP")
+	{
+		test_encoding(checker_image_data, image::encode_format::Bmp());
+	}
+
+	TEST_CASE("BMP Complex")
+	{
+		test_encoding(complex_image_data, image::encode_format::Bmp());
+	}
+}
+
 TEST_SUITE("Resize")
 {
 	TEST_CASE("Normal")
 	{
 		using ImageType = image::Image<image::Format::Unorm8, image::Layout::RGBA>;
 
-		const std::span<const std::byte> encoded_data(&_binary_load8_png_start, &_binary_load8_png_end);
-
-		auto decoded_image_result = ImageType::decode(encoded_data);
+		auto decoded_image_result = ImageType::decode(load8_png_data);
 		EXPECT_SUCCESS(decoded_image_result);
 
 		const auto decoded_image = std::move(decoded_image_result.value());
@@ -153,9 +248,7 @@ TEST_SUITE("Resize")
 	{
 		using ImageType = image::Image<image::Format::Unorm8, image::Layout::RGBA>;
 
-		const std::span<const std::byte> encoded_data(&_binary_checker_png_start, &_binary_checker_png_end);
-
-		auto decoded_image_result = ImageType::decode(encoded_data);
+		auto decoded_image_result = ImageType::decode(checker_image_data);
 		EXPECT_SUCCESS(decoded_image_result);
 
 		const auto decoded_image = std::move(decoded_image_result.value());
@@ -278,19 +371,19 @@ TEST_SUITE("Generate Mipmap")
 
 	TEST_CASE("Generate, auto-resize")
 	{
-		SUBCASE("POT") {}
+		const auto img = image::Image<image::Format::Unorm8, image::Layout::RGBA>(glm::u32vec2(511, 512));
 
-		SUBCASE("NPOT") {}
+		const auto result = img.resize_and_generate_mipmap(0);
+		REQUIRE_EQ(result.size(), 10);
+		CHECK_VEC2_EQ(result[0].size, 512, 512);
+		CHECK_VEC2_EQ(result[9].size, 1, 1);
 	}
 }
 
 TEST_CASE("Is 16 bit")
 {
-	const std::span<const std::byte> encoded_data_unorm8(&_binary_load8_png_start, &_binary_load8_png_end);
-	const std::span<const std::byte> encoded_data_unorm16(&_binary_load16_png_start, &_binary_load16_png_end);
-
-	const auto is_16bit_result_8bit = image::encoded_data_is_16bit(encoded_data_unorm8);
-	const auto is_16bit_result_16bit = image::encoded_data_is_16bit(encoded_data_unorm16);
+	const auto is_16bit_result_8bit = image::encoded_data_is_16bit(load8_png_data);
+	const auto is_16bit_result_16bit = image::encoded_data_is_16bit(load16_png_data);
 
 	CHECK_FALSE(is_16bit_result_8bit);
 	CHECK(is_16bit_result_16bit);

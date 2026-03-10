@@ -4,6 +4,7 @@
 #include "common/util/span.hpp"
 #include "image/common.hpp"
 #include "image/impl/decode.hpp"
+#include "image/impl/encode.hpp"
 
 #include <bit>
 #include <cstddef>
@@ -29,7 +30,9 @@ namespace image
 	uint32_t log2(uint32_t val) noexcept;
 
 	///
-	/// @brief Raw image with specified format and layout
+	/// @brief Image with specified format and layout
+	/// @note This is designed for "direct" storage like `R8G8B8A8_UNORM`, not packed ones like
+	/// `R11G11B10_UNORM`
 	///
 	/// @tparam P Image format
 	/// @tparam L Image layout
@@ -106,12 +109,14 @@ namespace image
 
 		///
 		/// @brief Decode an image from encoded data
+		/// @note Layout of RG is not supported
 		///
 		/// @param encoded_data Encoded image data
 		/// @return Decoded Image or Error
 		///
 		[[nodiscard]]
 		static std::expected<Image, Error> decode(std::span<const std::byte> encoded_data) noexcept
+			requires(L != Layout::RG)
 		{
 			const auto result = impl::decode_img<T>(encoded_data, L);
 			if (!result) return result.error();
@@ -120,6 +125,21 @@ namespace image
 			std::ranges::copy(util::as_bytes(result->data), util::as_writable_bytes(decoded_data).begin());
 
 			return Image<T, L>(glm::u32vec2(result->width, result->height), std::move(decoded_data));
+		}
+
+		///
+		/// @brief Encode an image into encoded data
+		/// @note Only non-RG-layot Unorm8 images are supported
+		///
+		/// @param format Encode format. Customizable by specifying compression ratio or quality. e.g.
+		/// `encode_format::Jpg{.quality = 75}`
+		/// @return Encoded data, or error
+		///
+		[[nodiscard]]
+		std::expected<std::vector<std::byte>, Error> encode(EncodeFormat format) noexcept
+			requires(L != Layout::RG && T == Format::Unorm8)
+		{
+			return impl::encode(format, this->size, L, util::as_bytes(this->data));
 		}
 
 		///
@@ -237,7 +257,7 @@ namespace image
 			if (this->is_pot())
 				return this->generate_mipmap(min_size_log);
 			else
-				return this->resize_to_pot().generate_mipmap(min_size_log);
+				return this->resize_to_pot(true).generate_mipmap(min_size_log);
 		}
 
 		/*===== Copy/Move =====*/
