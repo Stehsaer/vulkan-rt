@@ -1,7 +1,6 @@
 #include "model.hpp"
 #include "common/util/span.hpp"
-#include "vulkan/alloc.hpp"
-#include "vulkan/util/uploader.hpp"
+#include "vulkan/util/static-resource-creator.hpp"
 
 #include <format>
 #include <tiny_obj_loader.h>
@@ -137,8 +136,11 @@ namespace
 		{
 			std::vector<Vertex> vertices;
 
-			auto renderable_shapes = shapes
-				| std::views::filter([](const auto& shape) { return !shape.mesh.num_face_vertices.empty(); });
+			auto renderable_shapes =
+				shapes | std::views::filter([](const tinyobj::shape_t& shape) {
+					return !shape.mesh.num_face_vertices.empty();
+				});
+
 			for (const auto& shape : renderable_shapes)
 			{
 				const auto& mesh = shape.mesh;
@@ -212,47 +214,22 @@ std::expected<Model, Error> Model::load_from_file(const std::string_view& path) 
 
 ModelBuffer ModelBuffer::create(const vulkan::DeviceContext& context, const Model& model)
 {
+	auto resource_creator = vulkan::StaticResourceCreator(
+		context->device,
+		context->allocator,
+		*context->render_queue.queue,
+		context->render_queue.family_index
+	);
+
 	auto vertex_buffer =
-		context->allocator.create_buffer(
-			vk::BufferCreateInfo{
-				.size = util::as_bytes(model.vertices).size(),
-				.usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-				.sharingMode = vk::SharingMode::eExclusive
-			},
-			vulkan::alloc::MemoryUsage::GpuOnly
-		)
+		resource_creator.create_buffer(util::as_bytes(model.vertices), vk::BufferUsageFlagBits::eVertexBuffer)
 		| Error::unwrap("Create vertex buffer failed");
 
 	auto index_buffer =
-		context->allocator.create_buffer(
-			vk::BufferCreateInfo{
-				.size = util::as_bytes(model.indices).size(),
-				.usage = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-				.sharingMode = vk::SharingMode::eExclusive
-			},
-			vulkan::alloc::MemoryUsage::GpuOnly
-		)
+		resource_creator.create_buffer(util::as_bytes(model.indices), vk::BufferUsageFlagBits::eIndexBuffer)
 		| Error::unwrap("Create index buffer failed");
 
-	auto uploader = vulkan::Uploader(
-		context->device,
-		*context->render_queue.queue,
-		context->render_queue.family_index,
-		context->allocator
-	);
-
-	uploader.upload_buffer(
-		vulkan::Uploader::BufferUploadInfo{
-			.dst_buffer = vertex_buffer,
-			.data = util::as_bytes(model.vertices)
-		}
-	) | Error::unwrap("Upload vertex buffer failed");
-
-	uploader.upload_buffer(
-		vulkan::Uploader::BufferUploadInfo{.dst_buffer = index_buffer, .data = util::as_bytes(model.indices)}
-	) | Error::unwrap("Upload index buffer failed");
-
-	uploader.execute() | Error::unwrap("Execute buffer upload failed");
+	resource_creator.execute_uploads() | Error::unwrap("Execute model buffer uploads failed");
 
 	return ModelBuffer{
 		.vertex_buffer = std::move(vertex_buffer),

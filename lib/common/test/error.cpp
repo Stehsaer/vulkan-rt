@@ -196,7 +196,7 @@ TEST_CASE("Error collecting")
 		const auto collected = vec | Error::collect();
 
 		REQUIRE(!collected);
-		CHECK_EQ(collected.error().message, "Error in vector element");
+		CHECK_EQ(collected.error().message, "Error in range element");
 		CHECK_EQ(collected.error().detail, "Error found in index 1");
 
 		REQUIRE(collected.error().cause);

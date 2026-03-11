@@ -12,14 +12,16 @@ target("lib.common")
 	add_headerfiles("include/(**.hpp)")
 	add_packages("vulkan-hpp", {public = true})
 
+target("lib.common.test")
+	set_kind("binary")
+	set_default(false)
+
+	add_deps("lib.common")
+	add_packages("doctest")
+	add_defines("DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN")
+
+	set_runenv("TEMP_DIR", os.tmpdir())
+
 	for _, testfile in ipairs(os.files("test/*.cpp")) do
-         add_tests(path.basename(testfile), {
-             kind = "binary",
-             files = {testfile},
-			 runenvs = {
-				["TEMP_DIR"] = os.tmpdir()
-			 },
-             packages = "doctest",
-             defines = "DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN"
-		})
+		add_tests(path.basename(testfile), {files = {testfile}})
     end

@@ -1,4 +1,4 @@
 .xmake/*
 build/*
-.vscode/settings.json
+.vscode/*
 */.DS_Store

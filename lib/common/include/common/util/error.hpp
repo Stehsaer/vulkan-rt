@@ -548,11 +548,11 @@ class Error
 		{
 			std::vector<RangeExpectedElementType<R>> result;
 
-			for (const auto [index, item] : range | std::views::as_rvalue | std::views::enumerate)
+			for (auto [index, item] : range | std::views::as_rvalue | std::views::enumerate)
 			{
 				if (!item)
 					return item.error().forward(
-						"Error in vector element",
+						"Error in range element",
 						std::format("Error found in index {}", index),
 						collect.location
 					);
