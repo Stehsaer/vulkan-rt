@@ -1,3 +1,5 @@
+add_requires("tinyobjloader v2.0.0rc13")
+
 target("main")
 	set_kind("binary")
 
@@ -18,4 +20,4 @@ target("main")
 	add_files("shader/*.slang")
 	add_slang_deps("lighting", "algorithm")
 
-	add_packages("rapidobj", "argparse")
+	add_packages("tinyobjloader", "argparse")

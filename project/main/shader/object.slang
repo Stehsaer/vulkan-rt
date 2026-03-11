@@ -79,3 +79,4 @@ func main_fragment(input: FragmentIn)->FragmentOut
 
 	return FragmentOut(float4(dithered_color, 1.0));
 }
+
