@@ -1,4 +1,5 @@
 #include "vulkan/util/static-resource-creator.hpp"
+#include "vulkan/util/constants.hpp"
 
 namespace vulkan
 {
@@ -87,7 +88,8 @@ namespace vulkan
 			.aspectMask = subresource_layers.aspectMask,
 			.baseMipLevel = subresource_layers.mipLevel,
 			.levelCount = 1,
-			.baseArrayLayer = subresource_layers.baseArrayLayer
+			.baseArrayLayer = subresource_layers.baseArrayLayer,
+			.layerCount = 1
 		};
 
 		return vk::ImageMemoryBarrier2{
@@ -152,13 +154,8 @@ namespace vulkan
 		vk::ImageLayout layout
 	) noexcept
 	{
-		const auto extent = vk::Extent3D{.width = image.size.x, .height = image.size.y, .depth = 1};
-		const auto subresource_layer = vk::ImageSubresourceLayers{
-			.aspectMask = vk::ImageAspectFlagBits::eColor,
-			.mipLevel = 0,
-			.baseArrayLayer = 0,
-			.layerCount = 1,
-		};
+		const auto extent = vk::Extent3D{.width = image.size.x * 4, .height = image.size.y * 4, .depth = 1};
+		const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
 
 		const auto image_create_info = vk::ImageCreateInfo{
 			.imageType = vk::ImageType::e2D,
@@ -227,7 +224,7 @@ namespace vulkan
 		const std::vector<vk::Extent3D> extents =
 			mipmap_chain
 			| std::views::transform([](const auto& image) {
-				  return vk::Extent3D{.width = image.size.x, .height = image.size.y, .depth = 1};
+				  return vk::Extent3D{.width = image.size.x * 4, .height = image.size.y * 4, .depth = 1};
 			  })
 			| std::ranges::to<std::vector>();
 		const auto mipmap_levels = mipmap_chain.size();

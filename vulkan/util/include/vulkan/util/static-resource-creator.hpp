@@ -5,6 +5,7 @@
 #include "image/bc-image.hpp"
 #include "image/image.hpp"
 #include "vulkan/alloc.hpp"
+#include "vulkan/util/constants.hpp"
 
 #include <functional>
 #include <ranges>
@@ -17,15 +18,28 @@ namespace vulkan
 	///
 	/// @brief Static resource creator, designed for creating buffers and images at initialization/loading
 	/// stage
-	/// @warning Do not create multiple upload tasks for the same image subresource layer
-	/// @warning Make sure to call `execute_uploads()` after creating resources and before deconstructing the
+	///
+	/// @warning
+	/// - Do not create multiple upload tasks for the same image subresource layer
+	/// - Make sure to call `execute_uploads()` after creating resources and before deconstructing the
 	/// creator
+	/// - Do not use it in frame loops, as this is not designed to be highly efficient. Manually upload in
+	/// such scenarios.
+	///
 	/// @note All resosurces are created as `GpuOnly`
 	///
 	class StaticResourceCreator
 	{
 	  public:
 
+		///
+		/// @brief Construct a new `StaticResourceCreator`
+		///
+		/// @param device Vulkan device
+		/// @param allocator Vulkan memory allocator
+		/// @param transfer_queue Vulkan queue for submitting transfer commands
+		/// @param queue_family Queue family index of the transfer queue
+		///
 		explicit StaticResourceCreator(
 			const vk::raii::Device& device,
 			const alloc::Allocator& allocator,
@@ -231,12 +245,7 @@ namespace vulkan
 	) noexcept
 	{
 		const auto extent = vk::Extent3D{.width = image.size.x, .height = image.size.y, .depth = 1};
-		const auto subresource_layer = vk::ImageSubresourceLayers{
-			.aspectMask = vk::ImageAspectFlagBits::eColor,
-			.mipLevel = 0,
-			.baseArrayLayer = 0,
-			.layerCount = 1,
-		};
+		const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
 
 		const auto image_create_info = vk::ImageCreateInfo{
 			.imageType = vk::ImageType::e2D,

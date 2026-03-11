@@ -1,4 +1,5 @@
 #include "common/file.hpp"
+#include "vulkan/util/static-resource-creator.hpp"
 #include <filesystem>
 #define DOCTEST_CONFIG_IMPLEMENT
 
@@ -10,6 +11,7 @@
 #include "vulkan/alloc.hpp"
 #include "vulkan/context/device.hpp"
 #include "vulkan/context/instance.hpp"
+#include "vulkan/util/resource-readback.hpp"
 
 #include <doctest.h>
 #include <glm/fwd.hpp>
@@ -75,278 +77,6 @@ int main(int argc, const char* const* argv)
 
 using ImageType = image::Image<image::Format::Unorm8, image::Layout::RGBA>;
 
-static void test_common(
-	glm::u32vec2 size,
-	std::span<const std::byte> upload_data,
-	std::span<std::byte> readback_data,
-	vk::Format bc_format,
-	vk::Format raw_format
-)
-{
-	const auto& device = context_ptr->device_context->device;
-	const auto& allocator = context_ptr->device_context->allocator;
-
-	// Src buffer
-
-	const auto src_buffer_create_info = vk::BufferCreateInfo{
-		.size = upload_data.size_bytes(),
-		.usage = vk::BufferUsageFlagBits::eTransferSrc
-	};
-	auto src_buffer_result =
-		allocator.create_buffer(src_buffer_create_info, vulkan::alloc::MemoryUsage::CpuToGpu);
-	EXPECT_SUCCESS(src_buffer_result);
-	auto src_buffer = std::move(*src_buffer_result);
-
-	const auto upload_result = src_buffer.upload(upload_data);
-	EXPECT_SUCCESS(upload_result);
-
-	// Dst buffer
-
-	const auto dst_buffer_create_info = vk::BufferCreateInfo{
-		.size = readback_data.size_bytes(),
-		.usage = vk::BufferUsageFlagBits::eTransferDst
-	};
-	auto dst_buffer_result =
-		allocator.create_buffer(dst_buffer_create_info, vulkan::alloc::MemoryUsage::GpuToCpu);
-	EXPECT_SUCCESS(dst_buffer_result);
-	auto dst_buffer = std::move(*dst_buffer_result);
-
-	// Src image
-
-	const auto src_image_create_info = vk::ImageCreateInfo{
-		.imageType = vk::ImageType::e2D,
-		.format = bc_format,
-		.extent = {.width = size.x, .height = size.y, .depth = 1},
-		.mipLevels = 1,
-		.arrayLayers = 1,
-		.usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst
-	};
-	auto src_image_result =
-		allocator.create_image(src_image_create_info, vulkan::alloc::MemoryUsage::GpuOnly);
-	EXPECT_SUCCESS(src_image_result);
-	auto src_image = std::move(*src_image_result);
-
-	// Dst image
-
-	const auto dst_image_create_info = vk::ImageCreateInfo{
-		.imageType = vk::ImageType::e2D,
-		.format = raw_format,
-		.extent = {.width = size.x, .height = size.y, .depth = 1},
-		.mipLevels = 1,
-		.arrayLayers = 1,
-		.usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst
-	};
-	auto dst_image_result =
-		allocator.create_image(dst_image_create_info, vulkan::alloc::MemoryUsage::GpuOnly);
-	EXPECT_SUCCESS(dst_image_result);
-	auto dst_image = std::move(*dst_image_result);
-
-	// Command buffer
-
-	auto command_pool_result =
-		device
-			.createCommandPool(
-				{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-				 .queueFamilyIndex = context_ptr->device_context->render_queue.family_index}
-			)
-			.transform_error(Error::from<vk::Result>());
-	EXPECT_SUCCESS(command_pool_result);
-	auto command_pool = std::move(*command_pool_result);
-
-	auto command_buffer_result =
-		device
-			.allocateCommandBuffers(
-				vk::CommandBufferAllocateInfo{
-					.commandPool = command_pool,
-					.level = vk::CommandBufferLevel::ePrimary,
-					.commandBufferCount = 1,
-				}
-			)
-			.transform_error(Error::from<vk::Result>())
-			.transform([](std::vector<vk::raii::CommandBuffer> list) { return std::move(list[0]); });
-	EXPECT_SUCCESS(command_buffer_result);
-	auto command_buffer = std::move(*command_buffer_result);
-
-	// Fence
-
-	auto fence_result = device.createFence(vk::FenceCreateInfo()).transform_error(Error::from<vk::Result>());
-	EXPECT_SUCCESS(fence_result);
-	auto fence = std::move(*fence_result);
-
-	command_buffer.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-	{
-		// Copy from src_buffer to src_image
-
-		const auto src_image_barrier_pre = vk::ImageMemoryBarrier2{
-			.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
-			.srcAccessMask = {},
-			.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
-			.dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
-			.oldLayout = vk::ImageLayout::eUndefined,
-			.newLayout = vk::ImageLayout::eTransferDstOptimal,
-			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-			.image = src_image,
-			.subresourceRange = {
-							  .aspectMask = vk::ImageAspectFlagBits::eColor,
-							  .baseMipLevel = 0,
-							  .levelCount = 1,
-							  .baseArrayLayer = 0,
-							  .layerCount = 1,
-							  },
-		};
-
-		const auto src_copy_region = vk::BufferImageCopy{
-			.bufferOffset = 0,
-			.bufferRowLength = 0,
-			.bufferImageHeight = 0,
-			.imageSubresource =
-				{.aspectMask = vk::ImageAspectFlagBits::eColor,
-								   .mipLevel = 0,
-								   .baseArrayLayer = 0,
-								   .layerCount = 1},
-			.imageOffset = {.x = 0, .y = 0, .z = 0},
-			.imageExtent = {.width = size.x, .height = size.y, .depth = 1}
-		};
-
-		command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(src_image_barrier_pre));
-		command_buffer.copyBufferToImage(
-			src_buffer,
-			src_image,
-			vk::ImageLayout::eTransferDstOptimal,
-			{src_copy_region}
-		);
-
-		// Blit
-
-		const auto src_image_barrier_post = vk::ImageMemoryBarrier2{
-			.srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
-			.srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-			.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
-			.dstAccessMask = vk::AccessFlagBits2::eTransferRead,
-			.oldLayout = vk::ImageLayout::eTransferDstOptimal,
-			.newLayout = vk::ImageLayout::eTransferSrcOptimal,
-			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-			.image = src_image,
-			.subresourceRange = {
-								 .aspectMask = vk::ImageAspectFlagBits::eColor,
-								 .baseMipLevel = 0,
-								 .levelCount = 1,
-								 .baseArrayLayer = 0,
-								 .layerCount = 1,
-								 },
-		};
-
-		const auto dst_image_barrier_pre = vk::ImageMemoryBarrier2{
-			.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
-			.srcAccessMask = {},
-			.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
-			.dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
-			.oldLayout = vk::ImageLayout::eUndefined,
-			.newLayout = vk::ImageLayout::eTransferDstOptimal,
-			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-			.image = dst_image,
-			.subresourceRange = {
-							  .aspectMask = vk::ImageAspectFlagBits::eColor,
-							  .baseMipLevel = 0,
-							  .levelCount = 1,
-							  .baseArrayLayer = 0,
-							  .layerCount = 1,
-							  },
-		};
-
-		const auto blit_barriers = std::to_array({src_image_barrier_post, dst_image_barrier_pre});
-
-		const auto blit_offset = std::to_array({
-			vk::Offset3D{.x = 0,               .y = 0,               .z = 0},
-			vk::Offset3D{.x = int32_t(size.x), .y = int32_t(size.y), .z = 1}
-		});
-
-		const auto blit_region = vk::ImageBlit{
-			.srcSubresource =
-				{.aspectMask = vk::ImageAspectFlagBits::eColor,
-								 .mipLevel = 0,
-								 .baseArrayLayer = 0,
-								 .layerCount = 1},
-			.srcOffsets = blit_offset,
-			.dstSubresource =
-				{.aspectMask = vk::ImageAspectFlagBits::eColor,
-								 .mipLevel = 0,
-								 .baseArrayLayer = 0,
-								 .layerCount = 1},
-			.dstOffsets = blit_offset
-		};
-
-		command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(blit_barriers));
-		command_buffer.blitImage(
-			src_image,
-			vk::ImageLayout::eTransferSrcOptimal,
-			dst_image,
-			vk::ImageLayout::eTransferDstOptimal,
-			{blit_region},
-			vk::Filter::eNearest
-		);
-
-		// Copy back
-
-		const auto dst_image_barrier_post = vk::ImageMemoryBarrier2{
-			.srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
-			.srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-			.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
-			.dstAccessMask = vk::AccessFlagBits2::eTransferRead,
-			.oldLayout = vk::ImageLayout::eTransferDstOptimal,
-			.newLayout = vk::ImageLayout::eTransferSrcOptimal,
-			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-			.image = dst_image,
-			.subresourceRange = {
-								 .aspectMask = vk::ImageAspectFlagBits::eColor,
-								 .baseMipLevel = 0,
-								 .levelCount = 1,
-								 .baseArrayLayer = 0,
-								 .layerCount = 1,
-								 },
-		};
-
-		const auto dst_copy_region = vk::BufferImageCopy{
-			.imageSubresource =
-				{.aspectMask = vk::ImageAspectFlagBits::eColor,
-								   .mipLevel = 0,
-								   .baseArrayLayer = 0,
-								   .layerCount = 1},
-			.imageOffset = {.x = 0, .y = 0, .z = 0},
-			.imageExtent = {.width = size.x, .height = size.y, .depth = 1}
-		};
-
-		command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(dst_image_barrier_post));
-		command_buffer.copyImageToBuffer(
-			dst_image,
-			vk::ImageLayout::eTransferSrcOptimal,
-			dst_buffer,
-			{dst_copy_region}
-		);
-	}
-	command_buffer.end();
-
-	const auto command_buffers = std::to_array<vk::CommandBuffer>({command_buffer});
-	context_ptr->device_context->render_queue.queue
-		->submit(vk::SubmitInfo().setCommandBuffers(command_buffers), fence);
-
-	const auto wait_result = device.waitForFences({fence}, vk::True, 1'000'000'000);
-	if (wait_result != vk::Result::eSuccess)
-	{
-		if (wait_result == vk::Result::eTimeout) FAIL("Fence wait timeout");
-		FAIL("Wait for fence failed");
-	}
-
-	const auto readback_result = dst_buffer.download(readback_data);
-	EXPECT_SUCCESS(readback_result);
-
-	device.waitIdle();
-}
-
 static float rgba_max_error(const glm::u8vec4& pix1, const glm::u8vec4& pix2) noexcept
 {
 	const glm::f32vec4 diff = glm::abs(glm::f32vec4(pix1) - glm::f32vec4(pix2));
@@ -379,19 +109,41 @@ static void check_bc3(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(decoded_image_result);
 	const auto decoded_image = std::move(decoded_image_result.value());
 
-	ImageType readback_image(decoded_image.size);
-
 	auto bc3_image_result = image::BCnImage::encode(decoded_image, image::BCnFormat::BC3);
 	EXPECT_SUCCESS(bc3_image_result);
 	auto bc3_image = std::move(*bc3_image_result);
 
-	test_common(
-		decoded_image.size,
-		util::as_bytes(bc3_image.data),
-		util::as_writable_bytes(readback_image.data),
-		vk::Format::eBc3UnormBlock,
-		vk::Format::eR8G8B8A8Unorm
+	vulkan::StaticResourceCreator resource_creator(
+		context_ptr->device_context->device,
+		context_ptr->device_context->allocator,
+		*context_ptr->device_context->render_queue.queue,
+		context_ptr->device_context->render_queue.family_index
 	);
+
+	auto gpu_image_result = resource_creator.create_image_bcn(
+		bc3_image,
+		false,
+		vk::ImageUsageFlagBits::eTransferSrc,
+		vk::ImageLayout::eTransferSrcOptimal
+	);
+	EXPECT_SUCCESS(gpu_image_result);
+	auto gpu_image = std::move(*gpu_image_result);
+
+	const auto upload_result = resource_creator.execute_uploads();
+	EXPECT_SUCCESS(upload_result);
+
+	auto readback_image_result = vulkan::readback_image<image::Format::Unorm8, image::Layout::RGBA>(
+		context_ptr->device_context->device,
+		context_ptr->device_context->allocator,
+		*context_ptr->device_context->render_queue.queue,
+		context_ptr->device_context->render_queue.family_index,
+		gpu_image,
+		vk::ImageLayout::eTransferSrcOptimal,
+		vk::Format::eR8G8B8A8Unorm,
+		decoded_image.size
+	);
+	EXPECT_SUCCESS(readback_image_result);
+	const auto readback_image = std::move(*readback_image_result);
 
 	const auto squared_error = std::views::zip_transform(rgba_mse, decoded_image.data, readback_image.data);
 	const auto max_error = std::views::zip_transform(rgba_max_error, decoded_image.data, readback_image.data);
@@ -419,19 +171,41 @@ static void check_bc5(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(decoded_image_result);
 	const auto decoded_image = std::move(decoded_image_result.value());
 
-	image::Image<image::Format::Unorm8, image::Layout::RG> readback_image(decoded_image.size);
-
 	auto bc5_image_result = image::BCnImage::encode(decoded_image, image::BCnFormat::BC5);
 	EXPECT_SUCCESS(bc5_image_result);
 	auto bc5_image = std::move(*bc5_image_result);
 
-	test_common(
-		decoded_image.size,
-		util::as_bytes(bc5_image.data),
-		util::as_writable_bytes(readback_image.data),
-		vk::Format::eBc5UnormBlock,
-		vk::Format::eR8G8Unorm
+	vulkan::StaticResourceCreator resource_creator(
+		context_ptr->device_context->device,
+		context_ptr->device_context->allocator,
+		*context_ptr->device_context->render_queue.queue,
+		context_ptr->device_context->render_queue.family_index
 	);
+
+	auto gpu_image_result = resource_creator.create_image_bcn(
+		bc5_image,
+		false,
+		vk::ImageUsageFlagBits::eTransferSrc,
+		vk::ImageLayout::eTransferSrcOptimal
+	);
+	EXPECT_SUCCESS(gpu_image_result);
+	auto gpu_image = std::move(*gpu_image_result);
+
+	const auto upload_result = resource_creator.execute_uploads();
+	EXPECT_SUCCESS(upload_result);
+
+	auto readback_image_result = vulkan::readback_image<image::Format::Unorm8, image::Layout::RG>(
+		context_ptr->device_context->device,
+		context_ptr->device_context->allocator,
+		*context_ptr->device_context->render_queue.queue,
+		context_ptr->device_context->render_queue.family_index,
+		gpu_image,
+		vk::ImageLayout::eTransferSrcOptimal,
+		vk::Format::eR8G8Unorm,
+		decoded_image.size
+	);
+	EXPECT_SUCCESS(readback_image_result);
+	const auto readback_image = std::move(*readback_image_result);
 
 	const auto squared_error = std::views::zip_transform(rg_mse, decoded_image.data, readback_image.data);
 	const auto max_error = std::views::zip_transform(rg_max_error, decoded_image.data, readback_image.data);
@@ -460,19 +234,41 @@ static void check_bc7(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(decoded_image_result);
 	const auto decoded_image = std::move(decoded_image_result.value());
 
-	ImageType readback_image(decoded_image.size);
-
 	auto bc7_image_result = image::BCnImage::encode(decoded_image, image::BCnFormat::BC7);
 	EXPECT_SUCCESS(bc7_image_result);
 	auto bc7_image = std::move(*bc7_image_result);
 
-	test_common(
-		decoded_image.size,
-		util::as_bytes(bc7_image.data),
-		util::as_writable_bytes(readback_image.data),
-		vk::Format::eBc7UnormBlock,
-		vk::Format::eR8G8B8A8Unorm
+	vulkan::StaticResourceCreator resource_creator(
+		context_ptr->device_context->device,
+		context_ptr->device_context->allocator,
+		*context_ptr->device_context->render_queue.queue,
+		context_ptr->device_context->render_queue.family_index
 	);
+
+	auto gpu_image_result = resource_creator.create_image_bcn(
+		bc7_image,
+		false,
+		vk::ImageUsageFlagBits::eTransferSrc,
+		vk::ImageLayout::eTransferSrcOptimal
+	);
+	EXPECT_SUCCESS(gpu_image_result);
+	auto gpu_image = std::move(*gpu_image_result);
+
+	const auto upload_result = resource_creator.execute_uploads();
+	EXPECT_SUCCESS(upload_result);
+
+	auto readback_image_result = vulkan::readback_image<image::Format::Unorm8, image::Layout::RGBA>(
+		context_ptr->device_context->device,
+		context_ptr->device_context->allocator,
+		*context_ptr->device_context->render_queue.queue,
+		context_ptr->device_context->render_queue.family_index,
+		gpu_image,
+		vk::ImageLayout::eTransferSrcOptimal,
+		vk::Format::eR8G8B8A8Unorm,
+		decoded_image.size
+	);
+	EXPECT_SUCCESS(readback_image_result);
+	const auto readback_image = std::move(*readback_image_result);
 
 	const auto squared_error = std::views::zip_transform(rgba_mse, decoded_image.data, readback_image.data);
 	const auto max_error = std::views::zip_transform(rgba_max_error, decoded_image.data, readback_image.data);

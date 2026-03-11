@@ -1,4 +1,4 @@
-# `compile.slang` Rule
+# Slang compiling rule
 
 ## Description
 
@@ -20,7 +20,8 @@ When compiled, every `.slang` file will be compiled into a SPIR-V file, embedded
 The definition of the binary can be accessed by including `shader/<module_name>.hpp` in C++ code. Example C++ snippet:
 ```cpp
 #include "shader/my_shader.hpp"
-void use_shader() {
+void use_shader()
+{
 	const auto shader_data = shader::my_shader;
 	// Use shader_data as needed
 }

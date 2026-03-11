@@ -136,7 +136,7 @@ namespace image
 		/// @return Encoded data, or error
 		///
 		[[nodiscard]]
-		std::expected<std::vector<std::byte>, Error> encode(EncodeFormat format) noexcept
+		std::expected<std::vector<std::byte>, Error> encode(EncodeFormat format) const noexcept
 			requires(L != Layout::RG && T == Format::Unorm8)
 		{
 			return impl::encode(format, this->size, L, util::as_bytes(this->data));

@@ -54,6 +54,11 @@
 ///   error.forward("While doing something", "With extra detail");
 ///   ```
 ///
+/// - Use a forwarding functor for convenient forwarding in monads:
+///   ```cpp
+///   some_api().transform_error(Error::forward_func("While doing something"));
+///   ```
+///
 /// - Error can be directly returned as `std::expected<T, Error>`:
 ///   ```cpp
 ///   std::expected<int, Error> func()
@@ -304,6 +309,71 @@ class Error
 			location,
 			std::make_shared<const Error>(std::forward<decltype(self)>(self))
 		);
+	}
+
+	class ForwardFunctor
+	{
+		std::string message;
+		std::optional<std::string> detail;
+		std::source_location location;
+
+	  public:
+
+		explicit ForwardFunctor(std::string message, std::source_location location) noexcept :
+			message(std::move(message)),
+			detail(std::nullopt),
+			location(location)
+		{}
+
+		explicit ForwardFunctor(
+			std::string message,
+			std::string detail,
+			std::source_location location
+		) noexcept :
+			message(std::move(message)),
+			detail(std::move(detail)),
+			location(location)
+		{}
+
+		Error operator()(const Error& error) const noexcept
+		{
+			if (detail)
+				return error.forward(message, *detail, location);
+			else
+				return error.forward(message, location);
+		}
+	};
+
+	///
+	/// @brief Get a functor to forward the error with additional context
+	///
+	/// @param message Additional message describing the context
+	/// @param location Source location where the error is forwarded (default: current location)
+	/// @return Functor to forward the error with additional context
+	///
+	static ForwardFunctor forward_func(
+		std::string message,
+		std::source_location location = std::source_location::current()
+	) noexcept
+	{
+		return ForwardFunctor(std::move(message), location);
+	}
+
+	///
+	/// @brief Get a functor to forward the error with additional context and detail
+	///
+	/// @param message Additional message describing the context
+	/// @param detail Detailed message providing additional context
+	/// @param location Source location where the error is forwarded (default: current location)
+	/// @return Functor to forward the error with additional context and detail
+	///
+	static ForwardFunctor forward_func(
+		std::string message,
+		std::string detail,
+		std::source_location location = std::source_location::current()
+	) noexcept
+	{
+		return ForwardFunctor(std::move(message), std::move(detail), location);
 	}
 
 #pragma endregion

@@ -31,7 +31,7 @@ namespace vulkan
 			.image = image,
 			.viewType = vk::ImageViewType::e2D,
 			.format = format,
-			.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eColor)
+			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 
 		auto view_result =
@@ -69,7 +69,7 @@ namespace vulkan
 			.image = image,
 			.viewType = vk::ImageViewType::e2D,
 			.format = format,
-			.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eDepth)
+			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eDepth)
 		};
 
 		auto view_result =
@@ -109,8 +109,9 @@ namespace vulkan
 			.image = image,
 			.viewType = vk::ImageViewType::e2D,
 			.format = format,
-			.subresourceRange =
-				vulkan::base_level_image(vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil)
+			.subresourceRange = vulkan::base_level_image_range(
+				vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil
+			)
 		};
 
 		auto view_result =

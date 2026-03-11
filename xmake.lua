@@ -1,4 +1,5 @@
 set_xmakever("3.0.6")
+set_project("Vulkan RT")
 
 -- Compile modes
 add_rules("mode.debug", "mode.release", "mode.releasedbg")

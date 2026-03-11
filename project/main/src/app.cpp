@@ -231,7 +231,7 @@ bool App::draw_frame()
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
 			.image = resource.depth_buffer.image,
-			.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eDepth)
+			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eDepth)
 		};
 		const auto swapchain_acquire_image_barrier = vk::ImageMemoryBarrier2{
 			.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
@@ -241,7 +241,7 @@ bool App::draw_frame()
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.image = swapchain.image,
-			.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eColor)
+			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 		const auto acquire_image_barriers =
 			std::to_array({swapchain_acquire_image_barrier, depth_buffer_acquire_image_barrier});
@@ -320,7 +320,7 @@ bool App::draw_frame()
 			.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.newLayout = vk::ImageLayout::ePresentSrcKHR,
 			.image = swapchain.image,
-			.subresourceRange = vulkan::base_level_image(vk::ImageAspectFlagBits::eColor)
+			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 
 		command_buffer.pipelineBarrier2(
