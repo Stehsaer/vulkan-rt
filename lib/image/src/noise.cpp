@@ -1,8 +1,11 @@
 #include "image/noise.hpp"
 #include <mutex>
 
-extern const std::byte _binary_blue_noise_png_start;
-extern const std::byte _binary_blue_noise_png_end;
+extern "C"
+{
+	extern const std::byte _binary_blue_noise_png_start;
+	extern const std::byte _binary_blue_noise_png_end;
+}
 
 namespace image
 {
