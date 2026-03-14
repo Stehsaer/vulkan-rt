@@ -223,7 +223,10 @@ namespace image
 		}
 
 		///
-		/// @brief Generate mipmap. If image is NPOT, returns mipmap with only 1 level
+		/// @brief Generate mipmap.
+		/// @details
+		/// - If image is NPOT, returns mipmap with only 1 level
+		/// - If image has dimension smaller than minimum size, resize to minimum size and return
 		///
 		/// @param min_size_log `log2` of the minimum size wanted. e.g. to limit minimum size of 4, set
 		/// `min_size_log=2`
@@ -232,6 +235,9 @@ namespace image
 		[[nodiscard]]
 		std::vector<Image> generate_mipmap(uint32_t min_size_log) const noexcept
 		{
+			const auto clamped_dim = glm::max(this->size, glm::u32vec2(1 << min_size_log));
+			if (glm::any(glm::notEqual(this->size, clamped_dim))) return {this->resize(clamped_dim)};
+
 			std::vector<image::Image<T, L>> results = {*this};
 			if (!this->is_pot()) return results;
 

@@ -353,10 +353,10 @@ TEST_SUITE("Generate Mipmap")
 			CHECK_VEC2_EQ(result2[0].size, 512, 512);
 			CHECK_VEC2_EQ(result2[7].size, 4, 4);
 
-			// min_log2_size too large, auto-clamped
+			// min_log2_size too large, resize and return 1 level
 			const auto result3 = img.generate_mipmap(10);
 			REQUIRE_EQ(result3.size(), 1);
-			CHECK_VEC2_EQ(result2[0].size, 512, 512);
+			CHECK_VEC2_EQ(result3[0].size, 1024, 1024);
 		}
 
 		SUBCASE("NPOT")
@@ -377,6 +377,16 @@ TEST_SUITE("Generate Mipmap")
 		REQUIRE_EQ(result.size(), 10);
 		CHECK_VEC2_EQ(result[0].size, 512, 512);
 		CHECK_VEC2_EQ(result[9].size, 1, 1);
+
+		// min_log2_size too large, resize and return 1 level
+		const auto result2 = img.resize_and_generate_mipmap(10);
+		REQUIRE_EQ(result2.size(), 1);
+		CHECK_VEC2_EQ(result2[0].size, 1024, 1024);
+
+		// min_log2_size matches resized size (but not the original one), return resized image without mipmap
+		const auto result3 = img.resize_and_generate_mipmap(9);
+		REQUIRE_EQ(result3.size(), 1);
+		CHECK_VEC2_EQ(result3[0].size, 512, 512);
 	}
 }
 

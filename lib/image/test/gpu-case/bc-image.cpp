@@ -28,7 +28,7 @@ struct Context
 	static std::expected<Context, Error> create() noexcept
 	{
 		const auto instance_config = vulkan::InstanceConfig{.validation = true};
-		const auto device_config = vulkan::DeviceConfig();
+		const auto device_config = vulkan::DeviceOption();
 
 		auto instance_context_result = vulkan::HeadlessInstanceContext::create(instance_config);
 		if (!instance_context_result)
