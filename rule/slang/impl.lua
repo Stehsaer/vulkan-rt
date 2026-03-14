@@ -2,9 +2,9 @@ import("lib.detect.find_program")
 import("core.project.depend")
 import("utils.progress")
 import("core.project.config")
-import("core.project.depend")
 import("core.project.project")
 import("core.base.binutils")
+import("string2cppid")
 
 local rule_name = "compile.slang"
 
@@ -165,6 +165,10 @@ function _compile_spv(tools, files, debug, include_dirs)
 	))
 end
 
+function _encode_target_name(target)
+	return string2cppid.encode(target:name())
+end
+
 function load_rule(target)
 	local paths = _get_path(target)
 	local public_include = target:extraconf("rules", rule_name, "public") or false
@@ -181,27 +185,27 @@ function prepare_file(target, source_path, opt)
 
 	local dependencies = os.exists(files.spv .. ".d") and _parse_dependencies(io.readfile(files.spv .. ".d")) or {}
 	
-	local target_name = string.gsub(target:name(), "[%.%-]", "_")
-	local symbol_name = format("_asset_shader_%s_%s", target_name, files.varname)
+	local target_name = _encode_target_name(target)
+	local symbol_name = format("_asset_shader_%s_%s", target_name, string2cppid.encode(files.source))
 
 	local header_file_template = [[
-		#pragma once
-		#include <span>
+#pragma once
+#include <span>
 
-		extern "C" 
-		{
-			extern const std::byte %s_start;
-			extern const std::byte %s_end;
-		}
+extern "C" 
+{
+	extern const std::byte %s_start;
+	extern const std::byte %s_end;
+}
 
-		namespace shader
-		{
-			inline static const std::span<const std::byte> %s = {
-				&%s_start,
-				&%s_end
-			};
-		}
-	]];
+namespace shader
+{
+	inline static const std::span<const std::byte> %s = {
+		&%s_start,
+		&%s_end
+	};
+}
+	]]
 
 	local header_file_content = format(
 		header_file_template, 
@@ -237,8 +241,8 @@ function build_file(target, source_path, opt)
 		progress.show(opt.progress, "${color.build.object}compiling.slang %s", source_path)
 		_compile_spv(tools, files, debug, include_dirs)
 		binutils.bin2obj(files.spv, files.object, {
-			symbol_prefix = format("_asset_shader_%s_", string.gsub(target:name(), "[%.%-]", "_")),
-			basename = files.varname,
+			symbol_prefix = format("_asset_shader_%s_", _encode_target_name(target)),
+			basename = string2cppid.encode(files.source),
 			arch = arch,
 			plat = plat
 		})
