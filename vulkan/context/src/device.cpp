@@ -13,7 +13,7 @@ namespace vulkan
 {
 	std::expected<HeadlessDeviceContext, Error> HeadlessDeviceContext::create(
 		const HeadlessInstanceContext& context,
-		const DeviceConfig& config
+		const DeviceOption& option
 	) noexcept
 	{
 		/* Enumerate physical devices */
@@ -38,7 +38,7 @@ namespace vulkan
 					else
 						fail_devices.emplace_back(std::move(result));
 				},
-				impl::check_headless_device(phy_device, config)
+				impl::check_headless_device(phy_device, option)
 			);
 		}
 
@@ -83,7 +83,7 @@ namespace vulkan
 
 	std::expected<SurfaceDeviceContext, Error> SurfaceDeviceContext::create(
 		const SurfaceInstanceContext& context,
-		const DeviceConfig& config
+		const DeviceOption& option
 	) noexcept
 	{
 		/* Enumerate physical devices */
@@ -108,7 +108,7 @@ namespace vulkan
 					else
 						fail_devices.emplace_back(std::move(result));
 				},
-				impl::check_surface_device(phy_device, context, config)
+				impl::check_surface_device(phy_device, context, option)
 			);
 		}
 

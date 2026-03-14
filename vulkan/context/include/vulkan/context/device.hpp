@@ -15,9 +15,26 @@ namespace vulkan
 		uint32_t family_index;
 	};
 
-	struct DeviceConfig
+	///
+	/// @brief Option for descriptor indexing features
+	///
+	///
+	struct DescriptorIndexingOption
 	{
-		// Empty for now
+		bool sampled_image = true;
+		bool storage_image = false;
+		bool uniform_buffer = false;
+		bool storage_buffer = false;
+	};
+
+	///
+	/// @brief Device creation options
+	///
+	///
+	struct DeviceOption
+	{
+		bool dynamic_rendering = true;
+		std::optional<DescriptorIndexingOption> descriptor_indexing = DescriptorIndexingOption();
 	};
 
 	///
@@ -87,7 +104,7 @@ namespace vulkan
 		[[nodiscard]]
 		static std::expected<HeadlessDeviceContext, Error> create(
 			const HeadlessInstanceContext& context,
-			const DeviceConfig& config
+			const DeviceOption& option
 		) noexcept;
 
 	  protected:
@@ -132,7 +149,7 @@ namespace vulkan
 		[[nodiscard]]
 		static std::expected<SurfaceDeviceContext, Error> create(
 			const SurfaceInstanceContext& context,
-			const DeviceConfig& config
+			const DeviceOption& option
 		) noexcept;
 
 		///

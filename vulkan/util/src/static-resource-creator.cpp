@@ -1,5 +1,6 @@
 #include "vulkan/util/static-resource-creator.hpp"
 #include "vulkan/util/constants.hpp"
+#include <utility>
 
 namespace vulkan
 {
@@ -124,7 +125,6 @@ namespace vulkan
 		vk::BufferUsageFlags usage
 	) noexcept
 	{
-		const std::scoped_lock lock(*execution_mutex);
 
 		auto staging_buffer_result = create_staging_buffer(data);
 		if (!staging_buffer_result)
@@ -141,6 +141,8 @@ namespace vulkan
 		if (!dst_buffer_result) return dst_buffer_result.error().forward("Create gpu buffer failed");
 		auto dst_buffer = std::move(*dst_buffer_result);
 
+		const std::scoped_lock lock(*execution_mutex);
+		pending_data_size += data.size_bytes();
 		buffer_upload_tasks.push_back(
 			BufferUploadTask{
 				.dst_buffer = dst_buffer,
@@ -159,8 +161,6 @@ namespace vulkan
 		vk::ImageLayout layout
 	) noexcept
 	{
-		const std::scoped_lock lock(*execution_mutex);
-
 		const auto extent = vk::Extent3D{.width = image.size.x * 4, .height = image.size.y * 4, .depth = 1};
 		const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
 
@@ -181,6 +181,8 @@ namespace vulkan
 		if (!staging_buffer_result)
 			return staging_buffer_result.error().forward("Create staging buffer failed");
 
+		const std::scoped_lock lock(*execution_mutex);
+		pending_data_size += std::span(image.data).size_bytes();
 		image_upload_tasks.push_back(
 			ImageUploadTask{
 				.dst_image = dst_image,
@@ -201,8 +203,6 @@ namespace vulkan
 		vk::ImageLayout layout
 	) noexcept
 	{
-		const std::scoped_lock lock(*execution_mutex);
-
 		/* Verify inputs */
 
 		// Empty mipmap chain
@@ -286,6 +286,15 @@ namespace vulkan
 				};
 			};
 
+		const std::scoped_lock lock(*execution_mutex);
+		pending_data_size +=
+			std::ranges::fold_left_first(
+				mipmap_chain | std::views::transform([](const auto& image) {
+					return std::span(image.data).size_bytes();
+				}),
+				std::plus()
+			)
+				.value_or(0);
 		image_upload_tasks.append_range(
 			std::views::zip_transform(as_upload_task, extents, subresource_layers, staging_buffers)
 		);
@@ -295,12 +304,24 @@ namespace vulkan
 
 #pragma endregion
 
-	std::expected<void, Error> StaticResourceCreator::execute_uploads() noexcept
+	size_t StaticResourceCreator::num_pending() const noexcept
 	{
 		const std::scoped_lock lock(*execution_mutex);
+		return buffer_upload_tasks.size() + image_upload_tasks.size();
+	}
 
-		const auto buffer_tasks = std::move(buffer_upload_tasks);
-		const auto image_tasks = std::move(image_upload_tasks);
+	std::expected<void, Error> StaticResourceCreator::execute_uploads() noexcept
+	{
+		std::vector<BufferUploadTask> buffer_tasks;
+		std::vector<ImageUploadTask> image_tasks;
+
+		{
+			const std::scoped_lock lock(*execution_mutex);
+
+			buffer_tasks = std::exchange(buffer_upload_tasks, {});
+			image_tasks = std::exchange(image_upload_tasks, {});
+			pending_data_size = 0;
+		}
 
 		/* Create command pool */
 

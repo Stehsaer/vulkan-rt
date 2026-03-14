@@ -75,7 +75,7 @@ namespace vulkan::impl
 	[[nodiscard]]
 	std::variant<HeadlessDeviceInfo, FailInfo> check_headless_device(
 		const vk::raii::PhysicalDevice& phy_device,
-		const DeviceConfig& config
+		const DeviceOption& option
 	) noexcept;
 
 	///
@@ -91,6 +91,6 @@ namespace vulkan::impl
 	std::variant<SurfaceDeviceInfo, FailInfo> check_surface_device(
 		const vk::raii::PhysicalDevice& phy_device,
 		const SurfaceInstanceContext& instance,
-		const DeviceConfig& config
+		const DeviceOption& option
 	) noexcept;
 }

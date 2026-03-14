@@ -6,7 +6,7 @@
 
 static void test_create(
 	const vulkan::InstanceConfig& instance_config,
-	const vulkan::DeviceConfig& device_config
+	const vulkan::DeviceOption& device_config
 ) noexcept
 {
 	auto instance_context_result = vulkan::HeadlessInstanceContext::create(instance_config);
@@ -21,7 +21,7 @@ static void test_create(
 TEST_CASE("No validation layer")
 {
 	const auto instance_config = vulkan::InstanceConfig();
-	const auto device_config = vulkan::DeviceConfig();
+	const auto device_config = vulkan::DeviceOption();
 
 	test_create(instance_config, device_config);
 }
@@ -29,7 +29,7 @@ TEST_CASE("No validation layer")
 TEST_CASE("Validation layer")
 {
 	const auto instance_config = vulkan::InstanceConfig{.validation = true};
-	const auto device_config = vulkan::DeviceConfig();
+	const auto device_config = vulkan::DeviceOption();
 
 	test_create(instance_config, device_config);
 }

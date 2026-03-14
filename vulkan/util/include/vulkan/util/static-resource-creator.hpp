@@ -186,6 +186,39 @@ namespace vulkan
 		[[nodiscard]]
 		std::expected<void, Error> execute_uploads() noexcept;
 
+		///
+		/// @brief Get number of pending upload tasks
+		/// @note This function is multi-threading safe
+		///
+		/// @return
+		///
+		[[nodiscard]]
+		size_t num_pending() const noexcept;
+
+		///
+		/// @brief Get total size of pending upload data in bytes
+		/// @note This function is multi-threading safe
+		///
+		/// @return Total size of pending upload data in bytes
+		///
+		[[nodiscard]]
+		size_t size_pending() const noexcept
+		{
+			return pending_data_size;
+		}
+
+		///
+		/// @brief Check if there are any pending upload tasks
+		/// @note This function is multi-threading safe
+		///
+		/// @return `true` if there are pending upload tasks, `false` otherwise
+		///
+		[[nodiscard]]
+		bool has_pending() const noexcept
+		{
+			return num_pending() > 0;
+		}
+
 	  private:
 
 		struct BufferUploadTask
@@ -218,6 +251,7 @@ namespace vulkan
 
 		std::vector<BufferUploadTask> buffer_upload_tasks;
 		std::vector<ImageUploadTask> image_upload_tasks;
+		size_t pending_data_size = 0;
 
 		///
 		/// @brief Create a staging buffer and upload data to it.
@@ -255,7 +289,6 @@ namespace vulkan
 		vk::ImageLayout layout
 	) noexcept
 	{
-		const std::scoped_lock lock(*execution_mutex);
 
 		const auto extent = vk::Extent3D{.width = image.size.x, .height = image.size.y, .depth = 1};
 		const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
@@ -277,6 +310,8 @@ namespace vulkan
 		if (!staging_buffer_result)
 			return staging_buffer_result.error().forward("Create staging buffer failed");
 
+		const std::scoped_lock lock(*execution_mutex);
+		pending_data_size += image.data.size_bytes();
 		image_upload_tasks.push_back(
 			ImageUploadTask{
 				.dst_image = dst_image,
@@ -298,7 +333,6 @@ namespace vulkan
 		vk::ImageLayout layout
 	) noexcept
 	{
-		const std::scoped_lock lock(*execution_mutex);
 
 		/* Verify inputs */
 
@@ -376,6 +410,15 @@ namespace vulkan
 				};
 			};
 
+		const std::scoped_lock lock(*execution_mutex);
+		pending_data_size +=
+			std::ranges::fold_left_first(
+				mipmap_chain | std::views::transform([](const auto& image) {
+					return std::span(image.data).size_bytes();
+				}),
+				std::plus()
+			)
+				.value_or(0);
 		image_upload_tasks.append_range(
 			std::views::zip_transform(as_upload_task, extents, subresource_layers, staging_buffers)
 		);

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <print>  // IWYU pragma: keep
+#include <iostream>  // IWYU pragma: keep
+#include <print>     // IWYU pragma: keep
 
 #define EXPECT_FAIL(arg)                                                                                     \
 	if (!(arg).has_value())                                                                                  \

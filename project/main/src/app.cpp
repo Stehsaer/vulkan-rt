@@ -20,7 +20,7 @@ App App::create(const Argument& argument)
 	auto instance_context = vulkan::SurfaceInstanceContext::create(window_config, instance_config)
 		| Error::unwrap("Create instance context failed");
 
-	const auto device_context_config = vulkan::DeviceConfig{};
+	const auto device_context_config = vulkan::DeviceOption{};
 	auto device_context = vulkan::SurfaceDeviceContext::create(instance_context, device_context_config)
 		| Error::unwrap("Create device context failed");
 

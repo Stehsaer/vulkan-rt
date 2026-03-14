@@ -6,73 +6,100 @@
 
 namespace vulkan::impl
 {
-#define CHECK_FIELD(value, field)                                                                            \
-	if ((value).field == vk::False) return Error("Required feature '" #field "' is not supported");
+#define CHECK_FIELD(available, result, field)                                                                \
+	if ((available).field == vk::False) return Error("Required feature '" #field "' is not supported");      \
+	(result).field = vk::True;
 
 	[[nodiscard]]
 	static std::expected<vk::PhysicalDeviceFeatures, Error> find_vulkan10_features(
 		vk::PhysicalDeviceFeatures available,
-		const DeviceConfig& config [[maybe_unused]]
+		const DeviceOption& option [[maybe_unused]]
 	) noexcept
 	{
-		CHECK_FIELD(available, robustBufferAccess);
-		CHECK_FIELD(available, samplerAnisotropy);
-		CHECK_FIELD(available, textureCompressionBC);
-		CHECK_FIELD(available, pipelineStatisticsQuery);
+		vk::PhysicalDeviceFeatures result{};
 
-		return vk::PhysicalDeviceFeatures{
-			.robustBufferAccess = vk::True,
-			.samplerAnisotropy = vk::True,
-			.textureCompressionBC = vk::True,
-			.pipelineStatisticsQuery = vk::True,
-		};
+		CHECK_FIELD(available, result, robustBufferAccess);
+		CHECK_FIELD(available, result, samplerAnisotropy);
+		CHECK_FIELD(available, result, textureCompressionBC);
+		CHECK_FIELD(available, result, pipelineStatisticsQuery);
+
+		return result;
 	}
 
 	[[nodiscard]]
 	static std::expected<vk::PhysicalDeviceVulkan11Features, Error> find_vulkan11_features(
 		vk::PhysicalDeviceVulkan11Features available,
-		const DeviceConfig& config [[maybe_unused]]
+		const DeviceOption& option [[maybe_unused]]
 	) noexcept
 	{
-		CHECK_FIELD(available, shaderDrawParameters);
+		vk::PhysicalDeviceVulkan11Features result = {};
+		CHECK_FIELD(available, result, shaderDrawParameters);
 
-		return vk::PhysicalDeviceVulkan11Features{
-			.shaderDrawParameters = vk::True,
-		};
+		return result;
 	}
 
 	[[nodiscard]]
-	static std::expected<vk::PhysicalDeviceVulkan12Features, Error> find_vulkan12_features(
+	/*NOLINT*/ static std::expected<vk::PhysicalDeviceVulkan12Features, Error> find_vulkan12_features(
 		vk::PhysicalDeviceVulkan12Features available,
-		const DeviceConfig& config [[maybe_unused]]
+		const DeviceOption& option
 	) noexcept
 	{
-		CHECK_FIELD(available, shaderFloat16);
+		vk::PhysicalDeviceVulkan12Features result = {};
+		CHECK_FIELD(available, result, shaderFloat16);
 
-		return vk::PhysicalDeviceVulkan12Features{
-			.shaderFloat16 = vk::True,
-		};
+		if (option.descriptor_indexing)
+		{
+			CHECK_FIELD(available, result, descriptorIndexing);
+			CHECK_FIELD(available, result, descriptorBindingPartiallyBound);
+			CHECK_FIELD(available, result, descriptorBindingVariableDescriptorCount);
+
+			const auto descriptor_indexing_option = *option.descriptor_indexing;
+
+			if (descriptor_indexing_option.sampled_image)
+			{
+				CHECK_FIELD(available, result, descriptorBindingSampledImageUpdateAfterBind);
+				CHECK_FIELD(available, result, shaderSampledImageArrayNonUniformIndexing);
+			}
+
+			if (descriptor_indexing_option.storage_image)
+			{
+				CHECK_FIELD(available, result, descriptorBindingStorageImageUpdateAfterBind);
+				CHECK_FIELD(available, result, shaderStorageImageArrayNonUniformIndexing);
+			}
+
+			if (descriptor_indexing_option.uniform_buffer)
+			{
+				CHECK_FIELD(available, result, descriptorBindingUniformBufferUpdateAfterBind);
+				CHECK_FIELD(available, result, shaderUniformBufferArrayNonUniformIndexing);
+			}
+
+			if (descriptor_indexing_option.storage_buffer)
+			{
+				CHECK_FIELD(available, result, descriptorBindingStorageBufferUpdateAfterBind);
+				CHECK_FIELD(available, result, shaderStorageBufferArrayNonUniformIndexing);
+			}
+		}
+
+		return result;
 	}
 
 	[[nodiscard]]
 	static std::expected<vk::PhysicalDeviceVulkan13Features, Error> find_vulkan13_features(
 		vk::PhysicalDeviceVulkan13Features available,
-		const DeviceConfig& config [[maybe_unused]]
+		const DeviceOption& option
 	) noexcept
 	{
-		CHECK_FIELD(available, synchronization2);
-		CHECK_FIELD(available, dynamicRendering);
+		vk::PhysicalDeviceVulkan13Features result = {};
+		CHECK_FIELD(available, result, synchronization2);
+		if (option.dynamic_rendering) CHECK_FIELD(available, result, dynamicRendering);
 
-		return vk::PhysicalDeviceVulkan13Features{
-			.synchronization2 = vk::True,
-			.dynamicRendering = vk::True,
-		};
+		return result;
 	}
 
 	[[nodiscard]]
 	static std::expected<void, Error> check_device_constraints(
 		const vk::raii::PhysicalDevice& phy_device,
-		const DeviceConfig& config [[maybe_unused]]
+		const DeviceOption& option [[maybe_unused]]
 	) noexcept
 	{
 		const auto properties = phy_device.getProperties();
@@ -116,7 +143,7 @@ namespace vulkan::impl
 	[[nodiscard]]
 	static std::expected<vulkan::LinkedStruct<vk::PhysicalDeviceFeatures2>, Error> find_device_features(
 		const vk::raii::PhysicalDevice& phy_device,
-		const DeviceConfig& config
+		const DeviceOption& option
 	) noexcept
 	{
 		const auto available_features2 = phy_device.getFeatures2<
@@ -135,10 +162,10 @@ namespace vulkan::impl
 		const auto available_features_vulkan13 =
 			available_features2.get<vk::PhysicalDeviceVulkan13Features>();
 
-		const auto required_features_vulkan10 = find_vulkan10_features(available_features_vulkan10, config);
-		const auto required_features_vulkan11 = find_vulkan11_features(available_features_vulkan11, config);
-		const auto required_features_vulkan12 = find_vulkan12_features(available_features_vulkan12, config);
-		const auto required_features_vulkan13 = find_vulkan13_features(available_features_vulkan13, config);
+		const auto required_features_vulkan10 = find_vulkan10_features(available_features_vulkan10, option);
+		const auto required_features_vulkan11 = find_vulkan11_features(available_features_vulkan11, option);
+		const auto required_features_vulkan12 = find_vulkan12_features(available_features_vulkan12, option);
+		const auto required_features_vulkan13 = find_vulkan13_features(available_features_vulkan13, option);
 
 		if (!required_features_vulkan10.has_value()) return required_features_vulkan10.error();
 		if (!required_features_vulkan11.has_value()) return required_features_vulkan11.error();
@@ -157,7 +184,7 @@ namespace vulkan::impl
 	[[nodiscard]]
 	static std::expected<std::vector<std::string>, Error> find_device_extensions(
 		const vk::raii::PhysicalDevice& phy_device,
-		const DeviceConfig& config [[maybe_unused]],
+		const DeviceOption& option [[maybe_unused]],
 		bool support_present
 	) noexcept
 	{
@@ -371,17 +398,17 @@ namespace vulkan::impl
 
 	std::variant<HeadlessDeviceInfo, FailInfo> check_headless_device(
 		const vk::raii::PhysicalDevice& phy_device,
-		const DeviceConfig& config
+		const DeviceOption& option
 	) noexcept
 	{
-		if (const auto check_result = check_device_constraints(phy_device, config); !check_result)
+		if (const auto check_result = check_device_constraints(phy_device, option); !check_result)
 			return FailInfo{.phy_device = phy_device, .error = check_result.error()};
 
-		auto extensions_result = find_device_extensions(phy_device, config, false);
+		auto extensions_result = find_device_extensions(phy_device, option, false);
 		if (!extensions_result) return FailInfo{.phy_device = phy_device, .error = extensions_result.error()};
 		auto extensions = std::move(*extensions_result);
 
-		auto features_result = find_device_features(phy_device, config);
+		auto features_result = find_device_features(phy_device, option);
 		if (!features_result) return FailInfo{.phy_device = phy_device, .error = extensions_result.error()};
 		auto features = std::move(*features_result);
 
@@ -404,17 +431,17 @@ namespace vulkan::impl
 	std::variant<SurfaceDeviceInfo, FailInfo> check_surface_device(
 		const vk::raii::PhysicalDevice& phy_device,
 		const SurfaceInstanceContext& instance,
-		const DeviceConfig& config
+		const DeviceOption& option
 	) noexcept
 	{
-		if (const auto check_result = check_device_constraints(phy_device, config); !check_result)
+		if (const auto check_result = check_device_constraints(phy_device, option); !check_result)
 			return FailInfo{.phy_device = phy_device, .error = check_result.error()};
 
-		auto extensions_result = find_device_extensions(phy_device, config, true);
+		auto extensions_result = find_device_extensions(phy_device, option, true);
 		if (!extensions_result) return FailInfo{.phy_device = phy_device, .error = extensions_result.error()};
 		auto extensions = std::move(*extensions_result);
 
-		auto features_result = find_device_features(phy_device, config);
+		auto features_result = find_device_features(phy_device, option);
 		if (!features_result) return FailInfo{.phy_device = phy_device, .error = extensions_result.error()};
 		auto features = std::move(*features_result);
 
