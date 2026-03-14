@@ -8,6 +8,7 @@
 #include "vulkan/util/constants.hpp"
 
 #include <functional>
+#include <mutex>
 #include <ranges>
 #include <span>
 #include <vulkan/vulkan_enums.hpp>
@@ -49,13 +50,15 @@ namespace vulkan
 			device(device),
 			allocator(allocator),
 			transfer_queue(transfer_queue),
-			queue_family(queue_family)
+			queue_family(queue_family),
+			execution_mutex(std::make_unique<std::mutex>())
 		{}
 
 		~StaticResourceCreator() noexcept;
 
 		///
 		/// @brief Create a buffer
+		/// @note This function is multi-threading safe
 		///
 		/// @param data Data to upload to the buffer
 		/// @param usage Buffer usage flags (No need to include `TransferDst` bit)
@@ -69,6 +72,7 @@ namespace vulkan
 
 		///
 		/// @brief Create a image from CPU-side image
+		/// @note This function is multi-threading safe
 		///
 		/// @tparam T Image format
 		/// @tparam L Image layout
@@ -90,6 +94,7 @@ namespace vulkan
 
 		///
 		/// @brief Create a image from CPU-side BCn image
+		/// @note This function is multi-threading safe
 		///
 		/// @param image CPU-side BCn image to create the GPU image from
 		/// @param srgb Whether the image is in sRGB color space
@@ -107,6 +112,7 @@ namespace vulkan
 
 		///
 		/// @brief Create a image with multiple mipmap levels from CPU-side images chain
+		/// @note This function is multi-threading safe
 		///
 		/// @tparam T Image format
 		/// @tparam L Image layout
@@ -128,6 +134,7 @@ namespace vulkan
 
 		///
 		/// @brief Create a image with multiple mipmap levels from CPU-side images chain
+		/// @note This function is multi-threading safe
 		///
 		/// @param mipmap_chain CPU-side images for each mipmap level, ordered from largest to smallest
 		/// @param format Vulkan format of the created image, must be compatible with the CPU-side image
@@ -151,6 +158,7 @@ namespace vulkan
 
 		///
 		/// @brief Create a image with multiple mipmap levels from CPU-side BCn images chain
+		/// @note This function is multi-threading safe
 		///
 		/// @param mipmap_chain CPU-side images for each mipmap level, ordered from largest to smallest
 		/// @param format Vulkan format of the created image, must be compatible with the CPU-side image
@@ -169,7 +177,9 @@ namespace vulkan
 
 		///
 		/// @brief Execute all upload tasks
-		/// @note No matter success or fail, tasks will be cleared after this call
+		/// @note
+		/// - No matter success or fail, tasks will be cleared after this call
+		/// - This function is multi-threading safe
 		///
 		/// @return `void` if all uploads succeed, or `Error` describing reason of failure if any upload fails
 		///
@@ -204,6 +214,7 @@ namespace vulkan
 		std::reference_wrapper<const vulkan::alloc::Allocator> allocator;
 		std::reference_wrapper<const vk::raii::Queue> transfer_queue;
 		uint32_t queue_family;
+		std::unique_ptr<std::mutex> execution_mutex;
 
 		std::vector<BufferUploadTask> buffer_upload_tasks;
 		std::vector<ImageUploadTask> image_upload_tasks;
@@ -244,6 +255,8 @@ namespace vulkan
 		vk::ImageLayout layout
 	) noexcept
 	{
+		const std::scoped_lock lock(*execution_mutex);
+
 		const auto extent = vk::Extent3D{.width = image.size.x, .height = image.size.y, .depth = 1};
 		const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
 
@@ -285,6 +298,8 @@ namespace vulkan
 		vk::ImageLayout layout
 	) noexcept
 	{
+		const std::scoped_lock lock(*execution_mutex);
+
 		/* Verify inputs */
 
 		// Empty mipmap chain
