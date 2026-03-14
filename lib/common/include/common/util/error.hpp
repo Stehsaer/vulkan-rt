@@ -618,7 +618,8 @@ class Error
 		{
 			std::vector<RangeExpectedElementType<R>> result;
 
-			for (auto [index, item] : range | std::views::as_rvalue | std::views::enumerate)
+			size_t index = 0;
+			for (auto&& item : range)
 			{
 				if (!item)
 					return item.error().forward(
@@ -627,6 +628,7 @@ class Error
 						collect.location
 					);
 				result.emplace_back(std::move(*item));
+				index++;
 			}
 
 			return result;

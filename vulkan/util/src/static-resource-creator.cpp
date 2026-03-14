@@ -227,13 +227,13 @@ namespace vulkan
 				  return vk::Extent3D{.width = image.size.x * 4, .height = image.size.y * 4, .depth = 1};
 			  })
 			| std::ranges::to<std::vector>();
-		const auto mipmap_levels = mipmap_chain.size();
+		const uint32_t mipmap_levels = mipmap_chain.size();
 
 		const auto image_create_info = vk::ImageCreateInfo{
 			.imageType = vk::ImageType::e2D,
 			.format = get_bcn_format(mipmap_chain.front().format, srgb),
 			.extent = extents[0],
-			.mipLevels = uint32_t(mipmap_chain.size()),
+			.mipLevels = mipmap_levels,
 			.arrayLayers = 1,
 			.usage = usage | vk::ImageUsageFlagBits::eTransferDst
 		};
@@ -255,7 +255,7 @@ namespace vulkan
 		/* Append tasks */
 
 		const std::vector<vk::ImageSubresourceLayers> subresource_layers =
-			std::views::iota(0zu, mipmap_levels)
+			std::views::iota(0u, mipmap_levels)
 			| std::views::transform([](auto mip_level) {
 				  return vk::ImageSubresourceLayers{
 					  .aspectMask = vk::ImageAspectFlagBits::eColor,
