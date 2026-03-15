@@ -125,7 +125,6 @@ namespace vulkan
 		vk::BufferUsageFlags usage
 	) noexcept
 	{
-
 		auto staging_buffer_result = create_staging_buffer(data);
 		if (!staging_buffer_result)
 			return staging_buffer_result.error().forward("Create staging buffer failed");
@@ -318,10 +317,13 @@ namespace vulkan
 		{
 			const std::scoped_lock lock(*execution_mutex);
 
+			// Use std::exchange instead of std::move to avoid leaving moved-away objects
 			buffer_tasks = std::exchange(buffer_upload_tasks, {});
 			image_tasks = std::exchange(image_upload_tasks, {});
 			pending_data_size = 0;
 		}
+
+		if (buffer_tasks.empty() && image_tasks.empty()) return {};
 
 		/* Create command pool */
 
@@ -387,11 +389,13 @@ namespace vulkan
 				command_buffer.copyBuffer(task.staging_buffer, task.dst_buffer, copy_region);
 			}
 
-			command_buffer.pipelineBarrier2(
-				vk::DependencyInfo{}
-					.setMemoryBarriers(buffer_barrier_post)
-					.setImageMemoryBarriers(image_barriers_pre)
-			);
+			// Barrier after buffer copies and before image copies
+			{
+				auto dependecy_info = vk::DependencyInfo();
+				if (!buffer_tasks.empty()) dependecy_info.setMemoryBarriers(buffer_barrier_post);
+				if (!image_tasks.empty()) dependecy_info.setImageMemoryBarriers(image_barriers_pre);
+				command_buffer.pipelineBarrier2(dependecy_info);
+			}
 
 			// Copy images
 			for (const auto& task : image_tasks)
@@ -412,7 +416,11 @@ namespace vulkan
 				);
 			}
 
-			command_buffer.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(image_barriers_post));
+			// Barrier after image copies
+			if (!image_tasks.empty())
+				command_buffer.pipelineBarrier2(
+					vk::DependencyInfo{}.setImageMemoryBarriers(image_barriers_post)
+				);
 		}
 		command_buffer.end();
 

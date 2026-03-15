@@ -289,7 +289,6 @@ namespace vulkan
 		vk::ImageLayout layout
 	) noexcept
 	{
-
 		const auto extent = vk::Extent3D{.width = image.size.x, .height = image.size.y, .depth = 1};
 		const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
 
@@ -333,7 +332,6 @@ namespace vulkan
 		vk::ImageLayout layout
 	) noexcept
 	{
-
 		/* Verify inputs */
 
 		// Empty mipmap chain
