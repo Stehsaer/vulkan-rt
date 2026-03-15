@@ -49,7 +49,7 @@ namespace vulkan
 		{
 			const vk::raii::PhysicalDevice& phy_device;
 			const vk::raii::Device& device;
-			const vulkan::alloc::Allocator& allocator;
+			const vulkan::Allocator& allocator;
 			const DeviceQueue& render_queue;
 
 			const VisitProxy* operator->() const noexcept { return this; }
@@ -59,19 +59,19 @@ namespace vulkan
 
 		std::unique_ptr<vk::raii::PhysicalDevice> phy_device;
 		std::unique_ptr<vk::raii::Device> device;
-		std::unique_ptr<vulkan::alloc::Allocator> allocator;
+		std::unique_ptr<vulkan::Allocator> allocator;
 
 		std::unique_ptr<DeviceQueue> render_queue;
 
 		explicit DeviceContext(
 			vk::raii::PhysicalDevice phy_device,
 			vk::raii::Device device,
-			vulkan::alloc::Allocator allocator,
+			vulkan::Allocator allocator,
 			DeviceQueue render_queue
 		) :
 			phy_device(std::make_unique<vk::raii::PhysicalDevice>(std::move(phy_device))),
 			device(std::make_unique<vk::raii::Device>(std::move(device))),
-			allocator(std::make_unique<vulkan::alloc::Allocator>(std::move(allocator))),
+			allocator(std::make_unique<vulkan::Allocator>(std::move(allocator))),
 			render_queue(std::make_unique<DeviceQueue>(std::move(render_queue)))
 		{}
 
@@ -112,7 +112,7 @@ namespace vulkan
 		HeadlessDeviceContext(
 			vk::raii::PhysicalDevice phy_device,
 			vk::raii::Device device,
-			vulkan::alloc::Allocator allocator,
+			vulkan::Allocator allocator,
 			DeviceQueue render_queue
 		) :
 			DeviceContext(
@@ -170,7 +170,7 @@ namespace vulkan
 		explicit SurfaceDeviceContext(
 			vk::raii::PhysicalDevice phy_device,
 			vk::raii::Device device,
-			vulkan::alloc::Allocator allocator,
+			vulkan::Allocator allocator,
 			DeviceQueue render_queue,
 			DeviceQueue present_queue
 		) :

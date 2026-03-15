@@ -70,7 +70,7 @@ namespace vulkan::impl
 			vulkan::alloc::Buffer readback_buffer;
 
 			static std::expected<TransferResource, Error> create(
-				const vulkan::alloc::Allocator& allocator,
+				const vulkan::Allocator& allocator,
 				glm::u32vec2 image_size,
 				size_t buffer_size,
 				vk::Format format
@@ -108,7 +108,7 @@ namespace vulkan::impl
 
 	std::expected<void, Error> readback_image(
 		const vk::raii::Device& device,
-		const vulkan::alloc::Allocator& allocator,
+		const vulkan::Allocator& allocator,
 		const vk::raii::Queue& queue,
 		uint32_t queue_family,
 		vk::Image src_image,

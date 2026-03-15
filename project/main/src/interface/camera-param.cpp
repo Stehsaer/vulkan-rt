@@ -46,7 +46,7 @@ namespace interface
 
 	std::expected<CameraParam::Resource, Error> CameraParam::Resource::create(
 		const vk::raii::Device& device [[maybe_unused]],
-		const vulkan::alloc::Allocator& allocator
+		const vulkan::Allocator& allocator
 	) noexcept
 	{
 		const auto staging_buffer_create_info =

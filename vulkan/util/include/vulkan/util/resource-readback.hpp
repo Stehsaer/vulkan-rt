@@ -12,7 +12,7 @@ namespace vulkan
 	{
 		std::expected<void, Error> readback_image(
 			const vk::raii::Device& device,
-			const vulkan::alloc::Allocator& allocator,
+			const vulkan::Allocator& allocator,
 			const vk::raii::Queue& queue,
 			uint32_t queue_family,
 			vk::Image src_image,
@@ -24,8 +24,10 @@ namespace vulkan
 	}
 
 	///
-	/// @brief Read back an image from GPU to CPU, designed to use in testing
+	/// @brief Read back an image from GPU to CPU, designed to use in testing and verification
 	/// @warning Do not use it in frame-loops, this is not designed to be efficient
+	/// @note Make sure the target GPU image to readback from is created with
+	/// `vk::ImageUsageFlagBits::eTransferSrc`. The validation layer will warn if not.
 	///
 	/// @tparam T Format of the resulting image
 	/// @tparam L Layout of the resulting image
@@ -42,7 +44,7 @@ namespace vulkan
 	template <image::Format T, image::Layout L>
 	std::expected<image::Image<T, L>, Error> readback_image(
 		const vk::raii::Device& device,
-		const vulkan::alloc::Allocator& allocator,
+		const vulkan::Allocator& allocator,
 		const vk::raii::Queue& queue,
 		uint32_t queue_family,
 		vk::Image src_image,

@@ -69,7 +69,7 @@ namespace vulkan
 
 		/* Create allocator */
 
-		auto allocator_result = vulkan::alloc::Allocator::create(context->instance, phy_device, device);
+		auto allocator_result = vulkan::Allocator::create(context->instance, phy_device, device);
 		if (!allocator_result) return allocator_result.error().forward("Create VMA allocator failed");
 		auto allocator = std::move(*allocator_result);
 
@@ -139,7 +139,7 @@ namespace vulkan
 
 		/* Create allocator */
 
-		auto allocator_result = vulkan::alloc::Allocator::create(context->instance, phy_device, device);
+		auto allocator_result = vulkan::Allocator::create(context->instance, phy_device, device);
 		if (!allocator_result) return allocator_result.error().forward("Create VMA allocator failed");
 		auto allocator = std::move(*allocator_result);
 

@@ -2,27 +2,27 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 
-namespace vulkan::alloc
+namespace vulkan
 {
-	static VmaAllocationCreateInfo get_allocation_create_info(MemoryUsage usage) noexcept
+	static VmaAllocationCreateInfo get_allocation_create_info(alloc::MemoryUsage usage) noexcept
 	{
 		VmaAllocationCreateInfo create_info = {};
 		create_info.priority = 1.0f;
 
 		switch (usage)
 		{
-		case MemoryUsage::GpuOnly:
+		case alloc::MemoryUsage::GpuOnly:
 			create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 			create_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 			break;
 
-		case MemoryUsage::CpuToGpu:
+		case alloc::MemoryUsage::CpuToGpu:
 			create_info.usage = VMA_MEMORY_USAGE_AUTO;
 			create_info.flags =
 				VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 			break;
 
-		case MemoryUsage::GpuToCpu:
+		case alloc::MemoryUsage::GpuToCpu:
 			create_info.usage = VMA_MEMORY_USAGE_AUTO;
 			create_info.flags =
 				VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -57,12 +57,12 @@ namespace vulkan::alloc
 		if (result != VK_SUCCESS)
 			return Error("Create VMA allocator failed", vk::to_string(vk::Result(result)));
 
-		return Allocator(std::make_unique<AllocatorWrapper>(allocator));
+		return Allocator(std::make_unique<alloc::AllocatorWrapper>(allocator));
 	}
 
-	std::expected<Image, Error> Allocator::create_image(
+	std::expected<alloc::Image, Error> Allocator::create_image(
 		const vk::ImageCreateInfo& create_info,
-		MemoryUsage usage
+		alloc::MemoryUsage usage
 	) const noexcept
 	{
 		const VkImageCreateInfo create_info_c = create_info;
@@ -82,12 +82,12 @@ namespace vulkan::alloc
 		if (result != VK_SUCCESS)
 			return Error("Allocate image using VMA failed", vk::to_string(vk::Result(result)));
 
-		return Image(std::make_unique<ImageWrapper>(image, allocation, wrapper->allocator));
+		return alloc::Image(std::make_unique<alloc::ImageWrapper>(image, allocation, wrapper->allocator));
 	}
 
-	std::expected<Buffer, Error> Allocator::create_buffer(
+	std::expected<alloc::Buffer, Error> Allocator::create_buffer(
 		const vk::BufferCreateInfo& create_info,
-		MemoryUsage usage
+		alloc::MemoryUsage usage
 	) const noexcept
 	{
 		const VkBufferCreateInfo create_info_c = create_info;
@@ -107,9 +107,12 @@ namespace vulkan::alloc
 		if (result != VK_SUCCESS)
 			return Error("Allocate buffer using VMA failed", vk::to_string(vk::Result(result)));
 
-		return Buffer(std::make_unique<BufferWrapper>(buffer, allocation, wrapper->allocator));
+		return alloc::Buffer(std::make_unique<alloc::BufferWrapper>(buffer, allocation, wrapper->allocator));
 	}
+}
 
+namespace vulkan::alloc
+{
 	std::expected<void, Error> Buffer::upload(
 		std::span<const std::byte> data,
 		size_t dst_offset

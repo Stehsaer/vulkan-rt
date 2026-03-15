@@ -43,7 +43,7 @@ namespace vulkan
 		///
 		explicit StaticResourceCreator(
 			const vk::raii::Device& device,
-			const alloc::Allocator& allocator,
+			const Allocator& allocator,
 			const vk::raii::Queue& transfer_queue,
 			uint32_t queue_family
 		) noexcept :
@@ -244,7 +244,7 @@ namespace vulkan
 		};
 
 		std::reference_wrapper<const vk::raii::Device> device;
-		std::reference_wrapper<const vulkan::alloc::Allocator> allocator;
+		std::reference_wrapper<const vulkan::Allocator> allocator;
 		std::reference_wrapper<const vk::raii::Queue> transfer_queue;
 		uint32_t queue_family;
 		std::unique_ptr<std::mutex> execution_mutex;

@@ -8,6 +8,11 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
+namespace vulkan
+{
+	class Allocator;
+}
+
 namespace vulkan::alloc
 {
 	enum class MemoryUsage
@@ -70,7 +75,7 @@ namespace vulkan::alloc
 			wrapper(std::move(wrapper))
 		{}
 
-		friend class Allocator;
+		friend class ::vulkan::Allocator;
 
 	  public:
 
@@ -98,7 +103,7 @@ namespace vulkan::alloc
 			wrapper(std::move(wrapper))
 		{}
 
-		friend class Allocator;
+		friend class ::vulkan::Allocator;
 
 	  public:
 
@@ -136,11 +141,15 @@ namespace vulkan::alloc
 		std::expected<void, Error> download(std::span<std::byte> data, size_t src_offset = 0) const noexcept;
 	};
 
+}
+
+namespace vulkan
+{
 	///
 	/// @brief C++ wrapper for vulkan-memory-allocator
 	/// @details
 	/// #### Creation
-	/// Simply use `vulkan::alloc::Allocator::create` to create an allocator instance.
+	/// Simply use `vulkan::Allocator::create` to create an allocator instance.
 	///
 	/// #### Allocation
 	/// Use `allocator.create_image(...)` and `allocator.create_buffer(...)` to create buffers and images.
@@ -174,9 +183,9 @@ namespace vulkan::alloc
 		/// @return An image or Error
 		///
 		[[nodiscard]]
-		std::expected<Image, Error> create_image(
+		std::expected<alloc::Image, Error> create_image(
 			const vk::ImageCreateInfo& create_info,
-			MemoryUsage usage
+			alloc::MemoryUsage usage
 		) const noexcept;
 
 		///
@@ -187,16 +196,16 @@ namespace vulkan::alloc
 		/// @return A buffer or Error
 		///
 		[[nodiscard]]
-		std::expected<Buffer, Error> create_buffer(
+		std::expected<alloc::Buffer, Error> create_buffer(
 			const vk::BufferCreateInfo& create_info,
-			MemoryUsage usage
+			alloc::MemoryUsage usage
 		) const noexcept;
 
 	  private:
 
-		std::unique_ptr<AllocatorWrapper> wrapper;
+		std::unique_ptr<alloc::AllocatorWrapper> wrapper;
 
-		Allocator(std::unique_ptr<AllocatorWrapper> wrapper) :
+		Allocator(std::unique_ptr<alloc::AllocatorWrapper> wrapper) :
 			wrapper(std::move(wrapper))
 		{}
 

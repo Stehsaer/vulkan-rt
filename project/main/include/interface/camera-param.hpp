@@ -27,7 +27,7 @@ namespace interface
 			[[nodiscard]]
 			static std::expected<Resource, Error> create(
 				const vk::raii::Device& device,
-				const vulkan::alloc::Allocator& allocator
+				const vulkan::Allocator& allocator
 			) noexcept;
 
 			[[nodiscard]]
