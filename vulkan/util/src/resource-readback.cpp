@@ -107,10 +107,7 @@ namespace vulkan::impl
 	}
 
 	std::expected<void, Error> readback_image(
-		const vk::raii::Device& device,
-		const vulkan::Allocator& allocator,
-		const vk::raii::Queue& queue,
-		uint32_t queue_family,
+		const vulkan::DeviceContext& context,
 		vk::Image src_image,
 		vk::ImageLayout src_image_layout,
 		vk::Format target_format,
@@ -118,17 +115,17 @@ namespace vulkan::impl
 		std::span<std::byte> output_data
 	) noexcept
 	{
-		device.waitIdle();
+		context.device.waitIdle();
 
 		/* Create resources */
 
-		auto commit_resource_result = CommitResource::create(device, queue_family);
+		auto commit_resource_result = CommitResource::create(context.device, context.family);
 		if (!commit_resource_result)
 			return commit_resource_result.error().forward("Create commit resource failed");
 		auto commit_resource = std::move(*commit_resource_result);
 
 		auto transfer_resource_result =
-			TransferResource::create(allocator, size, output_data.size(), target_format);
+			TransferResource::create(context.allocator, size, output_data.size(), target_format);
 		if (!transfer_resource_result)
 			return transfer_resource_result.error().forward("Create transfer resource failed");
 		auto transfer_resource = std::move(*transfer_resource_result);
@@ -231,11 +228,12 @@ namespace vulkan::impl
 		/* Submit */
 
 		const auto command_buffers = std::to_array<vk::CommandBuffer>({*commit_resource.command_buffer});
-		queue.submit(vk::SubmitInfo().setCommandBuffers(command_buffers), *commit_resource.fence);
+		context.queue.submit(vk::SubmitInfo().setCommandBuffers(command_buffers), *commit_resource.fence);
 
 		/* Wait for fences */
 
-		const auto wait_result = device.waitForFences(*commit_resource.fence, vk::True, 1'000'000'000);
+		const auto wait_result =
+			context.device.waitForFences(*commit_resource.fence, vk::True, 1'000'000'000);
 		switch (wait_result)
 		{
 		case vk::Result::eSuccess:
@@ -251,7 +249,7 @@ namespace vulkan::impl
 		const auto download_result = transfer_resource.readback_buffer.download(output_data);
 		if (!download_result) return download_result.error().forward("Download readback buffer failed");
 
-		device.waitIdle();
+		context.device.waitIdle();
 
 		return {};
 	}

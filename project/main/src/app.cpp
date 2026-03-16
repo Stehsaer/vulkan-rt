@@ -39,20 +39,22 @@ App App::create(const Argument& argument)
 	const auto render_scheme =
 		vulkan::ImGuiContext::Config::DynamicRendering{.rendering_info = pipeline_rendering_info};
 	auto imgui_context =
-		vulkan::ImGuiContext::create(instance_context, device_context, {.render_scheme = render_scheme})
+		vulkan::ImGuiContext::create(instance_context, device_context.get(), {.render_scheme = render_scheme})
 		| Error::unwrap("Create ImGui context failed");
 
 	auto command_pool =
-		device_context->device
+		device_context.get()
+			.device
 			.createCommandPool(
 				{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-				 .queueFamilyIndex = device_context->render_queue.family_index}
+				 .queueFamilyIndex = device_context.get().family}
 			)
 			.transform_error(Error::from<vk::Result>())
 		| Error::unwrap("Create command pool failed");
 
 	auto command_buffers =
-		device_context->device
+		device_context.get()
+			.device
 			.allocateCommandBuffers({
 				.commandPool = *command_pool,
 				.level = vk::CommandBufferLevel::ePrimary,
@@ -62,25 +64,28 @@ App App::create(const Argument& argument)
 		| Error::unwrap("Allocate command buffers failed")
 		| vulkan::Cycle<vk::raii::CommandBuffer>::into;
 
-	auto resource_layout = resource::Layout::create(device_context);
+	auto resource_layout = resource::Layout::create(device_context.get());
 	auto pipeline = ObjectRenderPipeline::create(
-		device_context,
+		device_context.get(),
 		pipeline_rendering_info,
 		resource_layout.camera_param_layout.layout
 	);
 
 	auto model = Model::load_from_file(argument.model_path) | Error::unwrap("Load model failed");
-	auto model_buffer = ModelBuffer::create(device_context, model);
+	auto model_buffer = ModelBuffer::create(device_context.get(), model);
 
-	auto descriptor_pool =
-		resource::DescriptorPool::create(device_context->device, resource_layout, resource::inflight_frames);
+	auto descriptor_pool = resource::DescriptorPool::create(
+		device_context.get().device,
+		resource_layout,
+		resource::inflight_frames
+	);
 	auto descriptor_sets =
 		descriptor_pool.get_frame_descriptor_sets() | vulkan::Cycle<resource::FrameDescriptorSet>::into;
 
 	auto sync_primitives =
 		std::views::iota(0zu, 3zu)
 		| std::views::transform([&device_context](size_t) {
-			  return resource::SyncPrimitive::create(device_context);
+			  return resource::SyncPrimitive::create(device_context.get());
 		  })
 		| vulkan::Cycle<resource::SyncPrimitive>::into;
 
@@ -107,7 +112,7 @@ App::FramePrepareResult App::prepare_frame()
 
 	/* Wait for command buffer */
 
-	if (const auto wait_result = device_context->device.waitForFences(
+	if (const auto wait_result = device_context.get().device.waitForFences(
 			{sync_primitives.current().draw_fence},
 			vk::True,
 			std::numeric_limits<uint64_t>::max()
@@ -127,12 +132,12 @@ App::FramePrepareResult App::prepare_frame()
 
 	if (swapchain_result.extent_changed)
 	{
-		device_context->device.waitIdle();
+		device_context.get().device.waitIdle();
 
 		frame_resources =
 			std::views::iota(0zu, 3zu)
 			| std::views::transform([this, &swapchain_result](size_t) {
-				  return resource::FrameResource::create(device_context, swapchain_result.extent);
+				  return resource::FrameResource::create(device_context.get(), swapchain_result.extent);
 			  })
 			| vulkan::Cycle<resource::FrameResource>::into;
 
@@ -140,7 +145,7 @@ App::FramePrepareResult App::prepare_frame()
 			 std::views::zip(frame_descriptor_sets.iterate(), frame_resources.iterate_pair()))
 		{
 			const auto& [prev_resource, current_resource] = frame_pair;
-			descriptor_set.bind_resource(device_context->device, prev_resource, current_resource);
+			descriptor_set.bind_resource(device_context.get().device, prev_resource, current_resource);
 		}
 	}
 	else
@@ -344,8 +349,8 @@ bool App::draw_frame()
 				.setSignalSemaphores(signal_semaphores)
 				.setWaitDstStageMask(wait_stages);
 
-		device_context->device.resetFences({*sync.draw_fence});
-		device_context->render_queue.queue->submit(graphic_submit_info, *sync.draw_fence);
+		device_context.get().device.resetFences({*sync.draw_fence});
+		device_context.get().queue.submit(graphic_submit_info, *sync.draw_fence);
 	}
 
 	/* Present */
@@ -381,5 +386,5 @@ void App::draw_ui()
 
 App::~App() noexcept
 {
-	device_context->device.waitIdle();
+	device_context.get().device.waitIdle();
 }

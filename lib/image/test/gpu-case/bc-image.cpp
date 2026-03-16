@@ -4,7 +4,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 
 #include "common/test-macro.hpp"
-#include "common/util/span.hpp"
 #include "image/bc-image.hpp"
 #include "image/image.hpp"
 #include "test-asset.hpp"
@@ -113,12 +112,7 @@ static void check_bc3(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(bc3_image_result);
 	auto bc3_image = std::move(*bc3_image_result);
 
-	vulkan::StaticResourceCreator resource_creator(
-		context_ptr->device_context->device,
-		context_ptr->device_context->allocator,
-		*context_ptr->device_context->render_queue.queue,
-		context_ptr->device_context->render_queue.family_index
-	);
+	vulkan::StaticResourceCreator resource_creator(context_ptr->device_context.get());
 
 	auto gpu_image_result = resource_creator.create_image_bcn(
 		bc3_image,
@@ -133,10 +127,7 @@ static void check_bc3(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(upload_result);
 
 	auto readback_image_result = vulkan::readback_image<image::Format::Unorm8, image::Layout::RGBA>(
-		context_ptr->device_context->device,
-		context_ptr->device_context->allocator,
-		*context_ptr->device_context->render_queue.queue,
-		context_ptr->device_context->render_queue.family_index,
+		context_ptr->device_context.get(),
 		gpu_image,
 		vk::ImageLayout::eTransferSrcOptimal,
 		vk::Format::eR8G8B8A8Unorm,
@@ -175,12 +166,7 @@ static void check_bc5(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(bc5_image_result);
 	auto bc5_image = std::move(*bc5_image_result);
 
-	vulkan::StaticResourceCreator resource_creator(
-		context_ptr->device_context->device,
-		context_ptr->device_context->allocator,
-		*context_ptr->device_context->render_queue.queue,
-		context_ptr->device_context->render_queue.family_index
-	);
+	vulkan::StaticResourceCreator resource_creator(context_ptr->device_context.get());
 
 	auto gpu_image_result = resource_creator.create_image_bcn(
 		bc5_image,
@@ -195,10 +181,7 @@ static void check_bc5(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(upload_result);
 
 	auto readback_image_result = vulkan::readback_image<image::Format::Unorm8, image::Layout::RG>(
-		context_ptr->device_context->device,
-		context_ptr->device_context->allocator,
-		*context_ptr->device_context->render_queue.queue,
-		context_ptr->device_context->render_queue.family_index,
+		context_ptr->device_context.get(),
 		gpu_image,
 		vk::ImageLayout::eTransferSrcOptimal,
 		vk::Format::eR8G8Unorm,
@@ -238,12 +221,7 @@ static void check_bc7(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(bc7_image_result);
 	auto bc7_image = std::move(*bc7_image_result);
 
-	vulkan::StaticResourceCreator resource_creator(
-		context_ptr->device_context->device,
-		context_ptr->device_context->allocator,
-		*context_ptr->device_context->render_queue.queue,
-		context_ptr->device_context->render_queue.family_index
-	);
+	vulkan::StaticResourceCreator resource_creator(context_ptr->device_context.get());
 
 	auto gpu_image_result = resource_creator.create_image_bcn(
 		bc7_image,
@@ -258,10 +236,7 @@ static void check_bc7(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(upload_result);
 
 	auto readback_image_result = vulkan::readback_image<image::Format::Unorm8, image::Layout::RGBA>(
-		context_ptr->device_context->device,
-		context_ptr->device_context->allocator,
-		*context_ptr->device_context->render_queue.queue,
-		context_ptr->device_context->render_queue.family_index,
+		context_ptr->device_context.get(),
 		gpu_image,
 		vk::ImageLayout::eTransferSrcOptimal,
 		vk::Format::eR8G8B8A8Unorm,

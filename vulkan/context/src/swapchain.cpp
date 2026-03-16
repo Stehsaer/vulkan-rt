@@ -125,7 +125,7 @@ namespace vulkan
 		const Config& config
 	) noexcept
 	{
-		const auto& phy_device = device_context->phy_device;
+		const auto& phy_device = device_context.get().phy_device;
 		const auto surface = instance_context->surface;
 
 		const auto format_result = select_surface_format(phy_device, surface, config);
@@ -137,14 +137,14 @@ namespace vulkan
 		const auto [sharing_mode, queue_family_indices] =
 			[&]() -> std::pair<vk::SharingMode, std::vector<uint32_t>> {
 			std::vector<uint32_t> queue_family_indices;
-			if (device_context->render_queue.family_index == device_context.get_present_queue().family_index)
+			if (device_context.get().family == device_context.get_present_queue().family_index)
 			{
 				queue_family_indices.push_back(device_context.get_present_queue().family_index);
 				return std::make_pair(vk::SharingMode::eExclusive, std::move(queue_family_indices));
 			}
 			else
 			{
-				queue_family_indices.push_back(device_context->render_queue.family_index);
+				queue_family_indices.push_back(device_context.get().family);
 				queue_family_indices.push_back(device_context.get_present_queue().family_index);
 				return std::make_pair(vk::SharingMode::eConcurrent, std::move(queue_family_indices));
 			}
@@ -246,7 +246,7 @@ namespace vulkan
 				.value_or(nullptr);
 
 		const auto surface_capability =
-			device_context->phy_device.getSurfaceCapabilitiesKHR(instance_context->surface);
+			device_context.get().phy_device.getSurfaceCapabilitiesKHR(instance_context->surface);
 
 		const auto image_count =
 			glm::clamp<uint32_t>(3, surface_capability.minImageCount, surface_capability.maxImageCount);
@@ -270,7 +270,8 @@ namespace vulkan
 		swapchain_create_info.setQueueFamilyIndices(*queue_family_indices);
 
 		auto swapchain_result =
-			device_context->device.createSwapchainKHR(swapchain_create_info)
+			device_context.get()
+				.device.createSwapchainKHR(swapchain_create_info)
 				.transform_error(Error::from<vk::Result>());
 		if (!swapchain_result) return swapchain_result.error().forward("Create swapchain failed");
 		auto swapchain = std::move(*swapchain_result);
@@ -281,7 +282,7 @@ namespace vulkan
 		for (const auto& image : images)
 		{
 			auto image_view_result =
-				create_swapchain_imageview(device_context->device, image, surface_format.format);
+				create_swapchain_imageview(device_context.get().device, image, surface_format.format);
 			if (!image_view_result)
 				return image_view_result.error().forward("Create image view for swapchain image failed");
 			auto image_view = std::move(*image_view_result);

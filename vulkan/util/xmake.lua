@@ -8,7 +8,13 @@ target("vulkan.util")
 	add_files("src/**.cpp")
 
 	add_packages("glm", "vulkan-hpp", {public = true})
-	add_deps("lib.common", "lib.image", "vulkan.alloc", {public = true})
+	add_deps(
+		"lib.common",
+		"lib.image",
+		"vulkan.alloc",
+		"vulkan.interface",
+		{public = true}
+	)
 
 target("vulkan.util.cpu-test")
 	set_kind("binary")

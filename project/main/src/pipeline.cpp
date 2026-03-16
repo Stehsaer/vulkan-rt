@@ -16,14 +16,14 @@ ObjectRenderPipeline ObjectRenderPipeline::create(
 	const auto pipeline_layout_create_info =
 		vk::PipelineLayoutCreateInfo().setSetLayouts(camera_param_layout);
 	auto pipeline_layout =
-		context->device.createPipelineLayout(pipeline_layout_create_info)
+		context.device.createPipelineLayout(pipeline_layout_create_info)
 			.transform_error(Error::from<vk::Result>())
 		| Error::unwrap("Create pipeline layout failed");
 
 	/* Shader Module */
 
 	auto shader_module =
-		vulkan::create_shader(context->device, shader::object) | Error::unwrap("Create shader module failed");
+		vulkan::create_shader(context.device, shader::object) | Error::unwrap("Create shader module failed");
 
 	/* Pipeline */
 
@@ -136,7 +136,7 @@ ObjectRenderPipeline ObjectRenderPipeline::create(
 	graphics_create_info.push(rendering_info);
 
 	auto pipeline =
-		context->device.createGraphicsPipeline(nullptr, graphics_create_info.get())
+		context.device.createGraphicsPipeline(nullptr, graphics_create_info.get())
 			.transform_error(Error::from<vk::Result>())
 		| Error::unwrap("Create graphics pipeline failed");
 

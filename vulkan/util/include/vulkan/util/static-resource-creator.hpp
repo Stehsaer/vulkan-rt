@@ -5,6 +5,7 @@
 #include "image/bc-image.hpp"
 #include "image/image.hpp"
 #include "vulkan/alloc.hpp"
+#include "vulkan/interface/common-context.hpp"
 #include "vulkan/util/constants.hpp"
 
 #include <functional>
@@ -41,16 +42,11 @@ namespace vulkan
 		/// @param transfer_queue Vulkan queue for submitting transfer commands
 		/// @param queue_family Queue family index of the transfer queue
 		///
-		explicit StaticResourceCreator(
-			const vk::raii::Device& device,
-			const Allocator& allocator,
-			const vk::raii::Queue& transfer_queue,
-			uint32_t queue_family
-		) noexcept :
-			device(device),
-			allocator(allocator),
-			transfer_queue(transfer_queue),
-			queue_family(queue_family),
+		explicit StaticResourceCreator(const DeviceContext& context) noexcept :
+			device(context.device),
+			allocator(context.allocator),
+			transfer_queue(context.queue),
+			queue_family(context.family),
 			execution_mutex(std::make_unique<std::mutex>())
 		{}
 

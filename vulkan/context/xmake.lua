@@ -17,9 +17,12 @@ target("vulkan.context")
 	)
 	add_deps(
 		"lib.common",
-		"vulkan.util",
+		"vulkan.interface",
 		"vulkan.alloc",
 		{public = true}
+	)
+	add_deps(
+		"vulkan.util"
 	)
 
 target("vulkan.context.test")

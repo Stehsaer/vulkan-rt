@@ -214,12 +214,7 @@ std::expected<Model, Error> Model::load_from_file(const std::string_view& path) 
 
 ModelBuffer ModelBuffer::create(const vulkan::DeviceContext& context, const Model& model)
 {
-	auto resource_creator = vulkan::StaticResourceCreator(
-		context->device,
-		context->allocator,
-		*context->render_queue.queue,
-		context->render_queue.family_index
-	);
+	auto resource_creator = vulkan::StaticResourceCreator(context);
 
 	auto vertex_buffer =
 		resource_creator.create_buffer(util::as_bytes(model.vertices), vk::BufferUsageFlagBits::eVertexBuffer)

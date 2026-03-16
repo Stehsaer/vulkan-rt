@@ -3,6 +3,7 @@
 #include "common/util/error.hpp"
 #include "vulkan/alloc.hpp"
 #include "vulkan/context/instance.hpp"
+#include "vulkan/interface/common-context.hpp"
 
 #include <utility>
 #include <vulkan/vulkan_raii.hpp>
@@ -38,66 +39,10 @@ namespace vulkan
 	};
 
 	///
-	/// @brief Abstract device context, hosts the most common ingredients for graphics rendering
-	/// @note Use `operator->` to access references to the members
-	///
-	class DeviceContext
-	{
-	  private:
-
-		struct VisitProxy
-		{
-			const vk::raii::PhysicalDevice& phy_device;
-			const vk::raii::Device& device;
-			const vulkan::Allocator& allocator;
-			const DeviceQueue& render_queue;
-
-			const VisitProxy* operator->() const noexcept { return this; }
-		};
-
-	  protected:
-
-		std::unique_ptr<vk::raii::PhysicalDevice> phy_device;
-		std::unique_ptr<vk::raii::Device> device;
-		std::unique_ptr<vulkan::Allocator> allocator;
-
-		std::unique_ptr<DeviceQueue> render_queue;
-
-		explicit DeviceContext(
-			vk::raii::PhysicalDevice phy_device,
-			vk::raii::Device device,
-			vulkan::Allocator allocator,
-			DeviceQueue render_queue
-		) :
-			phy_device(std::make_unique<vk::raii::PhysicalDevice>(std::move(phy_device))),
-			device(std::make_unique<vk::raii::Device>(std::move(device))),
-			allocator(std::make_unique<vulkan::Allocator>(std::move(allocator))),
-			render_queue(std::make_unique<DeviceQueue>(std::move(render_queue)))
-		{}
-
-	  public:
-
-		VisitProxy operator->() const noexcept
-		{
-			return {
-				.phy_device = *phy_device,
-				.device = *device,
-				.allocator = *allocator,
-				.render_queue = *render_queue
-			};
-		}
-
-		DeviceContext(const DeviceContext&) = delete;
-		DeviceContext(DeviceContext&&) = default;
-		DeviceContext& operator=(const DeviceContext&) = delete;
-		DeviceContext& operator=(DeviceContext&&) = default;
-	};
-
-	///
 	/// @brief Headless device context, designed to render without a window
 	///
 	///
-	class HeadlessDeviceContext : public DeviceContext
+	class HeadlessDeviceContext
 	{
 	  public:
 
@@ -107,7 +52,30 @@ namespace vulkan
 			const DeviceOption& option
 		) noexcept;
 
-	  protected:
+		///
+		/// @brief Get device context for rendering and transferring
+		///
+		/// @return Device context for rendering and transferring
+		///
+		[[nodiscard]]
+		DeviceContext get() const noexcept
+		{
+			return {
+				.phy_device = *phy_device,
+				.device = *device,
+				.allocator = *allocator,
+				.queue = *render_queue.queue,
+				.family = render_queue.family_index
+			};
+		}
+
+	  private:
+
+		std::unique_ptr<vk::raii::PhysicalDevice> phy_device;
+		std::unique_ptr<vk::raii::Device> device;
+		std::unique_ptr<vulkan::Allocator> allocator;
+
+		DeviceQueue render_queue;
 
 		HeadlessDeviceContext(
 			vk::raii::PhysicalDevice phy_device,
@@ -115,12 +83,10 @@ namespace vulkan
 			vulkan::Allocator allocator,
 			DeviceQueue render_queue
 		) :
-			DeviceContext(
-				std::move(phy_device),
-				std::move(device),
-				std::move(allocator),
-				std::move(render_queue)
-			)
+			phy_device(std::make_unique<vk::raii::PhysicalDevice>(std::move(phy_device))),
+			device(std::make_unique<vk::raii::Device>(std::move(device))),
+			allocator(std::make_unique<vulkan::Allocator>(std::move(allocator))),
+			render_queue(std::move(render_queue))
 		{}
 
 	  public:
@@ -135,7 +101,7 @@ namespace vulkan
 	/// @brief Surface device context, designed to render on a window
 	/// @note Use @p get_present_queue to get the present queue, and use `operator->` to get the render queue
 	///
-	class SurfaceDeviceContext : public DeviceContext
+	class SurfaceDeviceContext
 	{
 	  public:
 
@@ -160,12 +126,34 @@ namespace vulkan
 		[[nodiscard]]
 		const DeviceQueue& get_present_queue() const noexcept
 		{
-			return *present_queue;
+			return present_queue;
+		}
+
+		///
+		/// @brief Get device context for rendering and transferring
+		///
+		/// @return Device context for rendering and transferring
+		///
+		[[nodiscard]]
+		DeviceContext get() const noexcept
+		{
+			return {
+				.phy_device = *phy_device,
+				.device = *device,
+				.allocator = *allocator,
+				.queue = *render_queue.queue,
+				.family = render_queue.family_index
+			};
 		}
 
 	  private:
 
-		std::unique_ptr<DeviceQueue> present_queue;
+		std::unique_ptr<vk::raii::PhysicalDevice> phy_device;
+		std::unique_ptr<vk::raii::Device> device;
+		std::unique_ptr<vulkan::Allocator> allocator;
+
+		DeviceQueue render_queue;
+		DeviceQueue present_queue;
 
 		explicit SurfaceDeviceContext(
 			vk::raii::PhysicalDevice phy_device,
@@ -174,13 +162,11 @@ namespace vulkan
 			DeviceQueue render_queue,
 			DeviceQueue present_queue
 		) :
-			DeviceContext(
-				std::move(phy_device),
-				std::move(device),
-				std::move(allocator),
-				std::move(render_queue)
-			),
-			present_queue(std::make_unique<DeviceQueue>(std::move(present_queue)))
+			phy_device(std::make_unique<vk::raii::PhysicalDevice>(std::move(phy_device))),
+			device(std::make_unique<vk::raii::Device>(std::move(device))),
+			allocator(std::make_unique<vulkan::Allocator>(std::move(allocator))),
+			render_queue(std::move(render_queue)),
+			present_queue(std::move(present_queue))
 		{}
 
 	  public:
