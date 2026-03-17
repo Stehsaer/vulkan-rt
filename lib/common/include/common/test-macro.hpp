@@ -6,14 +6,14 @@
 #define EXPECT_FAIL(arg)                                                                                     \
 	if (!(arg).has_value())                                                                                  \
 	{                                                                                                        \
-		std::println(std::cout, "Expected Error: {0:msg}: {0:detail}", (arg).error());                       \
+		std::println(std::cout, "Expected Error: {0:msg}: {0:detail}", (arg).error().root());                \
 	}                                                                                                        \
 	REQUIRE_FALSE((arg).has_value());
 
 #define EXPECT_SUCCESS(arg)                                                                                  \
 	if (!(arg).has_value())                                                                                  \
 	{                                                                                                        \
-		std::println(std::cout, "Unexpected Error: {0:msg}: {0:detail}", (arg).error());                     \
+		std::println(std::cout, "Unexpected Error: {0:msg}: {0:detail}", (arg).error().root());              \
 	}                                                                                                        \
 	REQUIRE((arg).has_value());
 

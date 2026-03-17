@@ -22,7 +22,7 @@ namespace image::impl
 			&channels,
 			desired_channels
 		);
-		if (data == nullptr) return Error(std::format("Decode image failed: {}", stbi_failure_reason()));
+		if (data == nullptr) return Error("Decode image failed", stbi_failure_reason());
 
 		auto result = DecodeResult<Format::Unorm8>{
 			.data = std::vector<uint8_t>(std::from_range, std::span(data, width * height * desired_channels)),
@@ -50,7 +50,7 @@ namespace image::impl
 			&channels,
 			desired_channels
 		);
-		if (data == nullptr) return Error(std::format("Decode image failed: {}", stbi_failure_reason()));
+		if (data == nullptr) return Error("Decode image failed", stbi_failure_reason());
 
 		auto result = DecodeResult<Format::Unorm16>{
 			.data =
@@ -80,7 +80,7 @@ namespace image::impl
 			&channels,
 			desired_channels
 		);
-		if (data == nullptr) return Error(std::format("Decode image failed: {}", stbi_failure_reason()));
+		if (data == nullptr) return Error("Decode image failed", stbi_failure_reason());
 
 		auto result = DecodeResult<Format::Float32>{
 			.data = std::vector<float>(std::from_range, std::span(data, width * height * desired_channels)),

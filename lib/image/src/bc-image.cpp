@@ -133,6 +133,7 @@ namespace image
 	{
 		if (raw_image.size.x % 4 != 0 || raw_image.size.y % 4 != 0)
 			return Error(
+				"Unsupported image dimensions for BCn compression",
 				std::format(
 					"Raw image dimensions must be multiples of 4 for BCn compression, got {}",
 					raw_image.size
@@ -148,7 +149,7 @@ namespace image
 		case BCnFormat::BC7:
 			return encode_bc7(raw_image);
 		default:
-			return Error(std::format("Invalid argument: {}", static_cast<int>(format)));
+			return Error("Invalid argument", std::format("(BCnFormat) {}", static_cast<int>(format)));
 		}
 	}
 }

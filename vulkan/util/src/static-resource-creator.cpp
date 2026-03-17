@@ -109,15 +109,6 @@ namespace vulkan
 
 #pragma endregion
 
-	StaticResourceCreator::~StaticResourceCreator() noexcept
-	{
-#ifndef NDEBUG
-		const std::scoped_lock lock(*execution_mutex);
-		assert(buffer_upload_tasks.empty() && "There are still pending buffer upload tasks");
-		assert(image_upload_tasks.empty() && "There are still pending image upload tasks");
-#endif
-	}
-
 #pragma region Creation
 
 	std::expected<alloc::Buffer, Error> StaticResourceCreator::create_buffer(

@@ -37,10 +37,7 @@ namespace vulkan
 		///
 		/// @brief Construct a new `StaticResourceCreator`
 		///
-		/// @param device Vulkan device
-		/// @param allocator Vulkan memory allocator
-		/// @param transfer_queue Vulkan queue for submitting transfer commands
-		/// @param queue_family Queue family index of the transfer queue
+		/// @param context Vulkan device context to create resources with
 		///
 		explicit StaticResourceCreator(const DeviceContext& context) noexcept :
 			device(context.device),
@@ -49,8 +46,6 @@ namespace vulkan
 			queue_family(context.family),
 			execution_mutex(std::make_unique<std::mutex>())
 		{}
-
-		~StaticResourceCreator() noexcept;
 
 		///
 		/// @brief Create a buffer

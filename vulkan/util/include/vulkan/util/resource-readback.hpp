@@ -28,10 +28,7 @@ namespace vulkan
 	///
 	/// @tparam T Format of the resulting image
 	/// @tparam L Layout of the resulting image
-	/// @param device Vulkan device
-	/// @param allocator Vulkan memory allocator
-	/// @param queue Vulkan queue for submitting commands
-	/// @param queue_family Queue family index of the queue
+	/// @param context Vulkan device context
 	/// @param src_image Source image on GPU
 	/// @param src_image_layout Current layout of the source image
 	/// @param target_format Format to read back as (must be compatible with the CPU image format)

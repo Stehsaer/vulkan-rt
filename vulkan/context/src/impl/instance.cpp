@@ -79,7 +79,7 @@ namespace vulkan::impl
 
 		const auto unsupported_layers = requested_layers - available_layers;
 		if (!unsupported_layers.empty())
-			return Error(std::format("Unsupported instance layers: {}", unsupported_layers));
+			return Error("Unsupported instance layers", std::format("{}", unsupported_layers));
 
 		/* Check extensions */
 
@@ -92,7 +92,7 @@ namespace vulkan::impl
 
 		const auto unsupported_extensions = requested_extensions - available_extensions;
 		if (!unsupported_extensions.empty())
-			return Error(std::format("Unsupported instance extensions: {}", unsupported_extensions));
+			return Error("Unsupported instance extensions", std::format("{}", unsupported_extensions));
 
 		/* Create instance */
 
