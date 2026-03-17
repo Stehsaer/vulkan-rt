@@ -141,7 +141,7 @@ namespace vulkan::impl
 			{
 				const auto src_barrier = vk::ImageMemoryBarrier2{
 					.srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-					.srcAccessMask = vk::AccessFlagBits2::eNone,
+					.srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
 					.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
 					.dstAccessMask = vk::AccessFlagBits2::eTransferRead,
 					.oldLayout = src_image_layout,
@@ -192,18 +192,29 @@ namespace vulkan::impl
 
 			// Post-blit / Pre-copy barriers
 			{
-				const auto image_barrier = vk::ImageMemoryBarrier2{
+				const auto src_barrier = vk::ImageMemoryBarrier2{
+					.srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+					.srcAccessMask = vk::AccessFlagBits2::eTransferRead,
+					.dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+					.dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
+					.oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+					.newLayout = src_image_layout,
+					.image = src_image,
+					.subresourceRange = subresource_range
+				};
+				const auto dst_barrier = vk::ImageMemoryBarrier2{
 					.srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
 					.srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
 					.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
 					.dstAccessMask = vk::AccessFlagBits2::eTransferRead,
 					.oldLayout = vk::ImageLayout::eTransferDstOptimal,
 					.newLayout = vk::ImageLayout::eTransferSrcOptimal,
-					.image = *transfer_resource.blit_dst_image,
+					.image = transfer_resource.blit_dst_image,
 					.subresourceRange = subresource_range
 				};
+				const auto barriers = std::to_array({src_barrier, dst_barrier});
 				commit_resource.command_buffer.pipelineBarrier2(
-					vk::DependencyInfo().setImageMemoryBarriers(image_barrier)
+					vk::DependencyInfo().setImageMemoryBarriers(barriers)
 				);
 			}
 
