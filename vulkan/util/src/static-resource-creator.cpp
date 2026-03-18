@@ -148,13 +148,15 @@ namespace vulkan
 		const image::BCnImage& image,
 		bool srgb,
 		vk::ImageUsageFlags usage,
-		vk::ImageLayout layout
+		vk::ImageLayout layout,
+		vk::ImageCreateFlags create_flags
 	) noexcept
 	{
 		const auto extent = vk::Extent3D{.width = image.size.x * 4, .height = image.size.y * 4, .depth = 1};
 		const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
 
 		const auto image_create_info = vk::ImageCreateInfo{
+			.flags = create_flags,
 			.imageType = vk::ImageType::e2D,
 			.format = get_bcn_format(image.format, srgb),
 			.extent = extent,
@@ -190,7 +192,8 @@ namespace vulkan
 		const std::span<const image::BCnImage>& mipmap_chain,
 		bool srgb,
 		vk::ImageUsageFlags usage,
-		vk::ImageLayout layout
+		vk::ImageLayout layout,
+		vk::ImageCreateFlags create_flags
 	) noexcept
 	{
 		/* Verify inputs */
@@ -229,6 +232,7 @@ namespace vulkan
 		const uint32_t mipmap_levels = mipmap_chain.size();
 
 		const auto image_create_info = vk::ImageCreateInfo{
+			.flags = create_flags,
 			.imageType = vk::ImageType::e2D,
 			.format = get_bcn_format(mipmap_chain.front().format, srgb),
 			.extent = extents[0],

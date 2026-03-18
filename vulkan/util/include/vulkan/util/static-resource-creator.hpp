@@ -80,7 +80,8 @@ namespace vulkan
 			const image::Image<T, L>& image,
 			vk::Format format,
 			vk::ImageUsageFlags usage,
-			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal
+			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			vk::ImageCreateFlags create_flags = {}
 		) noexcept;
 
 		///
@@ -98,7 +99,8 @@ namespace vulkan
 			const image::BCnImage& image,
 			bool srgb,
 			vk::ImageUsageFlags usage,
-			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal
+			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			vk::ImageCreateFlags create_flags = {}
 		) noexcept;
 
 		///
@@ -120,7 +122,8 @@ namespace vulkan
 			std::span<const image::Image<T, L>> mipmap_chain,
 			vk::Format format,
 			vk::ImageUsageFlags usage,
-			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal
+			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			vk::ImageCreateFlags create_flags = {}
 		) noexcept;
 
 		///
@@ -140,11 +143,18 @@ namespace vulkan
 			Range&& mipmap_chain,
 			vk::Format format,
 			vk::ImageUsageFlags usage,
-			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal
+			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			vk::ImageCreateFlags create_flags = {}
 		) noexcept
 		{
 			using RangeValueType = std::add_const_t<std::ranges::range_value_t<Range>>;
-			return create_image_mipmap(std::span<RangeValueType>(mipmap_chain), format, usage, layout);
+			return create_image_mipmap(
+				std::span<RangeValueType>(mipmap_chain),
+				format,
+				usage,
+				layout,
+				create_flags
+			);
 		}
 
 		///
@@ -163,7 +173,8 @@ namespace vulkan
 			const std::span<const image::BCnImage>& mipmap_chain,
 			bool srgb,
 			vk::ImageUsageFlags usage,
-			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal
+			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			vk::ImageCreateFlags create_flags = {}
 		) noexcept;
 
 		///
@@ -277,13 +288,15 @@ namespace vulkan
 		const image::Image<T, L>& image,
 		vk::Format format,
 		vk::ImageUsageFlags usage,
-		vk::ImageLayout layout
+		vk::ImageLayout layout,
+		vk::ImageCreateFlags create_flags
 	) noexcept
 	{
 		const auto extent = vk::Extent3D{.width = image.size.x, .height = image.size.y, .depth = 1};
 		const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
 
 		const auto image_create_info = vk::ImageCreateInfo{
+			.flags = create_flags,
 			.imageType = vk::ImageType::e2D,
 			.format = format,
 			.extent = extent,
@@ -320,7 +333,8 @@ namespace vulkan
 		std::span<const image::Image<T, L>> mipmap_chain,
 		vk::Format format,
 		vk::ImageUsageFlags usage,
-		vk::ImageLayout layout
+		vk::ImageLayout layout,
+		vk::ImageCreateFlags create_flags
 	) noexcept
 	{
 		/* Verify inputs */
@@ -350,6 +364,7 @@ namespace vulkan
 		const uint32_t mipmap_levels = mipmap_chain.size();
 
 		const auto image_create_info = vk::ImageCreateInfo{
+			.flags = create_flags,
 			.imageType = vk::ImageType::e2D,
 			.format = format,
 			.extent = extents[0],
