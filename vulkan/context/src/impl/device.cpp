@@ -105,13 +105,13 @@ namespace vulkan::impl
 		const auto properties = phy_device.getProperties();
 
 		// Check API version
-		if (properties.apiVersion < api_version)
+		if (properties.apiVersion < API_VERSION)
 			return Error(
 				"Vulkan API version too low",
 				std::format(
 					"Expecting > {}.{}, got {}.{}",
-					VK_VERSION_MAJOR(api_version),
-					VK_VERSION_MINOR(api_version),
+					VK_VERSION_MAJOR(API_VERSION),
+					VK_VERSION_MINOR(API_VERSION),
 					VK_VERSION_MAJOR(properties.apiVersion),
 					VK_VERSION_MINOR(properties.apiVersion)
 				)

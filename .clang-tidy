@@ -49,17 +49,34 @@ Checks: "
   -performance-enum-size"
 
 CheckOptions:
-  readability-identifier-naming.VariableCase: lower_case
   readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.ClassIgnoredRegexp: promise_type
+
   readability-identifier-naming.AbstractClassCase: CamelCase
-  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.AbstractClassIgnoredRegexp: promise_type
+
+  readability-identifier-naming.TypeAliasCase: CamelCase
+  readability-identifier-naming.TypeAliasIgnoredRegexp: promise_type
+
   readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.StructIgnoredRegexp: promise_type
+
+  readability-identifier-naming.UnionCase: CamelCase
+  readability-identifier-naming.TypeTemplateParameterCase: CamelCase
   readability-identifier-naming.EnumCase: CamelCase
   readability-identifier-naming.EnumConstantCase: CamelCase
-  readability-identifier-naming.FunctionIgnoredRegexp: (^_+.*)|([A-Z]+[a-z0-9_]*)
-  readability-identifier-naming.VariableIgnoredRegexp: (^_+.*)|([A-Z]+[a-z0-9_]*)
-  readability-identifier-naming.EnumConstantIgnoredRegexp: (^_+.*)|([A-Z]+[a-z0-9_]*)
-  readability-identifier-naming.EnumIgnoredRegexp: (^_+.*)|([A-Z]+[a-z0-9_]*)
-  readability-identifier-naming.ClassIgnoredRegexp: (promise_type)|([A-Z]+[a-z0-9_]*)
-  readability-identifier-naming.StructIgnoredRegexp: (promise_type)|([A-Z]+[a-z0-9_]*)
-  readability-identifier-naming.AbstractClassIgnoredRegexp: (promise_type)|([A-Z]+[a-z0-9_]*)
+  readability-identifier-naming.ConceptCase: CamelCase
+
+  readability-identifier-naming.ConstexprVariableCase: UPPER_CASE
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
+  readability-identifier-naming.ClassConstexprCase: UPPER_CASE
+
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.FunctionIgnoredRegexp: ^_+.*
+
+  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.VariableIgnoredRegexp: ^_+.*
+
+  readability-identifier-naming.NamespaceCase: lower_case
+  readability-identifier-naming.MemberCase: lower_case
+  readability-identifier-naming.MethodCase: lower_case

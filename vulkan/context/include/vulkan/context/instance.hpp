@@ -8,7 +8,7 @@
 
 namespace vulkan
 {
-	static constexpr uint32_t api_version = vk::ApiVersion14;
+	static constexpr uint32_t API_VERSION = vk::ApiVersion14;
 
 	///
 	/// @brief Instance related config
@@ -17,7 +17,7 @@ namespace vulkan
 	struct InstanceConfig
 	{
 #ifdef NDEBUG
-		static constexpr bool default_enable_validation = false;
+		static constexpr bool DEFAULT_ENABLE_VALIDATION = false;
 #else
 		static constexpr bool default_enable_validation = true;
 #endif
@@ -27,7 +27,7 @@ namespace vulkan
 		uint32_t application_version = VK_MAKE_VERSION(0, 0, 0);
 		uint32_t engine_version = VK_MAKE_VERSION(0, 0, 0);
 
-		bool validation = default_enable_validation;
+		bool validation = DEFAULT_ENABLE_VALIDATION;
 	};
 
 	///

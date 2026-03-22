@@ -101,7 +101,7 @@ namespace vulkan::impl
 			.applicationVersion = config.application_version,
 			.pEngineName = config.engine_name.c_str(),
 			.engineVersion = config.engine_version,
-			.apiVersion = api_version
+			.apiVersion = API_VERSION
 		};
 
 		const auto requested_layers_vec = requested_layers

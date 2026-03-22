@@ -56,7 +56,7 @@ namespace vulkan
 		/* Initialize ImGui Vulkan Backend */
 
 		if (auto instance_ref = std::cref(instance_context);
-			!ImGui_ImplVulkan_LoadFunctions(api_version, imgui_load_vk_function, &instance_ref))
+			!ImGui_ImplVulkan_LoadFunctions(API_VERSION, imgui_load_vk_function, &instance_ref))
 			return Error("Load functions for ImGui vulkan backend failed");
 
 		const auto pipeline_info = std::visit(
@@ -99,7 +99,7 @@ namespace vulkan
 		};
 
 		auto init_info = ImGui_ImplVulkan_InitInfo{
-			.ApiVersion = api_version,
+			.ApiVersion = API_VERSION,
 			.Instance = *instance_context->instance,
 			.PhysicalDevice = *device_context.phy_device,
 			.Device = *device_context.device,
