@@ -8,6 +8,8 @@
 
 namespace image
 {
+	static std::once_flag rgbcx_init_flag;
+
 	static std::array<Pixel<Format::Unorm8, Layout::RGBA>, 16> slice_block(
 		const Image<Format::Unorm8, Layout::RGBA>& raw_image,
 		glm::u32vec2 block
@@ -82,6 +84,8 @@ namespace image
 		const Image<Format::Unorm8, Layout::RGBA>& raw_image
 	) noexcept
 	{
+		std::call_once(rgbcx_init_flag, [] { rgbcx::init(); });
+
 		BCnImage bc3_image(BCnFormat::BC3, raw_image.size / uint32_t(4));
 		bc3_image.iterate_blocks(raw_image, encode_bc3_block);
 		return bc3_image;
@@ -91,6 +95,8 @@ namespace image
 		const Image<Format::Unorm8, Layout::RGBA>& raw_image
 	) noexcept
 	{
+		std::call_once(rgbcx_init_flag, [] { rgbcx::init(); });
+
 		BCnImage bc5_image(BCnFormat::BC5, raw_image.size / uint32_t(4));
 		bc5_image.iterate_blocks(raw_image, encode_bc5_block);
 		return bc5_image;
