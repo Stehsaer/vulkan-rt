@@ -55,13 +55,13 @@ namespace vulkan
 
 		enum class Format
 		{
-			Srgb_8bit,
-			Linear_8bit
+			SrgbUnorm8,
+			LinearUnorm8
 		};
 
 		struct Config
 		{
-			Format format = Format::Linear_8bit;
+			Format format = Format::LinearUnorm8;
 		};
 
 		///

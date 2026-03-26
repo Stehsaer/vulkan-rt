@@ -19,7 +19,7 @@ namespace vulkan
 #ifdef NDEBUG
 		static constexpr bool DEFAULT_ENABLE_VALIDATION = false;
 #else
-		static constexpr bool default_enable_validation = true;
+		static constexpr bool DEFAULT_ENABLE_VALIDATION = true;
 #endif
 
 		std::string application_name = "Vulkan Application";

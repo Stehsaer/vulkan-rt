@@ -14,6 +14,10 @@ Checks: "
   cppcoreguidelines-pro-type-cstyle-cast,
   cppcoreguidelines-rvalue-reference-param-not-moved,
   cppcoreguidelines-virtual-class-destructor,
+  cppcoreguidelines-avoid-capturing-lambda-coroutines,
+  cppcoreguidelines-no-malloc,
+  cppcoreguidelines-no-suspend-with-lock,
+  cppcoreguidelines-prefer-member-initializer,
 
   -modernize-use-trailing-return-type,
   -modernize-loop-convert,
@@ -67,9 +71,9 @@ CheckOptions:
   readability-identifier-naming.EnumConstantCase: CamelCase
   readability-identifier-naming.ConceptCase: CamelCase
 
-  readability-identifier-naming.ConstexprVariableCase: UPPER_CASE
+  readability-identifier-naming.ConstexprVariableCase: aNy_CasE
   readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
-  readability-identifier-naming.ClassConstexprCase: UPPER_CASE
+  readability-identifier-naming.ClassConstexprCase: aNy_CasE
 
   readability-identifier-naming.FunctionCase: lower_case
   readability-identifier-naming.FunctionIgnoredRegexp: ^_+.*

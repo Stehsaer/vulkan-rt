@@ -11,12 +11,12 @@ namespace vulkan
 		{
 			switch (config.format)
 			{
-			case SwapchainContext::Format::Srgb_8bit:
+			case SwapchainContext::Format::SrgbUnorm8:
 				return {
 					{.format = vk::Format::eB8G8R8A8Srgb, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear},
 					{.format = vk::Format::eR8G8B8A8Srgb, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear}
 				};
-			case SwapchainContext::Format::Linear_8bit:
+			case SwapchainContext::Format::LinearUnorm8:
 				return {
 					{.format = vk::Format::eB8G8R8A8Unorm, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear},
 					{.format = vk::Format::eR8G8B8A8Unorm, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear}

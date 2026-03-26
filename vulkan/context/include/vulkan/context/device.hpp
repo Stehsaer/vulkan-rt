@@ -65,7 +65,8 @@ namespace vulkan
 				.device = *device,
 				.allocator = *allocator,
 				.queue = *render_queue.queue,
-				.family = render_queue.family_index
+				.submit_mutex = *submit_mutex,
+				.family = render_queue.family_index,
 			};
 		}
 
@@ -74,6 +75,7 @@ namespace vulkan
 		std::unique_ptr<vk::raii::PhysicalDevice> phy_device;
 		std::unique_ptr<vk::raii::Device> device;
 		std::unique_ptr<vulkan::Allocator> allocator;
+		std::unique_ptr<std::mutex> submit_mutex;
 
 		DeviceQueue render_queue;
 
@@ -86,6 +88,7 @@ namespace vulkan
 			phy_device(std::make_unique<vk::raii::PhysicalDevice>(std::move(phy_device))),
 			device(std::make_unique<vk::raii::Device>(std::move(device))),
 			allocator(std::make_unique<vulkan::Allocator>(std::move(allocator))),
+			submit_mutex(std::make_unique<std::mutex>()),
 			render_queue(std::move(render_queue))
 		{}
 
@@ -142,7 +145,8 @@ namespace vulkan
 				.device = *device,
 				.allocator = *allocator,
 				.queue = *render_queue.queue,
-				.family = render_queue.family_index
+				.submit_mutex = *submit_mutex,
+				.family = render_queue.family_index,
 			};
 		}
 
@@ -151,6 +155,7 @@ namespace vulkan
 		std::unique_ptr<vk::raii::PhysicalDevice> phy_device;
 		std::unique_ptr<vk::raii::Device> device;
 		std::unique_ptr<vulkan::Allocator> allocator;
+		std::unique_ptr<std::mutex> submit_mutex;
 
 		DeviceQueue render_queue;
 		DeviceQueue present_queue;
@@ -165,6 +170,7 @@ namespace vulkan
 			phy_device(std::make_unique<vk::raii::PhysicalDevice>(std::move(phy_device))),
 			device(std::make_unique<vk::raii::Device>(std::move(device))),
 			allocator(std::make_unique<vulkan::Allocator>(std::move(allocator))),
+			submit_mutex(std::make_unique<std::mutex>()),
 			render_queue(std::move(render_queue)),
 			present_queue(std::move(present_queue))
 		{}

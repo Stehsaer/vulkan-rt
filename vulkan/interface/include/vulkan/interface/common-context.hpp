@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <vulkan/vulkan_raii.hpp>
 
 #include "vulkan/alloc.hpp"
@@ -14,7 +15,14 @@ namespace vulkan
 		const vk::raii::PhysicalDevice& phy_device;
 		const vk::raii::Device& device;
 		const vulkan::Allocator& allocator;
-		const vk::raii::Queue& queue;  // Main queue, available for compute, transfer and graphics
-		uint32_t family;               // Queue family of the main queue
+
+		// Main queue, available for compute, transfer and graphics
+		const vk::raii::Queue& queue;
+
+		// Mutex for synchronizing queue submissions, use it only when multi-threading
+		std::mutex& submit_mutex;
+
+		// Queue family of the main queue
+		uint32_t family;
 	};
 }

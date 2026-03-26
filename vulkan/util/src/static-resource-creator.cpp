@@ -304,8 +304,36 @@ namespace vulkan
 		return buffer_upload_tasks.size() + image_upload_tasks.size();
 	}
 
+	size_t StaticResourceCreator::size_pending() const noexcept
+	{
+		const std::scoped_lock lock(*execution_mutex);
+		return pending_data_size;
+	}
+
+	std::expected<void, Error> StaticResourceCreator::execute_uploads_with_size_thres(
+		size_t size_thres
+	) noexcept
+	{
+		// Note: these buffers has 0 size before use, no extra alloc
+		std::vector<BufferUploadTask> buffer_tasks;
+		std::vector<ImageUploadTask> image_tasks;
+
+		{
+			const std::scoped_lock lock(*execution_mutex);
+			if (pending_data_size < size_thres) return {};
+
+			// Use std::exchange instead of std::move to avoid leaving moved-away objects
+			buffer_tasks = std::exchange(buffer_upload_tasks, {});
+			image_tasks = std::exchange(image_upload_tasks, {});
+			pending_data_size = 0;
+		}
+
+		return execute_uploads_impl(buffer_tasks, image_tasks);
+	}
+
 	std::expected<void, Error> StaticResourceCreator::execute_uploads() noexcept
 	{
+		// Note: these buffers has 0 size before use, no extra alloc
 		std::vector<BufferUploadTask> buffer_tasks;
 		std::vector<ImageUploadTask> image_tasks;
 
@@ -318,6 +346,14 @@ namespace vulkan
 			pending_data_size = 0;
 		}
 
+		return execute_uploads_impl(buffer_tasks, image_tasks);
+	}
+
+	std::expected<void, Error> StaticResourceCreator::execute_uploads_impl(
+		const std::vector<BufferUploadTask>& buffer_tasks,
+		const std::vector<ImageUploadTask>& image_tasks
+	) noexcept
+	{
 		if (buffer_tasks.empty() && image_tasks.empty()) return {};
 
 		/* Create command pool */
@@ -423,7 +459,11 @@ namespace vulkan
 
 		const auto command_buffers = std::to_array<vk::CommandBuffer>({command_buffer});
 		const auto submit_info = vk::SubmitInfo{}.setCommandBuffers(command_buffers);
-		transfer_queue.get().submit(submit_info, fence);
+
+		{
+			const std::scoped_lock lock(submit_mutex.get());
+			transfer_queue.get().submit(submit_info, fence);
+		}
 
 		if (const auto wait_fence_result =
 				device.get().waitForFences({fence}, vk::True, std::numeric_limits<uint64_t>::max());

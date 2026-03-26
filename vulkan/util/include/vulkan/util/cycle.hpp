@@ -31,6 +31,9 @@ namespace vulkan
 	/// - Call @p cycle to cycle the elements by 1 step. Typically called at the start of a new frame.
 	/// - Use @p current and @p prev to access the current item and the previous item.
 	///
+	/// @note The objects in the `Cycle` are stable in address, storing a reference to an item without
+	/// exceeding the lifetime of the `Cycle` is safe.
+	///
 	/// @tparam T Type of the items to cycle through
 	///
 	template <typename T>

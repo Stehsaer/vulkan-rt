@@ -24,7 +24,7 @@ namespace vulkan
 	/// @warning
 	/// - Do not create multiple upload tasks for the same image subresource layer
 	/// - Make sure to call `execute_uploads()` after creating resources and before deconstructing the
-	/// creator
+	/// creator. No checks are made for pending tasks in the destructor.
 	/// - Do not use it in frame loops, as this is not designed to be highly efficient. Manually upload in
 	/// such scenarios.
 	///
@@ -36,6 +36,7 @@ namespace vulkan
 
 		///
 		/// @brief Construct a new `StaticResourceCreator`
+		/// @warning Keep `context` alive and address-stable while using the creator
 		///
 		/// @param context Vulkan device context to create resources with
 		///
@@ -43,6 +44,7 @@ namespace vulkan
 			device(context.device),
 			allocator(context.allocator),
 			transfer_queue(context.queue),
+			submit_mutex(context.submit_mutex),
 			queue_family(context.family),
 			execution_mutex(std::make_unique<std::mutex>())
 		{}
@@ -189,6 +191,20 @@ namespace vulkan
 		std::expected<void, Error> execute_uploads() noexcept;
 
 		///
+		/// @brief Execute all upload tasks when pending data size exceeds or equals the given threshold
+		/// @note
+		/// - If pending data size excees the given threshold, no matter success or fail, tasks will be
+		/// cleared after this call
+		/// - This function is multi-threading safe
+		///
+		/// @param size_thres Threshold of pending data size in bytes to trigger execution
+		/// @retval void if all uploads succeed or threshold not reached
+		/// @retval Error describing reason of failure if any upload fails
+		///
+		[[nodiscard]]
+		std::expected<void, Error> execute_uploads_with_size_thres(size_t size_thres) noexcept;
+
+		///
 		/// @brief Get number of pending upload tasks
 		/// @note This function is multi-threading safe
 		///
@@ -204,10 +220,7 @@ namespace vulkan
 		/// @return Total size of pending upload data in bytes
 		///
 		[[nodiscard]]
-		size_t size_pending() const noexcept
-		{
-			return pending_data_size;
-		}
+		size_t size_pending() const noexcept;
 
 		///
 		/// @brief Check if there are any pending upload tasks
@@ -248,6 +261,7 @@ namespace vulkan
 		std::reference_wrapper<const vk::raii::Device> device;
 		std::reference_wrapper<const vulkan::Allocator> allocator;
 		std::reference_wrapper<const vk::raii::Queue> transfer_queue;
+		std::reference_wrapper<std::mutex> submit_mutex;
 		uint32_t queue_family;
 		std::unique_ptr<std::mutex> execution_mutex;
 
@@ -272,6 +286,12 @@ namespace vulkan
 		///
 		[[nodiscard]]
 		static std::expected<void, Error> check_mipmap_chain_sizes(std::vector<glm::u32vec2> sizes) noexcept;
+
+		[[nodiscard]]
+		std::expected<void, Error> execute_uploads_impl(
+			const std::vector<BufferUploadTask>& buffer_tasks,
+			const std::vector<ImageUploadTask>& image_tasks
+		) noexcept;
 
 	  public:
 

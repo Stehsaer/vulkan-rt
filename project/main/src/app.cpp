@@ -25,7 +25,7 @@ App App::create(const Argument& argument)
 		| Error::unwrap("Create device context failed");
 
 	const auto swapchain_context_config =
-		vulkan::SwapchainContext::Config{.format = vulkan::SwapchainContext::Format::Linear_8bit};
+		vulkan::SwapchainContext::Config{.format = vulkan::SwapchainContext::Format::LinearUnorm8};
 	auto swapchain_context =
 		vulkan::SwapchainContext::create(instance_context, device_context, swapchain_context_config)
 		| Error::unwrap("Create swapchain context failed");

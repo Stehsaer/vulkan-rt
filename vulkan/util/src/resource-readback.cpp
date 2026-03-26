@@ -239,7 +239,11 @@ namespace vulkan::impl
 		/* Submit */
 
 		const auto command_buffers = std::to_array<vk::CommandBuffer>({*commit_resource.command_buffer});
-		context.queue.submit(vk::SubmitInfo().setCommandBuffers(command_buffers), *commit_resource.fence);
+
+		{
+			const std::scoped_lock lock(context.submit_mutex);
+			context.queue.submit(vk::SubmitInfo().setCommandBuffers(command_buffers), *commit_resource.fence);
+		}
 
 		/* Wait for fences */
 
