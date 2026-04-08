@@ -734,7 +734,7 @@ class std::formatter<Error, char>
 		{
 			auto it = ctx.out();
 
-			it = std::format_to(it, "({}:{}) {}", err.location.file_name(), err.location.line(), err.message);
+			it = std::format_to(it, "{} ({}:{})", err.message, err.location.file_name(), err.location.line());
 			if (err.detail) it = std::format_to(it, ": {}", *err.detail);
 
 			return it;

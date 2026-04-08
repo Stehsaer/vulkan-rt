@@ -77,10 +77,10 @@ TEST_CASE("Error formatting")
 	CHECK_EQ(
 		std::format("{}", err),
 		std::format(
-			"({}:{}) {}: {}",
+			"{} ({}:{}): {}",
+			err.message,
 			err.location.file_name(),
 			err.location.line(),
-			err.message,
 			err.detail.value_or("")
 		)
 	);

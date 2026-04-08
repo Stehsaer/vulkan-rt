@@ -1,16 +1,23 @@
 -- Common utilities library, including formatting and error classes.
 
 target("lib.common")
-	if #os.files("src/**.cpp") > 0 then
-		set_kind("static")
-		add_files("src/**.cpp")
-	else
-		set_kind("headeronly")
-	end
+	set_kind("static")
+	add_files("src/**.cpp")	
 
 	add_includedirs("include", {public = true})
 	add_headerfiles("include/(**.hpp)")
 	add_packages("vulkan-hpp", {public = true})
+
+	on_config(function (target)
+		local size_t_byte = target:check_sizeof("std::size_t", {includes = "cstddef"})
+		if not size_t_byte then
+			raise("Failed to determine size of std::size_t")
+		end
+
+		if tonumber(size_t_byte) ~= 8 then
+			raise("Only 64-bit platforms are supported")
+		end
+	end)
 
 target("lib.common.test")
 	set_kind("binary")
