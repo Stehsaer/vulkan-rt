@@ -3,6 +3,7 @@
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <optional>
+#include <span>
 #include <stb_image_resize2.h>
 #include <utility>
 #include <variant>
@@ -36,6 +37,14 @@ namespace image
 		{
 			assert(coord.x < self.size.x && coord.y < self.size.y);
 			return self.data[coord.y * self.size.x + coord.x];
+		}
+
+		[[nodiscard]]
+		auto row(this auto& self, uint32_t y)
+			requires(IndexablePixel<T>)
+		{
+			assert(y < self.size.y);
+			return std::span(self.data).subspan(y * self.size.x, self.size.x);
 		}
 	};
 

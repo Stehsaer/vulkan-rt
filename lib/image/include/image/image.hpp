@@ -266,6 +266,38 @@ namespace image
 				return this->resize_to_pot(true).generate_mipmap(min_size_log);
 		}
 
+		///
+		/// @brief Flip the image horizontally
+		///
+		/// @return Flipped image
+		///
+		[[nodiscard]]
+		Image flip_x() const noexcept
+		{
+			Image flipped(this->size);
+
+			for (const auto y : std::views::iota(0u, this->size.y))
+				std::ranges::copy(this->row(y) | std::views::reverse, flipped.row(y).begin());
+
+			return flipped;
+		}
+
+		///
+		/// @brief Flip the image vertically
+		///
+		/// @return Flipped image
+		///
+		[[nodiscard]]
+		Image flip_y() const noexcept
+		{
+			Image flipped(this->size);
+
+			for (const auto y : std::views::iota(0u, this->size.y))
+				std::ranges::copy(this->row(y), flipped.row(this->size.y - 1 - y).begin());
+
+			return flipped;
+		}
+
 		/*===== Copy/Move =====*/
 
 		Image(const Image&) = default;
