@@ -398,3 +398,27 @@ TEST_CASE("Is 16 bit")
 	CHECK_FALSE(is_16bit_result_8bit);
 	CHECK(is_16bit_result_16bit);
 }
+
+TEST_CASE("Flip X")
+{
+	auto img_result = image::Image<image::Format::Unorm8, image::Layout::RGBA>::decode(complex_image_data);
+	EXPECT_SUCCESS(img_result);
+	auto img = std::move(*img_result);
+	auto flipped_img = img.flip_x();
+
+	for (const auto y : std::views::iota(0u, img.size.y))
+		for (const auto x : std::views::iota(0u, img.size.x))
+			if (img[x, y] != flipped_img[img.size.x - 1 - x, y]) FAIL("Pixel mismatched");
+}
+
+TEST_CASE("Flip Y")
+{
+	auto img_result = image::Image<image::Format::Unorm8, image::Layout::RGBA>::decode(complex_image_data);
+	EXPECT_SUCCESS(img_result);
+	auto img = std::move(*img_result);
+	auto flipped_img = img.flip_y();
+
+	for (const auto y : std::views::iota(0u, img.size.y))
+		for (const auto x : std::views::iota(0u, img.size.x))
+			if (img[x, y] != flipped_img[x, img.size.y - 1 - y]) FAIL("Pixel mismatched");
+}
