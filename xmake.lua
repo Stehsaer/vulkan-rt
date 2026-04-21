@@ -26,6 +26,8 @@ add_requires(
 	"gzip-hpp v0.1.0",
 	"doctest 2.4.12",
 	"argparse v3.2",
+	"libcoro v0.16.0",
+	"mio 2023.3.3",
 
 	-- Graphics
 	"libsdl3",
@@ -69,3 +71,4 @@ includes("shader")
 includes("lib")
 includes("vulkan")
 includes("project")
+includes("model")
