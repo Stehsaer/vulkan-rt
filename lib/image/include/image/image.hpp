@@ -245,7 +245,7 @@ namespace image
 			const auto clamped_min_log2_size = std::min(log2(min_dim), min_size_log);
 
 			for (const auto _ : std::views::iota(0u, log2(min_dim) - clamped_min_log2_size))
-				results.emplace_back(results.back().resize(results.back().size / 2u, STBIR_FILTER_BOX));
+				results.emplace_back(results.back().resize(results.back().size / 2u, STBIR_FILTER_MITCHELL));
 
 			return results;
 		}

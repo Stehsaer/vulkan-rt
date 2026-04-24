@@ -36,6 +36,9 @@ namespace util
 		using Type = V;
 	};
 
+	template <typename T>
+	using TagVoidlessType = std::conditional_t<std::is_void_v<T>, std::monostate, T>;
+
 	template <auto TagValue, typename V>
 	Tag<TagValue, std::remove_cvref_t<V>> tag_value(V&& value) noexcept
 	{
@@ -310,6 +313,30 @@ namespace util
 			return std::visit(std::forward<decltype(f)>(f), std::forward<decltype(self)>(self).value);
 		}
 
+		///
+		/// @brief Get the index of the currently active value in the variant.
+		///
+		/// @return The index of the currently active value in the variant, corresponding to the order of
+		/// `Tags...`.
+		///
+		[[nodiscard]]
+		size_t index() const noexcept
+		{
+			return value.index();
+		}
+
+		///
+		/// @brief Get the number of tags defined in the variant type
+		///
+		/// @return The number of tags defined in the variant type, which corresponds to the number of
+		/// possible values
+		///
+		[[nodiscard]]
+		constexpr size_t tag_count() const noexcept
+		{
+			return sizeof...(Tags);
+		}
+
 		EnumVariant(const EnumVariant&)
 			requires(std::copy_constructible<std::variant<Tags...>>)
 		= default;
@@ -335,7 +362,7 @@ namespace util
 		requires(EnumVariantValid<Tags...>)
 	class SyncedEnumVariant : public EnumVariant<Tags...>
 	{
-		mutable std::shared_ptr<std::mutex> mutex;
+		std::shared_ptr<std::mutex> mutex;
 
 	  public:
 

@@ -138,15 +138,22 @@ namespace model::gltf::impl
 		if (texture.samplerIndex.has_value() && texture.samplerIndex.value() >= asset.samplers.size())
 			return Error("Sampler index out of bounds");
 
-		if (!texture.imageIndex.has_value()) return Error("Texture missing image index");
-		if (texture.imageIndex.value() >= asset.images.size()) return Error("Image index out of bounds");
+		std::optional<size_t> image_index = texture.imageIndex;
+
+		if (!texture.imageIndex.has_value())
+		{
+			if (texture.webpImageIndex.has_value()) image_index = texture.webpImageIndex;
+		}
+
+		if (!image_index.has_value()) return Error("Texture missing image index");
+		if (image_index.value() >= asset.images.size()) return Error("Image index out of bounds");
 
 		const auto sample_mode =
 			texture.samplerIndex
 				.transform([&asset](size_t index) { return parse_sampler(asset.samplers[index]); })
 				.value_or(SampleMode());
 
-		auto image_result = parse_image(asset, asset.images[texture.imageIndex.value()]);
+		auto image_result = parse_image(asset, asset.images[image_index.value()]);
 		if (!image_result) return image_result.error().forward("Parse texture image failed");
 
 		return Texture{

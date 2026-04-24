@@ -87,7 +87,7 @@ namespace model::gltf
 				co_return Error("Open file failed", std::format("Path: {}", path.string()));
 
 			auto result =
-				fastgltf::Parser()
+				fastgltf::Parser(fastgltf::Extensions::EXT_texture_webp)
 					.loadGltf(file_stream, path.parent_path(), fastgltf::Options::DecomposeNodeMatrices);
 			if (!result)
 			{
@@ -127,11 +127,13 @@ namespace model::gltf
 				);
 			auto binary_stream = std::move(binary_stream_result.get());
 
-			auto result = fastgltf::Parser().loadGltf(
-				binary_stream,
-				std::filesystem::path(),
-				fastgltf::Options::DecomposeNodeMatrices
-			);
+			auto result =
+				fastgltf::Parser(fastgltf::Extensions::EXT_texture_webp)
+					.loadGltf(
+						binary_stream,
+						std::filesystem::path(),
+						fastgltf::Options::DecomposeNodeMatrices
+					);
 			if (!result)
 			{
 				co_return Error(

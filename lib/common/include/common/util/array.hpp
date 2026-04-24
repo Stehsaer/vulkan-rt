@@ -50,6 +50,14 @@ namespace util
 		}
 	}
 
+	///
+	/// @brief Concatenate multiple objects or array of objects into a single `std::array`.
+	///
+	/// @param arrays Objects or arrays to concatenate. Each argument can be a single object, a `std::array`,
+	/// or a C-style array. All elements must be of the same type and must be copy constructible and default
+	/// initializable.
+	/// @return A `std::array` containing all elements from the input arrays.
+	///
 	template <typename... T>
 	constexpr auto array_concat(const T&... arrays) noexcept
 	{

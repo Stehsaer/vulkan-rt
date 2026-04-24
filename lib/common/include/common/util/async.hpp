@@ -4,8 +4,6 @@
 #include <cassert>
 #include <future>
 #include <memory>
-#include <mutex>
-#include <optional>
 
 namespace util
 {
