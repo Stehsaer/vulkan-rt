@@ -110,26 +110,65 @@ namespace model::gltf::impl
 		}
 	}
 
-	static Filter parse_filter_mode(fastgltf::Filter filter) noexcept
+	static Filter parse_mag_filter_mode(fastgltf::Filter filter) noexcept
 	{
 		switch (filter)
 		{
-		case fastgltf::Filter::Linear:
-			return Filter::Linear;
 		case fastgltf::Filter::Nearest:
-		default:
 			return Filter::Nearest;
+
+		case fastgltf::Filter::Linear:
+		default:
+			return Filter::Linear;
+		}
+	}
+
+	// Returns (min filter, mipmap filter)
+	static std::pair<Filter, Filter> parse_min_mipmap_filter_mode(fastgltf::Filter filter) noexcept
+	{
+		switch (filter)
+		{
+		case fastgltf::Filter::Nearest:
+			return {Filter::Nearest, Filter::Nearest};
+
+		case fastgltf::Filter::Linear:
+			return {Filter::Linear, Filter::Nearest};
+
+		case fastgltf::Filter::NearestMipMapNearest:
+			return {Filter::Nearest, Filter::Nearest};
+
+		case fastgltf::Filter::LinearMipMapNearest:
+			return {Filter::Linear, Filter::Nearest};
+
+		case fastgltf::Filter::NearestMipMapLinear:
+			return {Filter::Nearest, Filter::Linear};
+
+		case fastgltf::Filter::LinearMipMapLinear:
+		default:
+			return {Filter::Linear, Filter::Linear};
 		}
 	}
 
 	SampleMode parse_sampler(const fastgltf::Sampler& sampler) noexcept
 	{
+		const auto [min_filter, mipmap_filter] =
+			sampler.minFilter.transform(parse_min_mipmap_filter_mode)
+				.value_or({Filter::Linear, Filter::Linear});
+
+		const auto mag_filter = sampler.magFilter.transform(parse_mag_filter_mode).value_or(Filter::Linear);
+
+		const float max_mipmap_level =
+			(sampler.minFilter == fastgltf::Filter::Nearest || sampler.minFilter == fastgltf::Filter::Linear)
+			? 0.0f
+			: vk::LodClampNone;
+
 		return {
-			.min_filter = sampler.minFilter.transform(parse_filter_mode).value_or(Filter::Linear),
-			.mag_filter = sampler.magFilter.transform(parse_filter_mode).value_or(Filter::Linear),
-			.mipmap_filter = Filter::Linear,
+			.min_filter = min_filter,
+			.mag_filter = mag_filter,
+			.mipmap_filter = mipmap_filter,
 			.wrap_u = parse_wrap_mode(sampler.wrapS),
 			.wrap_v = parse_wrap_mode(sampler.wrapT),
+			.max_mipmap_level = max_mipmap_level
 		};
 	}
 
