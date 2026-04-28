@@ -4,7 +4,8 @@
 #include "common/util/span.hpp"
 #include "image/bc-image.hpp"
 #include "image/image.hpp"
-#include "vulkan/alloc.hpp"
+#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/alloc/image.hpp"
 #include "vulkan/interface/common-context.hpp"
 #include "vulkan/util/constants.hpp"
 
@@ -58,10 +59,62 @@ namespace vulkan
 		/// @return Created buffer, or error
 		///
 		[[nodiscard]]
-		std::expected<alloc::Buffer, Error> create_buffer(
+		std::expected<Buffer, Error> create_buffer(
 			std::span<const std::byte> data,
 			vk::BufferUsageFlags usage
 		) noexcept;
+
+		///
+		/// @brief Create a element buffer
+		///
+		/// @tparam T Type of the element
+		/// @param element Element to upload to the buffer
+		/// @param usage Buffer usage flags (No need to include `TransferDst` bit)
+		/// @return Created element buffer, or error
+		///
+		template <typename T>
+		[[nodiscard]]
+		std::expected<ElementBuffer<T>, Error> create_element_buffer(
+			const T& element,
+			vk::BufferUsageFlags usage
+		) noexcept
+		{
+			return create_buffer(util::object_as_bytes(element), usage).transform([](Buffer buffer) {
+				return ElementBuffer<T>(std::move(buffer));
+			});
+		}
+
+		///
+		/// @brief Create an array buffer
+		///
+		/// @tparam T Type of the element
+		/// @param data Array of elements to upload to the buffer
+		/// @param usage Buffer usage flags (No need to include `TransferDst` bit)
+		/// @return Created array buffer, or error
+		///
+		template <typename T>
+		[[nodiscard]]
+		std::expected<ArrayBuffer<T>, Error> create_array_buffer(
+			std::span<const T> data,
+			vk::BufferUsageFlags usage
+		) noexcept
+		{
+			return create_buffer(util::as_bytes(data), usage)
+				.transform([item_count = data.size()](Buffer buffer) {
+					return ArrayBuffer<T>(std::move(buffer), item_count);
+				});
+		}
+
+		template <std::ranges::contiguous_range T>
+		[[nodiscard]]
+		std::expected<ArrayBuffer<std::decay_t<std::ranges::range_value_t<T>>>, Error> create_array_buffer(
+			T&& data,
+			vk::BufferUsageFlags usage
+		) noexcept
+		{
+			using ValueType = std::decay_t<std::ranges::range_value_t<T>>;
+			return create_array_buffer(std::span<const ValueType>(data), usage);
+		}
 
 		///
 		/// @brief Create a image from CPU-side image
@@ -78,7 +131,7 @@ namespace vulkan
 		///
 		template <image::Format T, image::Layout L>
 		[[nodiscard]]
-		std::expected<alloc::Image, Error> create_image(
+		std::expected<Image, Error> create_image(
 			const image::Image<T, L>& image,
 			vk::Format format,
 			vk::ImageUsageFlags usage,
@@ -97,7 +150,7 @@ namespace vulkan
 		/// @return Created image, or error
 		///
 		[[nodiscard]]
-		std::expected<alloc::Image, Error> create_image_bcn(
+		std::expected<Image, Error> create_image_bcn(
 			const image::BCnImage& image,
 			bool srgb,
 			vk::ImageUsageFlags usage,
@@ -120,7 +173,7 @@ namespace vulkan
 		///
 		template <image::Format T, image::Layout L>
 		[[nodiscard]]
-		std::expected<alloc::Image, Error> create_image_mipmap(
+		std::expected<Image, Error> create_image_mipmap(
 			std::span<const image::Image<T, L>> mipmap_chain,
 			vk::Format format,
 			vk::ImageUsageFlags usage,
@@ -141,7 +194,7 @@ namespace vulkan
 		///
 		template <std::ranges::input_range Range>
 			requires(std::ranges::contiguous_range<Range>)
-		std::expected<alloc::Image, Error> create_image_mipmap(
+		std::expected<Image, Error> create_image_mipmap(
 			Range&& mipmap_chain,
 			vk::Format format,
 			vk::ImageUsageFlags usage,
@@ -171,7 +224,7 @@ namespace vulkan
 		/// @return Created image, or error
 		///
 		[[nodiscard]]
-		std::expected<alloc::Image, Error> create_image_mipmap_bcn(
+		std::expected<Image, Error> create_image_mipmap_bcn(
 			const std::span<const image::BCnImage>& mipmap_chain,
 			bool srgb,
 			vk::ImageUsageFlags usage,
@@ -239,14 +292,14 @@ namespace vulkan
 		struct BufferUploadTask
 		{
 			vk::Buffer dst_buffer;
-			vulkan::alloc::Buffer staging_buffer;
+			vulkan::Buffer staging_buffer;
 			size_t data_size;
 		};
 
 		struct ImageUploadTask
 		{
 			vk::Image dst_image;
-			alloc::Buffer staging_buffer;
+			Buffer staging_buffer;
 			vk::ImageSubresourceLayers subresource_layers;
 			vk::Extent3D image_extent;
 			vk::ImageLayout dst_layout;
@@ -276,7 +329,7 @@ namespace vulkan
 		/// @return Created staging buffer, or error
 		///
 		[[nodiscard]]
-		std::expected<alloc::Buffer, Error> create_staging_buffer(std::span<const std::byte> data) noexcept;
+		std::expected<Buffer, Error> create_staging_buffer(std::span<const std::byte> data) noexcept;
 
 		///
 		/// @brief Check mipmap chain sizes for validity.
@@ -304,7 +357,7 @@ namespace vulkan
 	/* Implementations */
 
 	template <image::Format T, image::Layout L>
-	std::expected<alloc::Image, Error> StaticResourceCreator::create_image(
+	std::expected<Image, Error> StaticResourceCreator::create_image(
 		const image::Image<T, L>& image,
 		vk::Format format,
 		vk::ImageUsageFlags usage,
@@ -324,8 +377,7 @@ namespace vulkan
 			.arrayLayers = 1,
 			.usage = usage | vk::ImageUsageFlagBits::eTransferDst
 		};
-		auto image_result =
-			allocator.get().create_image(image_create_info, vulkan::alloc::MemoryUsage::GpuOnly);
+		auto image_result = allocator.get().create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
 		if (!image_result) return image_result.error().forward("Create gpu image failed");
 		auto dst_image = std::move(*image_result);
 
@@ -334,7 +386,7 @@ namespace vulkan
 			return staging_buffer_result.error().forward("Create staging buffer failed");
 
 		const std::scoped_lock lock(*execution_mutex);
-		pending_data_size += image.data.size_bytes();
+		pending_data_size += std::span(image.data).size_bytes();
 		image_upload_tasks.push_back(
 			ImageUploadTask{
 				.dst_image = dst_image,
@@ -349,7 +401,7 @@ namespace vulkan
 	}
 
 	template <image::Format T, image::Layout L>
-	std::expected<alloc::Image, Error> StaticResourceCreator::create_image_mipmap(
+	std::expected<Image, Error> StaticResourceCreator::create_image_mipmap(
 		std::span<const image::Image<T, L>> mipmap_chain,
 		vk::Format format,
 		vk::ImageUsageFlags usage,
@@ -392,8 +444,7 @@ namespace vulkan
 			.arrayLayers = 1,
 			.usage = usage | vk::ImageUsageFlagBits::eTransferDst
 		};
-		auto image_result =
-			allocator.get().create_image(image_create_info, vulkan::alloc::MemoryUsage::GpuOnly);
+		auto image_result = allocator.get().create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
 		if (!image_result) return image_result.error().forward("Create gpu image failed");
 		auto dst_image = std::move(*image_result);
 
@@ -407,7 +458,7 @@ namespace vulkan
 			| Error::collect();
 		if (!staging_buffer_result)
 			return staging_buffer_result.error().forward("Create staging buffers failed");
-		std::vector<alloc::Buffer> staging_buffers = std::move(*staging_buffer_result);
+		std::vector<Buffer> staging_buffers = std::move(*staging_buffer_result);
 
 		/* Append task */
 

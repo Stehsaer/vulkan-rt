@@ -2,7 +2,7 @@ set_xmakever("3.0.6")
 set_project("Vulkan RT")
 
 -- Compile modes
-add_rules("mode.debug", "mode.release", "mode.releasedbg")
+add_rules("mode.debug", "mode.release", "mode.releasedbg", "mode.profile")
 
 -- Compile policies
 set_policy("build.warning", true)
@@ -14,6 +14,7 @@ set_encodings("utf-8")
 set_warnings("all", "pedantic", "extra")
 set_languages("c++23")
 add_vectorexts("sse", "sse2", "avx", "avx2")
+add_cxxflags("-Wno-maybe-uninitialized")
 
 -- Linux atomic
 if is_plat("linux") then
@@ -32,15 +33,13 @@ add_requires(
 	-- Graphics
 	"libsdl3",
 	"glm 1.0.2",
-	"meshoptimizer v0.25",
+	"imgui[sdl3,freetype,vulkan_no_proto] v1.92.6-docking",
 
 	-- Vulkan
 	"vulkan-headers",
 	"vulkan-hpp",
 	"vulkan-memory-allocator 3.3.0"
 )
-
-add_requires("imgui v1.92.6-docking", {configs = {sdl3 = true, freetype = true, vulkan_no_proto = true}})
 
 add_requireconfs("**vulkan-hpp", {version = "1.4.309", override = true, system = false})
 add_requireconfs("**vulkan-headers", {version = "1.4.309+0", override = true, system = false})
@@ -72,3 +71,4 @@ includes("lib")
 includes("vulkan")
 includes("project")
 includes("model")
+includes("render")

@@ -1,1 +1,2 @@
-includes("*")
+slang("common")
+	add_moduledirs(".")

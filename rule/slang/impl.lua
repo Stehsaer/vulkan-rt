@@ -22,16 +22,6 @@ function _get_path(target)
 	}
 end
 
--- Creates directories if not exists
-function _create_dir(paths)
-	if not os.exists(paths.header) then
-		os.mkdir(paths.header)
-	end
-	if not os.exists(paths.temp) then
-		os.mkdir(paths.temp)
-	end
-end
-
 -- Finds compiler
 function _get_tools()
 	local tools = {
@@ -46,10 +36,15 @@ end
 -- Generates file paths from source file and fixed file paths
 function _get_filepaths(target, paths, source_path)
 	local fileconfig = target:fileconfig(source_path)
-	local module_name = fileconfig and fileconfig.module_name or string.gsub(path.basename(source_path), "[%.%-]", "_")
+	
+	local base_name = path.basename(source_path)
+	local module_name = string.gsub(base_name, "[%.%-]", "_")
+	local base_dir = path.absolute(fileconfig and fileconfig.base_dir or path.directory(source_path))
+	local abs_directory = path.absolute(path.directory(source_path))
+	local rel_directory = path.relative(abs_directory, base_dir)
 
-	local spv_temp_path = path.join(paths.temp, module_name .. ".spv") 			
-	local header_output_path = path.join(paths.header, module_name .. ".hpp")
+	local spv_temp_path = path.join(paths.temp, rel_directory, base_name .. ".spv") 			
+	local header_output_path = path.join(paths.header, rel_directory, base_name .. ".hpp")
 	local object_output_path = target:objectfile(module_name)
 
 	return {
@@ -57,7 +52,8 @@ function _get_filepaths(target, paths, source_path)
 		spv = spv_temp_path,
 		header = header_output_path,
 		object = object_output_path,
-		varname = module_name
+		varname = module_name,
+		rel_directory = rel_directory
 	}
 end
 
@@ -143,7 +139,8 @@ function _compile_spv(tools, files, debug, include_dirs)
 		"-emit-spirv-directly",
 		"-matrix-layout-column-major",
 		"-fvk-invert-y",
-		"-fvk-use-c-layout"
+		"-fvk-use-c-layout",
+		"-fvk-use-entrypoint-name"
 	}
 
 	local include_flags = {}
@@ -178,15 +175,26 @@ end
 function prepare_file(target, source_path, opt)
 
 	local paths = _get_path(target)
-	_create_dir(paths)
 
 	local tools = _get_tools()
 	local files = _get_filepaths(target, paths, source_path)
+
+	if not os.exists(path.directory(files.spv)) then
+		os.mkdir(path.directory(files.spv))
+	end
+
+	if not os.exists(path.directory(files.header)) then
+		os.mkdir(path.directory(files.header))
+	end
 
 	local dependencies = os.exists(files.spv .. ".d") and _parse_dependencies(io.readfile(files.spv .. ".d")) or {}
 	
 	local target_name = _encode_target_name(target)
 	local symbol_name = format("_asset_shader_%s_%s", target_name, string2cppid.encode(files.source))
+	local additional_namespace = 
+		files.rel_directory ~= "." 
+		and ("::" .. files.rel_directory:gsub("[/\\]", "::"):gsub("[%.%-]", "_")) 
+		or ""
 
 	local header_file_template = [[
 #pragma once
@@ -198,7 +206,7 @@ extern "C"
 	extern const std::byte %s_end;
 }
 
-namespace shader
+namespace shader%s
 {
 	inline static const std::span<const std::byte> %s = {
 		&%s_start,
@@ -211,6 +219,7 @@ namespace shader
 		header_file_template, 
 		symbol_name, 
 		symbol_name, 
+		additional_namespace,
 		files.varname, 
 		symbol_name, 
 		symbol_name

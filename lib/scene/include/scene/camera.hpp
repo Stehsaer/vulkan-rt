@@ -6,6 +6,89 @@
 namespace scene::camera
 {
 	///
+	/// @brief Concept that requires a type to have camera view interface
+	///
+	template <typename T>
+	concept ViewType = requires(const T& view) {
+		{ view.matrix() } -> std::convertible_to<glm::dmat4>;
+		{ view.view_position() } -> std::convertible_to<glm::dvec3>;
+	};
+
+	///
+	/// @brief Common view interface
+	/// @note The actual implementations should not inherit from this interface, breaking the trivial
+	/// copyability requirement. Use @p from to create an interface wrapper for the actual view
+	/// implementations instead.
+	///
+	struct ViewInterface
+	{
+		virtual ~ViewInterface() = default;
+
+		///
+		/// @brief Get the view matrix of the camera
+		///
+		/// @return View matrix of the camera
+		///
+		[[nodiscard]]
+		virtual glm::dmat4 matrix() const noexcept = 0;
+
+		///
+		/// @brief Get the view position of the camera, which is the position of the camera in world space.
+		///
+		/// @return View position of the camera in world space
+		///
+		[[nodiscard]]
+		virtual glm::dvec3 view_position() const noexcept = 0;
+
+		template <ViewType T>
+		struct Impl;
+
+		///
+		/// @brief Create a `CameraViewInterface` wrapper for a given camera view that satisfies the
+		/// `CameraViewType`
+		///
+		/// @tparam T Type of the camera view that satisfies the `CameraViewType` concept
+		/// @param view Camera view
+		/// @return `CameraViewInterface` wrapper for the given camera view
+		///
+		template <ViewType T>
+		static Impl<T> from(const T& view) noexcept;
+	};
+
+	template <ViewType T>
+	struct ViewInterface::Impl : public ViewInterface
+	{
+		T view;
+
+		explicit Impl(T view) :
+			view(std::move(view))
+		{}
+
+		[[nodiscard]]
+		glm::dmat4 matrix() const noexcept override
+		{
+			return view.matrix();
+		}
+
+		[[nodiscard]]
+		glm::dvec3 view_position() const noexcept override
+		{
+			return view.view_position();
+		}
+
+		Impl(const Impl&) = default;
+		Impl(Impl&&) = default;
+		Impl& operator=(const Impl&) = default;
+		Impl& operator=(Impl&&) = default;
+	};
+
+	template <ViewType T>
+	ViewInterface::Impl<T> ViewInterface::from(const T& view) noexcept
+	{
+		return Impl<T>(view);
+	}
+
+	///
 	/// @brief Camera view defined by a center position, distance, pitch and yaw angles.
 	/// @details
 	/// - The camera is looking at the center position from a certain distance, and can be rotated around the
@@ -28,6 +111,11 @@ namespace scene::camera
 		[[nodiscard]]
 		glm::dmat4 matrix() const noexcept;
 
+		///
+		/// @brief Get the view position of the camera, a.k.a the position of the camera in world space
+		///
+		/// @return View position of the camera in world space
+		///
 		[[nodiscard]]
 		glm::dvec3 view_position() const noexcept;
 
@@ -106,6 +194,11 @@ namespace scene::camera
 		[[nodiscard]]
 		glm::dmat4 matrix() const noexcept;
 
+		///
+		/// @brief Camera position in world space, which is the same as the view position for lookat camera
+		///
+		/// @return View position of the camera in world space
+		///
 		[[nodiscard]]
 		glm::dvec3 view_position() const noexcept;
 	};

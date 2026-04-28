@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/util/error.hpp"
-#include "vulkan/alloc.hpp"
+#include "vulkan/alloc/allocator.hpp"
 #include "vulkan/context/instance.hpp"
 #include "vulkan/interface/common-context.hpp"
 
@@ -148,6 +148,12 @@ namespace vulkan
 				.submit_mutex = *submit_mutex,
 				.family = render_queue.family_index,
 			};
+		}
+
+		[[nodiscard]]
+		const vk::raii::Device* operator->() const noexcept
+		{
+			return device.get();
 		}
 
 	  private:

@@ -1,4 +1,5 @@
 #include "vulkan/util/frame-buffer.hpp"
+#include "vulkan/alloc/allocator.hpp"
 #include "vulkan/util/constants.hpp"
 
 namespace vulkan
@@ -23,7 +24,7 @@ namespace vulkan
 				vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | additional_usage
 		};
 
-		auto image_result = allocator.create_image(image_create_info, vulkan::alloc::MemoryUsage::GpuOnly);
+		auto image_result = allocator.create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
 		if (!image_result) return image_result.error().forward("Create color buffer failed");
 		auto image = std::move(image_result.value());
 
@@ -61,7 +62,7 @@ namespace vulkan
 			.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | additional_usage
 		};
 
-		auto image_result = allocator.create_image(image_create_info, vulkan::alloc::MemoryUsage::GpuOnly);
+		auto image_result = allocator.create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
 		if (!image_result) return image_result.error().forward("Create depth buffer failed");
 		auto image = std::move(image_result.value());
 
@@ -101,7 +102,7 @@ namespace vulkan
 				| additional_usage
 		};
 
-		auto image_result = allocator.create_image(image_create_info, vulkan::alloc::MemoryUsage::GpuOnly);
+		auto image_result = allocator.create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
 		if (!image_result) return image_result.error().forward("Create depth-stencil buffer failed");
 		auto image = std::move(image_result.value());
 

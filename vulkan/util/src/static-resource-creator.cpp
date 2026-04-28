@@ -5,13 +5,13 @@
 namespace vulkan
 {
 #pragma region Utility
-	std::expected<alloc::Buffer, Error> StaticResourceCreator::create_staging_buffer(
+	std::expected<Buffer, Error> StaticResourceCreator::create_staging_buffer(
 		std::span<const std::byte> data
 	) noexcept
 	{
 		auto staging_buffer_result = allocator.get().create_buffer(
 			vk::BufferCreateInfo{.size = data.size_bytes(), .usage = vk::BufferUsageFlagBits::eTransferSrc},
-			alloc::MemoryUsage::CpuToGpu
+			MemoryUsage::CpuToGpu
 		);
 		if (!staging_buffer_result)
 			return staging_buffer_result.error().forward("Create staging buffer failed");
@@ -111,7 +111,7 @@ namespace vulkan
 
 #pragma region Creation
 
-	std::expected<alloc::Buffer, Error> StaticResourceCreator::create_buffer(
+	std::expected<Buffer, Error> StaticResourceCreator::create_buffer(
 		std::span<const std::byte> data,
 		vk::BufferUsageFlags usage
 	) noexcept
@@ -126,7 +126,7 @@ namespace vulkan
 				.size = data.size_bytes(),
 				.usage = usage | vk::BufferUsageFlagBits::eTransferDst
 			},
-			alloc::MemoryUsage::GpuOnly
+			MemoryUsage::GpuOnly
 		);
 		if (!dst_buffer_result) return dst_buffer_result.error().forward("Create gpu buffer failed");
 		auto dst_buffer = std::move(*dst_buffer_result);
@@ -144,7 +144,7 @@ namespace vulkan
 		return dst_buffer;
 	}
 
-	std::expected<alloc::Image, Error> StaticResourceCreator::create_image_bcn(
+	std::expected<Image, Error> StaticResourceCreator::create_image_bcn(
 		const image::BCnImage& image,
 		bool srgb,
 		vk::ImageUsageFlags usage,
@@ -164,8 +164,7 @@ namespace vulkan
 			.arrayLayers = 1,
 			.usage = usage | vk::ImageUsageFlagBits::eTransferDst
 		};
-		auto image_result =
-			allocator.get().create_image(image_create_info, vulkan::alloc::MemoryUsage::GpuOnly);
+		auto image_result = allocator.get().create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
 		if (!image_result) return image_result.error().forward("Create gpu image failed");
 		auto dst_image = std::move(*image_result);
 
@@ -188,7 +187,7 @@ namespace vulkan
 		return dst_image;
 	}
 
-	std::expected<alloc::Image, Error> StaticResourceCreator::create_image_mipmap_bcn(
+	std::expected<Image, Error> StaticResourceCreator::create_image_mipmap_bcn(
 		const std::span<const image::BCnImage>& mipmap_chain,
 		bool srgb,
 		vk::ImageUsageFlags usage,
@@ -240,8 +239,7 @@ namespace vulkan
 			.arrayLayers = 1,
 			.usage = usage | vk::ImageUsageFlagBits::eTransferDst
 		};
-		auto image_result =
-			allocator.get().create_image(image_create_info, vulkan::alloc::MemoryUsage::GpuOnly);
+		auto image_result = allocator.get().create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
 		if (!image_result) return image_result.error().forward("Create gpu image failed");
 		auto dst_image = std::move(*image_result);
 
@@ -253,7 +251,7 @@ namespace vulkan
 			| Error::collect();
 		if (!staging_buffer_result)
 			return staging_buffer_result.error().forward("Create staging buffers failed");
-		std::vector<alloc::Buffer> staging_buffers = std::move(*staging_buffer_result);
+		std::vector<Buffer> staging_buffers = std::move(*staging_buffer_result);
 
 		/* Append tasks */
 

@@ -1,5 +1,5 @@
 #include "mesh.hpp"
-#include "common/util/functor.hpp"
+#include "common/util/arithmetic-functor.hpp"
 
 namespace model::obj::impl
 {

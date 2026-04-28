@@ -22,6 +22,7 @@ namespace vulkan::impl
 		CHECK_FIELD(available, result, samplerAnisotropy);
 		CHECK_FIELD(available, result, textureCompressionBC);
 		CHECK_FIELD(available, result, pipelineStatisticsQuery);
+		CHECK_FIELD(available, result, multiDrawIndirect);
 
 		return result;
 	}
@@ -46,6 +47,8 @@ namespace vulkan::impl
 	{
 		vk::PhysicalDeviceVulkan12Features result = {};
 		CHECK_FIELD(available, result, shaderFloat16);
+		CHECK_FIELD(available, result, scalarBlockLayout);
+		CHECK_FIELD(available, result, runtimeDescriptorArray);
 
 		if (option.descriptor_indexing)
 		{

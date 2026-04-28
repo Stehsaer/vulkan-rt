@@ -1,6 +1,7 @@
 #pragma once
 
-#include "vulkan/alloc.hpp"
+#include "common/util/error.hpp"
+#include "vulkan/alloc/image.hpp"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -13,8 +14,25 @@ namespace vulkan
 	///
 	struct FrameBuffer
 	{
-		vulkan::alloc::Image image;
+		vulkan::Image image;
 		vk::raii::ImageView view;
+
+		struct Ref
+		{
+			vk::Image image;
+			vk::ImageView view;
+		};
+
+		///
+		/// @brief Get references to the image and view
+		///
+		/// @return References to the image and view
+		///
+		[[nodiscard]]
+		Ref ref() const noexcept
+		{
+			return Ref{.image = image, .view = view};
+		}
 
 		///
 		/// @brief Create a color framebuffer

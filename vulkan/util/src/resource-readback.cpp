@@ -1,5 +1,6 @@
 #include "vulkan/util/resource-readback.hpp"
-#include "vulkan/alloc.hpp"
+#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/alloc/image.hpp"
 #include "vulkan/util/constants.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
@@ -66,8 +67,8 @@ namespace vulkan::impl
 
 		struct TransferResource
 		{
-			vulkan::alloc::Image blit_dst_image;
-			vulkan::alloc::Buffer readback_buffer;
+			vulkan::Image blit_dst_image;
+			vulkan::Buffer readback_buffer;
 
 			static std::expected<TransferResource, Error> create(
 				const vulkan::Allocator& allocator,
@@ -85,7 +86,7 @@ namespace vulkan::impl
 					.usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc
 				};
 				auto blit_dst_image_result =
-					allocator.create_image(image_create_info, vulkan::alloc::MemoryUsage::GpuOnly);
+					allocator.create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
 				if (!blit_dst_image_result)
 					return blit_dst_image_result.error().forward("Create blit destination image failed");
 
@@ -94,7 +95,7 @@ namespace vulkan::impl
 					.usage = vk::BufferUsageFlagBits::eTransferDst,
 				};
 				auto readback_buffer_result =
-					allocator.create_buffer(buffer_create_info, vulkan::alloc::MemoryUsage::GpuToCpu);
+					allocator.create_buffer(buffer_create_info, vulkan::MemoryUsage::GpuToCpu);
 				if (!readback_buffer_result)
 					return readback_buffer_result.error().forward("Create readback buffer failed");
 

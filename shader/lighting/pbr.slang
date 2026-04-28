@@ -54,9 +54,10 @@ namespace pbr
 
 		let f_diffuse = light_scatter * view_scatter * (1.0 / float.getPi()) * c_diff;
 		let f_specular = F
-				  * microfacet_dist(n_dot_h, alpha)
-				  * mask_shadowing(n_dot_l, alpha)
-				  / (4.0 * n_dot_v * n_dot_l + 0.0001);
+			* microfacet_dist(n_dot_h, alpha)
+			* mask_shadowing(n_dot_l, alpha)
+			* mask_shadowing(n_dot_v, alpha)
+			/ (4.0 * n_dot_v * n_dot_l + 0.0001);
 
 		return (f_diffuse + f_specular) * n_dot_l * light.color;
 	}

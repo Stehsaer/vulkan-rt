@@ -3,46 +3,42 @@
 #include <print>
 #include <ranges>
 
-#include "app.hpp"
 #include "argument.hpp"
 #include "common/util/error.hpp"
+#include "page/init.hpp"
+
+static Argument get_arguments(int argc, const char* argv[])
+{
+	auto argument_parse_result = Argument::parse(std::span<const char*>(argv, argc));
+	if (argument_parse_result) return std::move(*argument_parse_result);
+
+	std::string model_path;
+
+	std::print(std::cerr, "Manually input model path: ");
+	std::getline(std::cin, model_path);
+
+	return Argument{.model_path = std::move(model_path)};
+}
 
 int main(int argc, const char* argv[]) noexcept
 {
-	Argument argument;
+	const auto argument = get_arguments(argc, argv);
 
-	auto argument_parse_result = Argument::parse(std::span<const char*>(argv, argc));
-	if (argument_parse_result)
+	auto result = scene::Page::run(page::InitPage::from(argument).as_ptr());
+	if (!result)
 	{
-		argument = std::move(*argument_parse_result);
-	}
-	else
-	{
-		std::string model_path;
+		std::println(std::cerr, "\x1b[91;1mError\x1b[0m: {:msg}", result.error().root());
 
-		std::print(std::cerr, "Manually input model path: ");
-		std::getline(std::cin, model_path);
-
-		argument.model_path = std::move(model_path);
-	}
-
-	try
-	{
-		App app = App::create(argument);
-		while (app.draw_frame());
-		return 0;
-	}
-	catch (const Error& error)
-	{
-		std::println(std::cerr, "\x1b[91mError\x1b[0m: {:msg}", error);
-		for (const auto& [idx, entry] : std::views::enumerate(error.chain()))
-			std::println(std::cerr, "[#{}]: {}", idx, entry);
+		for (const auto& [idx, entry] : std::views::enumerate(result.error().chain()))
+		{
+			std::println(std::cerr, "\x1b[96;1m[#{}]\x1b[0m: {:msg}", idx, entry);
+			if (entry.detail.has_value())
+				std::println(std::cerr, "    - \x1b[1mDetail\x1b[0m: {:detail}", entry);
+			std::println(std::cerr, "    - \x1b[1;4mSource\x1b[0m: {:loc}", entry);
+		}
 
 		return 1;
 	}
-	catch (const std::exception& e)
-	{
-		std::println(std::cerr, "\x1b[91mError\x1b[0m: an unexpected error occurred: {}", e.what());
-		return 1;
-	}
+
+	return 0;
 }

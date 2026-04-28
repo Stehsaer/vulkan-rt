@@ -1,4 +1,5 @@
 #include "mesh.hpp"
+#include "common/util/construct.hpp"
 #include "model/mesh.hpp"
 
 #include <coro/thread_pool.hpp>
@@ -187,13 +188,7 @@ namespace model::gltf::impl
 		if (has_tangent && has_normal && has_texcoord)
 		{
 			auto vertices =
-				std::views::zip_transform(
-					[](auto&&... args) { return FullVertex(std::forward<decltype(args)>(args)...); },
-					positions,
-					texcoords,
-					normals,
-					tangents
-				)
+				std::views::zip_transform(CTOR_LAMBDA(FullVertex), positions, texcoords, normals, tangents)
 				| std::ranges::to<std::vector>();
 
 			return Geometry::create(std::move(vertices), std::move(expanded_indices));
@@ -203,12 +198,7 @@ namespace model::gltf::impl
 		if (has_normal)
 		{
 			auto vertices =
-				std::views::zip_transform(
-					[](auto&&... args) { return NormalOnlyVertex(std::forward<decltype(args)>(args)...); },
-					positions,
-					texcoords,
-					normals
-				)
+				std::views::zip_transform(CTOR_LAMBDA(NormalOnlyVertex), positions, texcoords, normals)
 				| std::views::chunk(3)
 				| std::views::transform([](const auto& triangle) {
 					  return NormalOnlyVertex::construct_tangent(
@@ -224,11 +214,7 @@ namespace model::gltf::impl
 		// Minimum vertex
 
 		auto vertices =
-			std::views::zip_transform(
-				[](auto&&... args) { return MinimumVertex(std::forward<decltype(args)>(args)...); },
-				positions,
-				texcoords
-			)
+			std::views::zip_transform(CTOR_LAMBDA(MinimumVertex), positions, texcoords)
 			| std::views::adjacent<3>
 			| std::views::transform([](const auto& triangle) {
 				  return NormalOnlyVertex::construct_tangent(

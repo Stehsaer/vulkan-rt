@@ -7,7 +7,6 @@
 #include "image/bc-image.hpp"
 #include "image/image.hpp"
 #include "test-asset.hpp"
-#include "vulkan/alloc.hpp"
 #include "vulkan/context/device.hpp"
 #include "vulkan/context/instance.hpp"
 #include "vulkan/util/resource-readback.hpp"

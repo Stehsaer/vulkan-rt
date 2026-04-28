@@ -3,7 +3,7 @@
 #include <mutex>
 #include <vulkan/vulkan_raii.hpp>
 
-#include "vulkan/alloc.hpp"
+#include "vulkan/alloc/allocator.hpp"
 
 namespace vulkan
 {

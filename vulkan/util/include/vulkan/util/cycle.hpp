@@ -88,9 +88,9 @@ namespace vulkan
 		/// @return Reference to the current item
 		///
 		[[nodiscard]]
-		const T& current() const noexcept
+		auto&& current(this auto&& self) noexcept
 		{
-			return *items.back();
+			return *self.items.back();
 		}
 
 		///
@@ -99,9 +99,9 @@ namespace vulkan
 		/// @return Reference to the previous item
 		///
 		[[nodiscard]]
-		const T& prev() const noexcept
+		auto&& prev(this auto&& self) noexcept
 		{
-			return *items.front();
+			return *self.items.front();
 		}
 
 		///
@@ -121,12 +121,12 @@ namespace vulkan
 		/// @return Array of pairs of `(previous, current)`
 		///
 		[[nodiscard]]
-		auto iterate_pair() const noexcept
+		auto iterate_pair(this auto&& self) noexcept
 		{
-			return std::views::iota(0zu, items.size()) | std::views::transform([this](size_t i) {
-					   const auto& current_item = *items[i];
-					   const auto& prev_item = *items[(i + 1) % items.size()];
-					   return std::make_pair(std::cref(prev_item), std::cref(current_item));
+			return std::views::iota(0zu, self.items.size()) | std::views::transform([&self](size_t i) {
+					   const auto& current_item = *self.items[i];
+					   const auto& prev_item = *self.items[(i + 1) % self.items.size()];
+					   return std::make_pair(std::ref(prev_item), std::ref(current_item));
 				   });
 		}
 
@@ -136,9 +136,9 @@ namespace vulkan
 		/// @return Array of const references to the items
 		///
 		[[nodiscard]]
-		auto iterate() const noexcept
+		auto iterate(this auto&& self) noexcept
 		{
-			return items | std::views::transform([](const auto& item) -> const T& { return *item; });
+			return self.items | std::views::transform([](const auto& item) -> auto& { return *item; });
 		}
 	};
 
