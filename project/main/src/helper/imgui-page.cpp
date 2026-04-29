@@ -175,16 +175,17 @@ namespace helper
 			context.device->resetFences({frame_context.sync.draw_fence});
 
 			const std::scoped_lock lock(context.device.get().submit_mutex);
-			context.device.get().queue.submit(graphic_submit_info, frame_context.sync.draw_fence);
-		}
 
-		if (const auto present_result = context.swapchain.present(
-				context.device,
-				frame_context.swapchain,
-				frame_context.sync.render_finished_semaphore
-			);
-			!present_result)
-			return present_result.error().forward("Present frame failed");
+			context.device.get().queue.submit(graphic_submit_info, frame_context.sync.draw_fence);
+
+			if (const auto present_result = context.swapchain.present(
+					context.device,
+					frame_context.swapchain,
+					frame_context.sync.render_finished_semaphore
+				);
+				!present_result)
+				return present_result.error().forward("Present frame failed");
+		}
 
 		return {};
 	}
