@@ -1,7 +1,9 @@
 #include "helper/imgui-page.hpp"
 #include "config.hpp"
+#include "vulkan/context/swapchain.hpp"
 #include "vulkan/util/constants.hpp"
 #include <SDL3/SDL_events.h>
+#include <utility>
 
 namespace helper
 {
@@ -56,8 +58,6 @@ namespace helper
 			{
 			case SDL_EVENT_QUIT:
 				return false;
-			case SDL_EVENT_WINDOW_MINIMIZED:
-				continue;
 			default:
 				break;
 			}
@@ -66,7 +66,7 @@ namespace helper
 		return true;
 	}
 
-	std::expected<ImGuiPage::FrameContext, Error> ImGuiPage::prepare_frame(
+	std::expected<std::optional<ImGuiPage::FrameContext>, Error> ImGuiPage::prepare_frame(
 		resource::Context& context
 	) noexcept
 	{
@@ -81,18 +81,19 @@ namespace helper
 			wait_result != vk::Result::eSuccess)
 			return Error::from<vk::Result>(wait_result).forward("Wait for fence failed");
 
-		auto swapchain_result = context.swapchain.acquire_next(
+		const auto swapchain_result = context.swapchain.acquire_next(
 			context.instance,
 			context.device,
 			sync_primitives.current().image_available_semaphore
 		);
-		if (!swapchain_result) return swapchain_result.error().forward("Acquire swapchain image failed");
-
-		return FrameContext{
-			.command_buffer = command_buffers.current(),
-			.sync = sync_primitives.current(),
-			.swapchain = *swapchain_result
-		};
+		if (!swapchain_result) return swapchain_result.error().forward("Acquire swapchain failed");
+		return swapchain_result->transform([this](vulkan::SwapchainContext::Frame frame) {
+			return FrameContext{
+				.command_buffer = command_buffers.current(),
+				.sync = sync_primitives.current(),
+				.swapchain = frame
+			};
+		});
 	}
 
 	std::expected<void, Error> ImGuiPage::draw_frame(

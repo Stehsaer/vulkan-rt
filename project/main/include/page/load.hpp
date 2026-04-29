@@ -59,9 +59,9 @@ namespace page
 
 		struct Task
 		{
-			util::Future<std::expected<render::Model, Error>> model_future;
-			std::unique_ptr<TaskProgress> progress;
 			std::unique_ptr<render::MaterialLayout> material_layout;
+			std::unique_ptr<TaskProgress> progress;
+			util::Future<std::expected<render::Model, Error>> model_future;
 		};
 
 		struct TaskResult

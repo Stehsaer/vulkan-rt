@@ -11,6 +11,12 @@
 
 namespace vulkan
 {
+	enum class SwapchainFormat
+	{
+		SrgbUnorm8,
+		LinearUnorm8
+	};
+
 	///
 	/// @brief Manages swapchain context.
 	/// @details
@@ -29,13 +35,11 @@ namespace vulkan
 	///   ```
 	///
 	/// #### Acquiring Frames
-	/// - Call @p acquire_next to acquire the next frame for rendering. This returns the acquired frame,
-	/// containing index and image
+	/// - Call @p acquire_next to acquire the next frame for rendering. Poll events and retry if
+	/// `std::nullopt` is returned
 	/// - Check `frame.extent_changed` to determine if the swapchain extent has changed since the last
 	/// acquisition. If `true`, resources dependent on the extent should be recreated.
-	/// - Access the latest extent through `swapchain_context->extent`. Note that the extent is
-	/// `std::optional<glm::u32vec2>`, and will be `std::nullopt` if the swapchain is not in a valid state
-	/// (e.g. before the first acquisition or after an extent change and before the next acquisition)
+	/// - Access the latest extent through `swapchain_context->extent`
 	///
 	/// #### Presenting Frames
 	/// Call @p present to present a rendered frame. See the function for details.
@@ -53,15 +57,10 @@ namespace vulkan
 			vk::ImageView image_view;
 		};
 
-		enum class Format
-		{
-			SrgbUnorm8,
-			LinearUnorm8
-		};
-
 		struct Config
 		{
-			Format format = Format::LinearUnorm8;
+			SwapchainFormat format = SwapchainFormat::LinearUnorm8;
+			bool vsync = false;
 		};
 
 		///
@@ -89,10 +88,13 @@ namespace vulkan
 		/// @param fence Optional fence to be signaled when the image is available
 		/// @param timeout Optional timeout for acquisition in nanoseconds. Defaults to
 		/// `std::numeric_limits<uint64_t>::max()`, i.e. no timeout
-		/// @return Acquired frame or error
+		///
+		/// @retval Frame Acquired frame
+		/// @retval std::nullopt Swapchain/window not available, poll events and retry
+		/// @retval Error Error occurred during acquiring
 		///
 		[[nodiscard]]
-		std::expected<Frame, Error> acquire_next(
+		std::expected<std::optional<Frame>, Error> acquire_next(
 			const SurfaceInstanceContext& instance_context,
 			const SurfaceDeviceContext& device_context,
 			std::optional<vk::Semaphore> semaphore = std::nullopt,
@@ -101,8 +103,7 @@ namespace vulkan
 		) noexcept;
 
 		///
-		/// @brief Present a rendered frame. Invalidates the swapchain if presentation soft-fails
-		/// (`OUT_OF_DATE` or `SUBOPTIMAL`)
+		/// @brief Present a rendered frame.
 		///
 		/// @param device_context Device Context
 		/// @param frame Frame to present, which should be acquired from this context
@@ -119,17 +120,14 @@ namespace vulkan
 
 	  private:
 
+		/* Swapchain Configuration */
+
 		vk::SharingMode sharing_mode;
 		std::unique_ptr<const std::vector<uint32_t>> queue_family_indices;
 		vk::SurfaceFormatKHR surface_format;
 		vk::PresentModeKHR present_mode;
 
-		explicit SwapchainContext(
-			vk::SharingMode sharing_mode,
-			std::vector<uint32_t> queue_family_indices,
-			vk::SurfaceFormatKHR surface_format,
-			vk::PresentModeKHR present_mode
-		) noexcept;
+		/* Swapchain State Machine */
 
 		struct RuntimeState
 		{
@@ -139,7 +137,6 @@ namespace vulkan
 			std::vector<vk::Image> images;
 			std::vector<vk::raii::ImageView> image_views;
 
-			// First acquision call after recreating the swapchain checks and resets this flag
 			bool extent_changed = true;
 		};
 
@@ -150,10 +147,18 @@ namespace vulkan
 
 		std::variant<std::monostate, RuntimeState, InvalidatedState> state = std::monostate();
 
+		explicit SwapchainContext(
+			vk::SharingMode sharing_mode,
+			std::vector<uint32_t> queue_family_indices,
+			vk::SurfaceFormatKHR surface_format,
+			vk::PresentModeKHR present_mode
+		) noexcept;
+
 		[[nodiscard]]
-		std::expected<void, Error> check_and_recreate_swapchain(
+		std::expected<void, Error> recreate_swapchain(
 			const SurfaceInstanceContext& instance_context,
-			const SurfaceDeviceContext& device_context
+			const SurfaceDeviceContext& device_context,
+			glm::u32vec2 extent
 		) noexcept;
 
 		struct ReadonlyWrapper

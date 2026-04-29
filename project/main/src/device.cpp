@@ -24,7 +24,10 @@ namespace resource
 		auto swapchain_result = vulkan::SwapchainContext::create(
 			instance,
 			device,
-			vulkan::SwapchainContext::Config{.format = vulkan::SwapchainContext::Format::LinearUnorm8}
+			{
+				.format = vulkan::SwapchainFormat::LinearUnorm8,
+				.vsync = false,
+			}
 		);
 		if (!swapchain_result) return swapchain_result.error().forward("Create swapchain context failed");
 		auto swapchain = std::move(*swapchain_result);

@@ -1,5 +1,4 @@
 #include "common/util/tagged-type.hpp"
-#include "common/util/overload.hpp"
 
 #include <doctest.h>
 #include <memory>

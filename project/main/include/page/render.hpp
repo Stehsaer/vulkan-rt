@@ -120,7 +120,7 @@ namespace page
 		void ui(glm::u32vec2 extent) noexcept;
 
 		[[nodiscard]]
-		Event handle_events() const noexcept;
+		Event handle_events() noexcept;
 
 		/*===== Prepare =====*/
 
@@ -131,13 +131,13 @@ namespace page
 		};
 
 		[[nodiscard]]
-		std::expected<FrameAcquireResult, Error> acquire_frame() noexcept;
+		std::expected<std::optional<FrameAcquireResult>, Error> acquire_frame() noexcept;
 
 		[[nodiscard]]
 		std::expected<SceneData, Error> prepare_scene(glm::u32vec2 extent) noexcept;
 
 		[[nodiscard]]
-		std::expected<Frame, Error> prepare_frame() noexcept;
+		std::expected<std::optional<Frame>, Error> prepare_frame() noexcept;
 
 		/*===== Render =====*/
 

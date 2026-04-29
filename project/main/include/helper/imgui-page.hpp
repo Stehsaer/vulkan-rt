@@ -24,6 +24,7 @@ namespace helper
 		enum class ResultState
 		{
 			Success,  // No error, continue to execute
+			Wait,     // Waiting for swapchain to be available
 			Quit,     // Quit has been requested from events
 			Error     // Error occurred
 		};
@@ -31,6 +32,7 @@ namespace helper
 		template <typename T>
 		using Result = util::EnumVariant<
 			util::Tag<ResultState::Success, util::TagVoidlessType<T>>,
+			util::Tag<ResultState::Wait>,
 			util::Tag<ResultState::Quit>,
 			util::Tag<ResultState::Error, Error>
 		>;
@@ -49,7 +51,9 @@ namespace helper
 		/// @tparam Func Type of UI function
 		/// @param context Vulkan context
 		/// @param ui_func UI function, called to get UI contents with no arguments
+		///
 		/// @retval ResultState::Success Return value of `ui_func`
+		/// @retval ResultState::Wait Swapchain not available, `ui_func` hasn't been executed
 		/// @retval ResultState::Quit Quit has been requested
 		/// @retval ResultState::Error Error occurred
 		///
@@ -61,16 +65,26 @@ namespace helper
 
 			if (!poll_events(context)) return ReturnType::template from<ResultState::Quit>();
 
-			const auto new_frame_result = context.imgui.new_frame();
-			if (!new_frame_result)
+			auto frame_context_result = prepare_frame(context);
+			if (!frame_context_result)
 			{
 				return ReturnType::template from<ResultState::Error>(
-					new_frame_result.error().forward("Start new ImGui frame failed")
+					frame_context_result.error().forward("Prepare frame failed")
 				);
 			}
+			if (!*frame_context_result) return ReturnType::template from<ResultState::Wait>();
+			const auto frame_context = **frame_context_result;
 
 			if constexpr (std::is_void_v<std::invoke_result_t<Func>>)
 			{
+				const auto new_frame_result = context.imgui.new_frame();
+				if (!new_frame_result)
+				{
+					return ReturnType::template from<ResultState::Error>(
+						new_frame_result.error().forward("Start new ImGui frame failed")
+					);
+				}
+
 				ui_func();
 
 				const auto render_result = context.imgui.render();
@@ -80,15 +94,6 @@ namespace helper
 						render_result.error().forward("Render ImGui frame failed")
 					);
 				}
-
-				auto frame_context_result = prepare_frame(context);
-				if (!frame_context_result)
-				{
-					return ReturnType::template from<ResultState::Error>(
-						frame_context_result.error().forward("Prepare frame failed")
-					);
-				}
-				const auto frame_context = *frame_context_result;
 
 				auto draw_result = draw_frame(context, frame_context);
 				if (!draw_result)
@@ -102,6 +107,14 @@ namespace helper
 			}
 			else
 			{
+				const auto new_frame_result = context.imgui.new_frame();
+				if (!new_frame_result)
+				{
+					return ReturnType::template from<ResultState::Error>(
+						new_frame_result.error().forward("Start new ImGui frame failed")
+					);
+				}
+
 				auto ui_result = ui_func();
 
 				const auto render_result = context.imgui.render();
@@ -111,15 +124,6 @@ namespace helper
 						render_result.error().forward("Render ImGui frame failed")
 					);
 				}
-
-				auto frame_context_result = prepare_frame(context);
-				if (!frame_context_result)
-				{
-					return ReturnType::template from<ResultState::Error>(
-						frame_context_result.error().forward("Prepare frame failed")
-					);
-				}
-				const auto frame_context = *frame_context_result;
 
 				auto draw_result = draw_frame(context, frame_context);
 				if (!draw_result)
@@ -150,7 +154,7 @@ namespace helper
 		bool poll_events(resource::Context& context) const noexcept;
 
 		[[nodiscard]]
-		std::expected<FrameContext, Error> prepare_frame(resource::Context& context) noexcept;
+		std::expected<std::optional<FrameContext>, Error> prepare_frame(resource::Context& context) noexcept;
 
 		[[nodiscard]]
 		std::expected<void, Error> draw_frame(

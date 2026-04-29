@@ -1,6 +1,7 @@
 #include "page/load.hpp"
 #include "common/util/async.hpp"
 #include "common/util/overload.hpp"
+#include "helper/imgui-page.hpp"
 #include "page/error.hpp"
 #include "page/render.hpp"
 #include "render/model/material.hpp"
@@ -90,9 +91,9 @@ namespace page
 			std::move(context_res),
 			std::move(imgui_page),
 			Task{
-				.model_future = util::Future(std::move(model_future)),
+				.material_layout = std::move(material_layout),
 				.progress = std::move(progress),
-				.material_layout = std::move(material_layout)
+				.model_future = util::Future(std::move(model_future)),
 			}
 		);
 	}
@@ -111,6 +112,10 @@ namespace page
 			{
 			case helper::ImGuiPage::ResultState::Success:
 				state_data = std::move(new_state_result).get<helper::ImGuiPage::ResultState::Success>();
+				return ResultType::from<Result::Continue>();
+
+			case helper::ImGuiPage::ResultState::Wait:
+				// ui not executed, `state_data` still valid
 				return ResultType::from<Result::Continue>();
 
 			case helper::ImGuiPage::ResultState::Quit:

@@ -3,6 +3,7 @@
 #include "vulkan/context/instance.hpp"
 
 #include <SDL3/SDL_error.h>
+#include <SDL3/SDL_hints.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_vulkan.h>
@@ -16,9 +17,9 @@ namespace vulkan::impl
 	// Get SDL window flags
 	static SDL_WindowFlags get_flags_sdl(const WindowConfig& config) noexcept
 	{
-		SDL_WindowFlags flags = SDL_WINDOW_VULKAN;
-		if (config.resizable) flags = static_cast<SDL_WindowFlags>(flags | SDL_WINDOW_RESIZABLE);
-		if (config.initial_fullscreen) flags = static_cast<SDL_WindowFlags>(flags | SDL_WINDOW_FULLSCREEN);
+		SDL_WindowFlags flags = SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+		if (config.resizable) flags |= SDL_WINDOW_RESIZABLE;
+		if (config.initial_fullscreen) flags |= SDL_WINDOW_FULLSCREEN;
 		return flags;
 	}
 
@@ -121,16 +122,15 @@ namespace vulkan::impl
 
 	std::expected<vk::raii::Context, Error> init_sdl() noexcept
 	{
+#ifdef __linux__
+		SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "wayland,x11");
+#endif
+
 		if (!SDL_Init(SDL_INIT_VIDEO)) return Error("Initialize SDL failed", SDL_GetError());
 
 		const char* current_video_driver = SDL_GetCurrentVideoDriver();
 		if (current_video_driver == nullptr)
 			return Error("Get current video driver from SDL failed", SDL_GetError());
-
-		// Wayland is not supported right now due to its swapchain behavior being incompatible with current
-		// logic: FIX ME!
-		if (std::string(current_video_driver) == "wayland")
-			return Error("Wayland is not supported at the moment");
 
 		if (!SDL_Vulkan_LoadLibrary(nullptr)) return Error("Load vulkan library failed", SDL_GetError());
 

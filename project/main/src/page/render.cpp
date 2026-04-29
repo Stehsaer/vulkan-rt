@@ -117,7 +117,8 @@ namespace page
 			context.device->waitIdle();
 			return prepare_frame_result.error().forward("Prepare frame failed");
 		}
-		auto frame = *prepare_frame_result;
+		if (!*prepare_frame_result) return ResultType::from<Result::Continue>();
+		auto frame = **prepare_frame_result;
 
 		if (const auto draw_result = draw_frame(frame); !draw_result)
 		{
@@ -134,7 +135,7 @@ namespace page
 		return ResultType::from<Result::Continue>();
 	}
 
-	std::expected<RenderPage::FrameAcquireResult, Error> RenderPage::acquire_frame() noexcept
+	std::expected<std::optional<RenderPage::FrameAcquireResult>, Error> RenderPage::acquire_frame() noexcept
 	{
 		/* Cycle & Wait */
 
@@ -151,13 +152,14 @@ namespace page
 
 		/* Acquire Swapchain */
 
-		auto swapchain_result = context.swapchain.acquire_next(
+		const auto swapchain_result = context.swapchain.acquire_next(
 			context.instance,
 			context.device,
 			curr_resource.sync_primitive.image_available_semaphore
 		);
 		if (!swapchain_result) return swapchain_result.error().forward("Acquire next swapchain image failed");
-		auto swapchain_frame = *swapchain_result;
+		if (!*swapchain_result) return std::nullopt;  // Soft failed, retry next frame
+		const auto swapchain_frame = **swapchain_result;
 
 		/* Check, recreate if needed */
 
@@ -228,13 +230,13 @@ namespace page
 		param.ui(extent);
 	}
 
-	RenderPage::Event RenderPage::handle_events() const noexcept
+	RenderPage::Event RenderPage::handle_events() noexcept
 	{
 		SDL_Event event;
 
 		while (SDL_PollEvent(&event))
 		{
-			ImGui_ImplSDL3_ProcessEvent(&event);
+			context.imgui.process_event(event);
 
 			switch (event.type)
 			{
@@ -248,11 +250,12 @@ namespace page
 		return Event::None;
 	}
 
-	std::expected<RenderPage::Frame, Error> RenderPage::prepare_frame() noexcept
+	std::expected<std::optional<RenderPage::Frame>, Error> RenderPage::prepare_frame() noexcept
 	{
-		auto acquire_result = acquire_frame();
+		const auto acquire_result = acquire_frame();
 		if (!acquire_result) return acquire_result.error().forward("Acquire frame failed");
-		auto acquire_frame = *acquire_result;
+		if (!*acquire_result) return std::nullopt;  // Soft failed, retry next frame
+		const auto frame = **acquire_result;
 
 		/* Check & Recreate */
 
@@ -261,38 +264,38 @@ namespace page
 		if (const auto new_frame_result = context.imgui.new_frame(); !new_frame_result)
 			return new_frame_result.error().forward("Start new ImGui frame failed");
 
-		ui(acquire_frame.swapchain_frame.extent);
+		ui(frame.swapchain_frame.extent);
 
 		if (const auto render_result = context.imgui.render(); !render_result)
 			return render_result.error().forward("Render ImGui frame failed");
 
-		auto scene_data_result = prepare_scene(acquire_frame.swapchain_frame.extent);
+		auto scene_data_result = prepare_scene(frame.swapchain_frame.extent);
 		if (!scene_data_result) return scene_data_result.error().forward("Prepare scene data failed");
 		auto scene_data = *scene_data_result;
 
 		/* Update & Bind */
 
 		if (const auto buffer_update_result =
-				acquire_frame.curr_resource.render_resource.update(context.device.get(), scene_data);
+				frame.curr_resource.render_resource.update(context.device.get(), scene_data);
 			!buffer_update_result)
 			return buffer_update_result.error().forward("Update render buffer failed");
 
-		acquire_frame.curr_resource.resource_set.update(
+		frame.curr_resource.resource_set.update(
 			context.device.get(),
 			model,
-			acquire_frame.curr_resource.render_resource,
-			acquire_frame.prev_resource.render_resource,
+			frame.curr_resource.render_resource,
+			frame.prev_resource.render_resource,
 			aux_resource,
-			acquire_frame.swapchain_frame
+			frame.swapchain_frame
 		);
 
 		return Frame{
-			.command_buffer = acquire_frame.curr_resource.command_buffer,
-			.render_resource = acquire_frame.curr_resource.render_resource,
-			.prev_render_resource = acquire_frame.prev_resource.render_resource,
-			.resource_set = acquire_frame.curr_resource.resource_set,
-			.sync_primitive = acquire_frame.curr_resource.sync_primitive,
-			.swapchain = acquire_frame.swapchain_frame
+			.command_buffer = frame.curr_resource.command_buffer,
+			.render_resource = frame.curr_resource.render_resource,
+			.prev_render_resource = frame.prev_resource.render_resource,
+			.resource_set = frame.curr_resource.resource_set,
+			.sync_primitive = frame.curr_resource.sync_primitive,
+			.swapchain = frame.swapchain_frame
 		};
 	}
 

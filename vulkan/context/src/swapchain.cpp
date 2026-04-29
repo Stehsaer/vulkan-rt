@@ -1,5 +1,11 @@
 #include "vulkan/context/swapchain.hpp"
 #include "common/util/variant.hpp"
+#include "vulkan/util/glm.hpp"
+
+#include <SDL3/SDL_video.h>
+#include <cassert>
+#include <variant>
+#include <vulkan/vulkan_enums.hpp>
 
 namespace vulkan
 {
@@ -11,12 +17,12 @@ namespace vulkan
 		{
 			switch (config.format)
 			{
-			case SwapchainContext::Format::SrgbUnorm8:
+			case SwapchainFormat::SrgbUnorm8:
 				return {
 					{.format = vk::Format::eB8G8R8A8Srgb, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear},
 					{.format = vk::Format::eR8G8B8A8Srgb, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear}
 				};
-			case SwapchainContext::Format::LinearUnorm8:
+			case SwapchainFormat::LinearUnorm8:
 				return {
 					{.format = vk::Format::eB8G8R8A8Unorm, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear},
 					{.format = vk::Format::eR8G8B8A8Unorm, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear}
@@ -51,19 +57,35 @@ namespace vulkan
 			return std::nullopt;
 		}
 
+		std::vector<vk::PresentModeKHR> get_preferred_present_modes(bool vsync) noexcept
+		{
+			if (vsync)
+			{
+				return {
+					vk::PresentModeKHR::eFifoRelaxed,
+					vk::PresentModeKHR::eFifo,
+				};
+			}
+			else
+			{
+				return {
+					vk::PresentModeKHR::eMailbox,
+					vk::PresentModeKHR::eImmediate,
+				};
+			}
+		}
+
 		vk::PresentModeKHR select_present_mode(
 			const vk::raii::PhysicalDevice& phy_device,
-			const vk::SurfaceKHR& surface
+			const vk::SurfaceKHR& surface,
+			const SwapchainContext::Config& config
 		) noexcept
 		{
 			const auto available_present_modes = phy_device.getSurfacePresentModesKHR(surface);
-			constexpr auto preferred_present_modes =
-				std::to_array({vk::PresentModeKHR::eMailbox, vk::PresentModeKHR::eFifoRelaxed});
+			const auto preferred_present_modes = get_preferred_present_modes(config.vsync);
 
 			for (const auto& preferred_mode : preferred_present_modes)
-				if (std::ranges::find(available_present_modes, preferred_mode)
-					!= available_present_modes.end())
-					return preferred_mode;
+				if (std::ranges::count(available_present_modes, preferred_mode) > 0) return preferred_mode;
 
 			return vk::PresentModeKHR::eFifo;
 		}
@@ -132,7 +154,7 @@ namespace vulkan
 		if (!format_result) return Error("Select surface format failed");
 		const auto surface_format = *format_result;
 
-		const auto present_mode = select_present_mode(phy_device, surface);
+		const auto present_mode = select_present_mode(phy_device, surface, config);
 
 		const auto [sharing_mode, queue_family_indices] =
 			[&]() -> std::pair<vk::SharingMode, std::vector<uint32_t>> {
@@ -153,7 +175,7 @@ namespace vulkan
 		return SwapchainContext(sharing_mode, queue_family_indices, surface_format, present_mode);
 	}
 
-	std::expected<SwapchainContext::Frame, Error> SwapchainContext::acquire_next(
+	std::expected<std::optional<SwapchainContext::Frame>, Error> SwapchainContext::acquire_next(
 		const SurfaceInstanceContext& instance_context,
 		const SurfaceDeviceContext& device_context,
 		std::optional<vk::Semaphore> semaphore,
@@ -161,36 +183,60 @@ namespace vulkan
 		uint64_t timeout
 	) noexcept
 	{
-		while (true)
+		/* Check Minimized */
+
+		const auto window_flags = SDL_GetWindowFlags(instance_context->window);
+		if ((window_flags & SDL_WINDOW_MINIMIZED) != 0) return std::nullopt;
+
+		/* Get Window Size */
+
+		int window_width, window_height;
+		if (!SDL_GetWindowSizeInPixels(instance_context->window, &window_width, &window_height))
+			return Error("Get window size in pixels failed", SDL_GetError());
+		assert(window_width >= 0 && window_height >= 0);
+		const auto window_size = glm::u32vec2(window_width, window_height);
+
+		/* Resize */
+
+		if (std::holds_alternative<RuntimeState>(state))
 		{
-			auto pre_acquire_recreate_result = check_and_recreate_swapchain(instance_context, device_context);
-			if (!pre_acquire_recreate_result)
-				return pre_acquire_recreate_result.error().forward("Recreate swapchain failed");
-
 			auto& runtime_state = std::get<RuntimeState>(state);
-			const auto [result, idx] =
-				runtime_state.swapchain
-					.acquireNextImage(timeout, semaphore.value_or(nullptr), fence.value_or(nullptr));
-
-			switch (result)
+			if (runtime_state.extent != window_size)
 			{
-			case vk::Result::eSuccess:
-				return Frame{
-					.extent = runtime_state.extent,
-					.extent_changed = std::exchange(runtime_state.extent_changed, false),
-					.index = idx,
-					.image = runtime_state.images.at(idx),
-					.image_view = runtime_state.image_views.at(idx)
-				};
-
-			case vk::Result::eErrorOutOfDateKHR:
-			case vk::Result::eSuboptimalKHR:
-				state = InvalidatedState{.old_swapchain = std::move(runtime_state.swapchain)};
-				continue;
-
-			default:
-				return Error::from(result);
+				device_context->waitIdle();
+				state = InvalidatedState{.old_swapchain = std::move(std::get<RuntimeState>(state).swapchain)};
+				return std::nullopt;
 			}
+		}
+		else if (auto result = recreate_swapchain(instance_context, device_context, window_size); !result)
+			return result.error().forward("Recreate swapchain failed");
+
+		/* Get Swapchain */
+
+		auto& runtime_state = std::get<RuntimeState>(state);
+		const auto [result, idx] =
+			runtime_state.swapchain
+				.acquireNextImage(timeout, semaphore.value_or(nullptr), fence.value_or(nullptr));
+
+		switch (result)
+		{
+		case vk::Result::eSuccess:
+			return Frame{
+				.extent = runtime_state.extent,
+				.extent_changed = std::exchange(runtime_state.extent_changed, false),
+				.index = idx,
+				.image = runtime_state.images.at(idx),
+				.image_view = runtime_state.image_views.at(idx),
+			};
+
+		case vk::Result::eErrorOutOfDateKHR:
+		case vk::Result::eSuboptimalKHR:
+			device_context->waitIdle();
+			state = InvalidatedState{.old_swapchain = std::move(runtime_state.swapchain)};
+			return std::nullopt;
+
+		default:
+			return Error::from(result);
 		}
 	}
 
@@ -225,6 +271,7 @@ namespace vulkan
 
 		case vk::Result::eErrorOutOfDateKHR:
 		case vk::Result::eSuboptimalKHR:
+			device_context->waitIdle();
 			state = InvalidatedState{.old_swapchain = std::move(runtime_state.swapchain)};
 			return {};
 
@@ -233,13 +280,12 @@ namespace vulkan
 		}
 	}
 
-	std::expected<void, Error> SwapchainContext::check_and_recreate_swapchain(
+	std::expected<void, Error> SwapchainContext::recreate_swapchain(
 		const SurfaceInstanceContext& instance_context,
-		const SurfaceDeviceContext& device_context
+		const SurfaceDeviceContext& device_context,
+		glm::u32vec2 extent
 	) noexcept
 	{
-		if (std::holds_alternative<RuntimeState>(state)) return {};
-
 		const auto prev_swapchain =
 			util::get_variant<InvalidatedState>(state)
 				.transform([](InvalidatedState& invalid) { return std::move(invalid.old_swapchain); })
@@ -250,6 +296,11 @@ namespace vulkan
 
 		const auto image_count =
 			glm::clamp<uint32_t>(3, surface_capability.minImageCount, surface_capability.maxImageCount);
+		const auto min_extent =
+			glm::u32vec2(surface_capability.minImageExtent.width, surface_capability.minImageExtent.height);
+		const auto max_extent =
+			glm::u32vec2(surface_capability.maxImageExtent.width, surface_capability.maxImageExtent.height);
+		const auto clamped_extent = glm::clamp(extent, min_extent, max_extent);
 
 		auto swapchain_create_info = vk::SwapchainCreateInfoKHR{
 			.flags = {},
@@ -257,7 +308,7 @@ namespace vulkan
 			.minImageCount = image_count,
 			.imageFormat = surface_format.format,
 			.imageColorSpace = surface_format.colorSpace,
-			.imageExtent = surface_capability.currentExtent,
+			.imageExtent = vulkan::to<vk::Extent2D>(clamped_extent),
 			.imageArrayLayers = 1,
 			.imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
 			.imageSharingMode = sharing_mode,
@@ -292,8 +343,7 @@ namespace vulkan
 
 		state = RuntimeState{
 			.swapchain = std::move(swapchain),
-			.extent =
-				glm::u32vec2(surface_capability.currentExtent.width, surface_capability.currentExtent.height),
+			.extent = clamped_extent,
 			.images = images,
 			.image_views = std::move(image_views)
 		};
