@@ -13,8 +13,18 @@ set_policy("run.autobuild", true)
 set_encodings("utf-8")
 set_warnings("all", "pedantic", "extra")
 set_languages("c++23")
-add_vectorexts("sse", "sse2", "avx", "avx2")
-add_cxxflags("-Wno-maybe-uninitialized")
+add_vectorexts("all")
+
+-- GCC false warning
+if is_plat("linux") then
+	add_cxxflags("-Wno-maybe-uninitialized")
+end
+
+-- I hate <windows.h> :-(
+-- Stop defining min and max pls...
+if is_plat("windows") then
+	add_defines("NOMINMAX")
+end
 
 -- Linux atomic
 if is_plat("linux") then
