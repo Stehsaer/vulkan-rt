@@ -1,6 +1,7 @@
 #include "image/impl/decode.hpp"
 #include "common/util/error.hpp"
 
+#include <libassert/assert.hpp>
 #include <stb_image.h>
 #include <webp/decode.h>
 
@@ -44,7 +45,7 @@ namespace image::impl
 			break;
 
 		default:
-			return Error("Unexpected layout");
+			UNREACHABLE("Invalid layout", layout);
 		}
 
 		if (decode_result == nullptr) return Error("Decode WebP image failed");

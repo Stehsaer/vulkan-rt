@@ -37,8 +37,10 @@ namespace render
 
 			case model::AlphaMode::Blend:
 			case model::AlphaMode::Mask:
-			default:
 				return double_sided ? self.masked_double_sided : self.masked_single_sided;
+
+			default:
+				UNREACHABLE("Invalid alpha mode", alpha_mode);
 			}
 		}
 

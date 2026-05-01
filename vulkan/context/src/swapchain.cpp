@@ -28,7 +28,7 @@ namespace vulkan
 					{.format = vk::Format::eR8G8B8A8Unorm, .colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear}
 				};
 			default:
-				return {};
+				UNREACHABLE("Invalid format in config", config.format);
 			}
 		}
 
@@ -193,7 +193,7 @@ namespace vulkan
 		int window_width, window_height;
 		if (!SDL_GetWindowSizeInPixels(instance_context->window, &window_width, &window_height))
 			return Error("Get window size in pixels failed", SDL_GetError());
-		assert(window_width >= 0 && window_height >= 0);
+		ASSERT(window_width >= 0 && window_height >= 0);
 		const auto window_size = glm::u32vec2(window_width, window_height);
 
 		/* Resize */

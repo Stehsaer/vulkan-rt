@@ -6,7 +6,7 @@ target("lib.common")
 
 	add_includedirs("include", {public = true})
 	add_headerfiles("include/(**.hpp)")
-	add_packages("vulkan-hpp", {public = true})
+	add_packages("vulkan-hpp", "libassert", {public = true})
 
 	on_config(function (target)
 		local size_t_byte = target:check_sizeof("std::size_t", {includes = "cstddef"})

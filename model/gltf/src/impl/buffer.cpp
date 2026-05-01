@@ -1,7 +1,7 @@
 #include "buffer.hpp"
-
-#include "common/file.hpp"
 #include "common/util/overload.hpp"
+
+#include <libassert/assert.hpp>
 #include <utility>
 
 namespace model::gltf::impl
@@ -141,7 +141,7 @@ namespace model::gltf::impl
 				return bytes.subspan(view.byteOffset, view.byteLength);
 			},
 			[&](const std::filesystem::path&) -> std::expected<std::span<const std::byte>, Error> {
-				return Error("Logic error: Buffer data is still a path, expected it to be loaded already");
+				UNREACHABLE("Data should never be a path here");
 			},
 			[&](const std::unique_ptr<std::vector<std::byte>>& vector)
 				-> std::expected<std::span<const std::byte>, Error> {

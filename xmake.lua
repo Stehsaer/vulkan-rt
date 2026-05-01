@@ -18,6 +18,7 @@ add_vectorexts("all")
 -- GCC false warning
 if is_plat("linux") then
 	add_cxxflags("-Wno-maybe-uninitialized")
+	add_cxxflags("-Wno-stringop-overflow")
 end
 
 -- I hate <windows.h> :-(
@@ -39,6 +40,7 @@ add_requires(
 	"argparse v3.2",
 	"libcoro v0.16.0",
 	"mio 2023.3.3",
+	"libassert[magic_enum=n] v2.2.1",
 
 	-- Graphics
 	"libsdl3",

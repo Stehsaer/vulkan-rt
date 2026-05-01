@@ -11,7 +11,7 @@ namespace vulkan
 
 	const vulkan::HeadlessDeviceContext& get_test_context() noexcept
 	{
-		assert(test_context != nullptr);
+		ASSERT(test_context != nullptr);
 		return *test_context;
 	}
 }

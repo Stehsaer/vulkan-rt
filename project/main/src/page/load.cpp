@@ -234,7 +234,7 @@ namespace page
 		case render::Model::ProgressState::Material:
 			return "Processing materials...";
 		default:
-			return "Unknown progress state";
+			UNREACHABLE("Invalid progress state", state);
 		}
 	}
 

@@ -60,8 +60,7 @@ namespace render
 			case image::BCnFormat::BC7:
 				return {Format::BC7, vk::Format::eBc7UnormBlock};
 			default:
-				assert(false && "Invalid image::BCnFormat");
-				std::unreachable();
+				UNREACHABLE("Invalid format");
 			}
 		}();
 
@@ -240,10 +239,7 @@ namespace render
 			);
 
 		default:
-			return Error(
-				"Invalid load_strategy argument",
-				std::format("Got load_strategy={}", std::to_underlying(load_strategy))
-			);
+			UNREACHABLE("Invalid strategy", load_strategy);
 		}
 	}
 
@@ -262,7 +258,7 @@ namespace render
 			{{Texture::Format::BC5, Usage::Normal},        vk::Format::eBc5UnormBlock},
 		};
 
-		assert(format_map.contains({format, usage}) && "Unsupported texture format and usage");
+		ASSERT(format_map.contains({format, usage}) && "Unsupported texture format and usage");
 
 		return format_map.at({format, usage});
 	}

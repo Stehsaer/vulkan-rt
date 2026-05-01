@@ -58,7 +58,7 @@ namespace vulkan
 		/* Find best device and create */
 
 		auto best_device_iter = std::ranges::max_element(pass_devices, {}, &impl::HeadlessDeviceInfo::rank);
-		assert(best_device_iter != pass_devices.end());
+		ASSERT(best_device_iter != pass_devices.end());
 		auto best_device = std::move(*best_device_iter);
 
 		auto device_result = best_device.create_device();
@@ -128,7 +128,7 @@ namespace vulkan
 		/* Find best device and create */
 
 		auto best_device_iter = std::ranges::max_element(pass_devices, {}, &impl::SurfaceDeviceInfo::rank);
-		assert(best_device_iter != pass_devices.end());
+		ASSERT(best_device_iter != pass_devices.end());
 		auto best_device = std::move(*best_device_iter);
 
 		auto device_result = best_device.create_device();

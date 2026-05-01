@@ -127,9 +127,6 @@ namespace vulkan::impl
 		case vk::PhysicalDeviceType::eDiscreteGpu:
 			break;
 
-		case vk::PhysicalDeviceType::eOther:
-		case vk::PhysicalDeviceType::eVirtualGpu:
-		case vk::PhysicalDeviceType::eCpu:
 		default:
 			return Error(
 				"Hardware acceleration unavailable",

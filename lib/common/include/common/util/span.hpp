@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <libassert/assert.hpp>
 #include <memory>
 #include <ranges>
 #include <span>
@@ -68,8 +69,8 @@ namespace util
 	[[nodiscard]]
 	std::span<const T> from_bytes(std::span<const std::byte> bytes) noexcept
 	{
-		assert(bytes.size() % sizeof(T) == 0);
-		assert(reinterpret_cast<uintptr_t>(bytes.data()) % alignof(T) == 0);
+		ASSUME(bytes.size() % sizeof(T) == 0);
+		ASSUME(reinterpret_cast<uintptr_t>(bytes.data()) % alignof(T) == 0);
 
 		auto ptr = reinterpret_cast<const T*>(std::assume_aligned<alignof(T)>(bytes.data()));
 		auto size = bytes.size() / sizeof(T);
@@ -89,8 +90,8 @@ namespace util
 	[[nodiscard]]
 	std::span<T> from_writable_bytes(std::span<std::byte> bytes) noexcept
 	{
-		assert(bytes.size() % sizeof(T) == 0);
-		assert(reinterpret_cast<uintptr_t>(bytes.data()) % alignof(T) == 0);
+		ASSUME(bytes.size() % sizeof(T) == 0);
+		ASSUME(reinterpret_cast<uintptr_t>(bytes.data()) % alignof(T) == 0);
 
 		auto ptr = reinterpret_cast<T*>(std::assume_aligned<alignof(T)>(bytes.data()));
 		auto size = bytes.size() / sizeof(T);

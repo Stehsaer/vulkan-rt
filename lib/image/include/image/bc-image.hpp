@@ -58,7 +58,7 @@ namespace image
 		[[nodiscard]]
 		auto& block_at(this auto& self, glm::u32vec2 block_coord) noexcept
 		{
-			assert(block_coord.x < self.size.x && block_coord.y < self.size.y);
+			ASSUME(block_coord.x < self.size.x && block_coord.y < self.size.y);
 			return self.data[block_coord.y * self.size.x + block_coord.x];
 		}
 

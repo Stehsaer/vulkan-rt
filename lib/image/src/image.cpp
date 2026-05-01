@@ -7,7 +7,7 @@ namespace image
 {
 	uint32_t log2(uint32_t val) noexcept
 	{
-		assert(val > 0);
+		ASSUME(val > 0);
 		return 31 - std::countl_zero(val);
 	};
 

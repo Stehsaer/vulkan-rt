@@ -55,7 +55,7 @@ namespace image
 		Image(glm::u32vec2 size) noexcept :
 			Container<Pixel<T, L>>{.size = size, .data = std::vector<Pixel<T, L>>(size.x * size.y)}
 		{
-			assert(size.x > 0 && size.y > 0);
+			ASSUME(size.x > 0 && size.y > 0);
 		}
 
 		///
@@ -70,7 +70,7 @@ namespace image
 				.data = std::vector<Pixel<T, L>>(size.x * size.y, fill_value)
 			}
 		{
-			assert(size.x > 0 && size.y > 0);
+			ASSUME(size.x > 0 && size.y > 0);
 		}
 
 		///
@@ -83,8 +83,8 @@ namespace image
 		Image(glm::u32vec2 size, std::vector<Pixel<T, L>> data) noexcept :
 			Container<Pixel<T, L>>{.size = size, .data = std::move(data)}
 		{
-			assert(size.x > 0 && size.y > 0);
-			assert(this->data.size() == size.x * size.y);
+			ASSUME(size.x > 0 && size.y > 0);
+			ASSUME(this->data.size() == size.x * size.y);
 		}
 
 		///
@@ -101,8 +101,8 @@ namespace image
 				.data = std::vector<Pixel<T, L>>(std::from_range, std::forward<Range&&>(range))
 			}
 		{
-			assert(size.x > 0 && size.y > 0);
-			assert(this->data.size() == size.x * size.y);
+			ASSUME(size.x > 0 && size.y > 0);
+			ASSUME(this->data.size() == size.x * size.y);
 		}
 
 		/*===== Functions =====*/

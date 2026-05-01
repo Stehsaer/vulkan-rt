@@ -9,6 +9,7 @@
 #include <coro/thread_pool.hpp>
 #include <expected>
 #include <glm/glm.hpp>
+#include <libassert/assert.hpp>
 
 namespace model::obj::impl
 {
@@ -24,12 +25,12 @@ namespace model::obj::impl
 	{
 		if constexpr (L == 2)
 		{
-			assert(std::cmp_less(idx * 2 + 1, attributes.size()));
+			ASSUME(std::cmp_less(idx * 2 + 1, attributes.size()));
 			return {attributes[idx * 2], attributes[idx * 2 + 1]};
 		}
 		else  // L == 3
 		{
-			assert(std::cmp_less(idx * 3 + 2, attributes.size()));
+			ASSUME(std::cmp_less(idx * 3 + 2, attributes.size()));
 			return {attributes[idx * 3], attributes[idx * 3 + 1], attributes[idx * 3 + 2]};
 		}
 	}

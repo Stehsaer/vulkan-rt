@@ -1,4 +1,5 @@
 #include "scene/page.hpp"
+#include <libassert/assert.hpp>
 
 namespace scene
 {
@@ -28,7 +29,7 @@ namespace scene
 				return {};
 
 			default:
-				return Error("Invalid page result");
+				UNREACHABLE("Invalid page result enum", result->tag());
 			}
 		}
 

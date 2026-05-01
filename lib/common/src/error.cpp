@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <filesystem>
+#include <libassert/assert.hpp>
 #include <system_error>
 #include <vulkan/vulkan_to_string.hpp>
 
@@ -49,7 +50,7 @@ const Error& Error::root() const noexcept
 {
 	const auto error_chain = chain();
 	const auto dist = std::distance(error_chain.begin(), error_chain.end());
-	assert(dist >= 1);
+	ASSUME(dist >= 1);
 
 	return *std::next(error_chain.begin(), dist - 1);
 }

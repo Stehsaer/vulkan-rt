@@ -9,8 +9,9 @@ namespace render::impl
 		case model::Filter::Nearest:
 			return vk::Filter::eNearest;
 		case model::Filter::Linear:
-		default:
 			return vk::Filter::eLinear;
+		default:
+			UNREACHABLE("Invalid filter mode", filter);
 		}
 	}
 
@@ -21,8 +22,9 @@ namespace render::impl
 		case model::Filter::Nearest:
 			return vk::SamplerMipmapMode::eNearest;
 		case model::Filter::Linear:
-		default:
 			return vk::SamplerMipmapMode::eLinear;
+		default:
+			UNREACHABLE("Invalid filter mode", filter);
 		}
 	}
 
@@ -35,8 +37,9 @@ namespace render::impl
 		case model::Wrap::MirroredRepeat:
 			return vk::SamplerAddressMode::eMirroredRepeat;
 		case model::Wrap::ClampToEdge:
-		default:
 			return vk::SamplerAddressMode::eClampToEdge;
+		default:
+			UNREACHABLE("Invalid wrap mode", wrap);
 		}
 	}
 }

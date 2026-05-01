@@ -59,7 +59,7 @@ namespace render
 		[[nodiscard]]
 		Ref ref() const noexcept
 		{
-			assert(is_complete());
+			ASSUME(is_complete());
 			return Ref{
 				.depth = depth->ref(),
 				.hdr = hdr->ref(),

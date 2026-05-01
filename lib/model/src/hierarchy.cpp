@@ -1,6 +1,7 @@
 #include "model/hierarchy.hpp"
 #include <algorithm>
 #include <functional>
+#include <libassert/assert.hpp>
 #include <queue>
 #include <ranges>
 #include <utility>
@@ -161,7 +162,7 @@ namespace model
 		auto bfs_result = get_bfs(double_linked_nodes);
 		if (!bfs_result) return bfs_result.error();
 		auto bfs_indices = std::move(*bfs_result);
-		assert(bfs_indices.size() == double_linked_nodes.size());
+		DEBUG_ASSERT(bfs_indices.size() == double_linked_nodes.size());
 
 		auto renderable_nodes = find_renderable_nodes(double_linked_nodes);
 
@@ -234,7 +235,7 @@ namespace model
 		if (!bfs_result) return bfs_result.error();
 		auto bfs_indices = std::move(*bfs_result);
 
-		assert(bfs_indices.size() == double_linked_nodes.size());
+		DEBUG_ASSERT(bfs_indices.size() == double_linked_nodes.size());
 
 		auto renderable_nodes = find_renderable_nodes(double_linked_nodes);
 

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <bc7enc.h>
+#include <libassert/assert.hpp>
 #include <mutex>
 #include <rgbcx.h>
 #include <stb_dxt/stb_dxt.h>
@@ -155,7 +156,7 @@ namespace image
 		case BCnFormat::BC7:
 			return encode_bc7(raw_image);
 		default:
-			return Error("Invalid argument", std::format("(BCnFormat) {}", static_cast<int>(format)));
+			UNREACHABLE("Invalid BCnFormat", format);
 		}
 	}
 }

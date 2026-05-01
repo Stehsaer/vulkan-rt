@@ -99,7 +99,8 @@ float4 main_fragment(VertexData vertex, bool is_front_face: SV_IsFrontFace, floa
 		* float2(material_info.param.roughness_factor, material_info.param.metallic_factor);
 
 	let directional_light = pbr::DirectionalLight(normalize(primary_light.direction), primary_light.light);
-	let pbr_material = pbr::Material(normal, albedo.rgb, roughness_metallic.y, roughness_metallic.x);
+	let pbr_material =
+		pbr::Material(normal, albedo.rgb, roughness_metallic.y, clamp(roughness_metallic.x, 0.04, 1.0));
 	let view_dir = normalize(camera.camera_pos - vertex.position);
 
 	let direct_color = max(0.0, pbr::gltf(directional_light, pbr_material, view_dir));

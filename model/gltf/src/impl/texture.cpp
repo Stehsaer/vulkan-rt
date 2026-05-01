@@ -144,8 +144,10 @@ namespace model::gltf::impl
 			return {Filter::Nearest, Filter::Linear};
 
 		case fastgltf::Filter::LinearMipMapLinear:
-		default:
 			return {Filter::Linear, Filter::Linear};
+
+		default:
+			UNREACHABLE("Invalid fastgltf filter mode", filter);
 		}
 	}
 

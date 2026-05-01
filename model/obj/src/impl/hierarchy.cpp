@@ -1,5 +1,7 @@
 #include "hierarchy.hpp"
 
+#include <libassert/assert.hpp>
+
 namespace model::obj::impl
 {
 	Hierarchy create_hierarchy(uint32_t mesh_count) noexcept
@@ -15,7 +17,7 @@ namespace model::obj::impl
 						   }));
 
 		auto result = Hierarchy::create(nodes);
-		assert(result.has_value());  // Should succeed
+		ASSERT(result.has_value());  // Should succeed
 
 		return std::move(*result);
 	}

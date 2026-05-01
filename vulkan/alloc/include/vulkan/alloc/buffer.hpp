@@ -169,7 +169,7 @@ namespace vulkan
 		[[nodiscard]]
 		std::expected<void, Error> upload(std::span<const T> elements, size_t dst_offset = 0) const noexcept
 		{
-			assert(dst_offset + elements.size() <= element_count);
+			ASSUME(dst_offset + elements.size() <= element_count);
 			return buffer.upload(std::as_bytes(elements), dst_offset * sizeof(T));
 		}
 
@@ -182,7 +182,7 @@ namespace vulkan
 		[[nodiscard]]
 		std::expected<void, Error> download(std::span<T> elements, size_t src_offset = 0) const noexcept
 		{
-			assert(src_offset + elements.size() <= element_count);
+			ASSUME(src_offset + elements.size() <= element_count);
 			return buffer.download(std::as_bytes(elements), src_offset * sizeof(T));
 		}
 

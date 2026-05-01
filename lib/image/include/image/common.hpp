@@ -27,7 +27,7 @@ namespace image
 		auto& operator[](this auto& self, uint32_t x, uint32_t y)
 			requires(IndexablePixel<T>)
 		{
-			assert(x < self.size.x && y < self.size.y);
+			ASSUME(x < self.size.x && y < self.size.y);
 			return self.data[y * self.size.x + x];
 		}
 
@@ -35,7 +35,7 @@ namespace image
 		auto& operator[](this auto& self, glm::u32vec2 coord)
 			requires(IndexablePixel<T>)
 		{
-			assert(coord.x < self.size.x && coord.y < self.size.y);
+			ASSUME(coord.x < self.size.x && coord.y < self.size.y);
 			return self.data[coord.y * self.size.x + coord.x];
 		}
 
@@ -43,7 +43,7 @@ namespace image
 		auto row(this auto& self, uint32_t y)
 			requires(IndexablePixel<T>)
 		{
-			assert(y < self.size.y);
+			ASSUME(y < self.size.y);
 			return std::span(self.data).subspan(y * self.size.x, self.size.x);
 		}
 	};
