@@ -396,25 +396,39 @@ namespace vulkan::impl
 		return std::make_tuple(std::move(device), render_queue, present_queue);
 	}
 
-	std::variant<HeadlessDeviceInfo, FailInfo> check_headless_device(
+	std::expected<HeadlessDeviceInfo, FailInfo> check_headless_device(
 		const vk::raii::PhysicalDevice& phy_device,
 		const DeviceOption& option
 	) noexcept
 	{
 		if (const auto check_result = check_device_constraints(phy_device, option); !check_result)
-			return FailInfo{.phy_device = phy_device, .error = check_result.error()};
+			return std::unexpected<FailInfo>({
+				.phy_device = phy_device,
+				.error = check_result.error(),
+			});
 
 		auto extensions_result = find_device_extensions(phy_device, option, false);
-		if (!extensions_result) return FailInfo{.phy_device = phy_device, .error = extensions_result.error()};
+		if (!extensions_result)
+			return std::unexpected<FailInfo>({
+				.phy_device = phy_device,
+				.error = extensions_result.error(),
+			});
 		auto extensions = std::move(*extensions_result);
 
 		auto features_result = find_device_features(phy_device, option);
-		if (!features_result) return FailInfo{.phy_device = phy_device, .error = extensions_result.error()};
+		if (!features_result)
+			return std::unexpected<FailInfo>({
+				.phy_device = phy_device,
+				.error = extensions_result.error(),
+			});
 		auto features = std::move(*features_result);
 
 		auto render_queue_result = find_render_queue(phy_device);
 		if (!render_queue_result)
-			return FailInfo{.phy_device = phy_device, .error = extensions_result.error()};
+			return std::unexpected<FailInfo>({
+				.phy_device = phy_device,
+				.error = extensions_result.error(),
+			});
 		const auto render_queue = *render_queue_result;
 
 		const auto rank = rank_device(phy_device);
@@ -428,31 +442,48 @@ namespace vulkan::impl
 		};
 	}
 
-	std::variant<SurfaceDeviceInfo, FailInfo> check_surface_device(
+	std::expected<SurfaceDeviceInfo, FailInfo> check_surface_device(
 		const vk::raii::PhysicalDevice& phy_device,
 		const SurfaceInstanceContext& instance,
 		const DeviceOption& option
 	) noexcept
 	{
 		if (const auto check_result = check_device_constraints(phy_device, option); !check_result)
-			return FailInfo{.phy_device = phy_device, .error = check_result.error()};
+			return std::unexpected<FailInfo>({
+				.phy_device = phy_device,
+				.error = check_result.error(),
+			});
 
 		auto extensions_result = find_device_extensions(phy_device, option, true);
-		if (!extensions_result) return FailInfo{.phy_device = phy_device, .error = extensions_result.error()};
+		if (!extensions_result)
+			return std::unexpected<FailInfo>({
+				.phy_device = phy_device,
+				.error = extensions_result.error(),
+			});
 		auto extensions = std::move(*extensions_result);
 
 		auto features_result = find_device_features(phy_device, option);
-		if (!features_result) return FailInfo{.phy_device = phy_device, .error = extensions_result.error()};
+		if (!features_result)
+			return std::unexpected<FailInfo>({
+				.phy_device = phy_device,
+				.error = extensions_result.error(),
+			});
 		auto features = std::move(*features_result);
 
 		auto render_queue_result = find_render_queue(phy_device);
 		if (!render_queue_result)
-			return FailInfo{.phy_device = phy_device, .error = extensions_result.error()};
+			return std::unexpected<FailInfo>({
+				.phy_device = phy_device,
+				.error = extensions_result.error(),
+			});
 		const auto render_queue = *render_queue_result;
 
 		auto present_queue_result = find_present_queue(phy_device, instance->surface, render_queue);
 		if (!present_queue_result)
-			return FailInfo{.phy_device = phy_device, .error = present_queue_result.error()};
+			return std::unexpected<FailInfo>({
+				.phy_device = phy_device,
+				.error = present_queue_result.error(),
+			});
 		const auto present_queue = *present_queue_result;
 
 		const auto rank = rank_device(phy_device);

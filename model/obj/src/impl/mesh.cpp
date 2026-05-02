@@ -1,5 +1,6 @@
 #include "mesh.hpp"
 #include "common/util/arithmetic-functor.hpp"
+#include "common/util/unpack.hpp"
 
 namespace model::obj::impl
 {
@@ -12,19 +13,19 @@ namespace model::obj::impl
 		// Bind indices with material IDs
 		auto face_material_list = std::vector(
 			std::from_range,
-			mesh.material_ids | std::views::enumerate | std::views::transform([&mesh](const auto& pair) {
-				const auto [face_index, face_material_id] = pair;
+			mesh.material_ids
+				| std::views::enumerate
+				| std::views::transform([&mesh](size_t face_index, int face_material_id) {
+					  const auto indices = std::to_array(
+						  {mesh.indices[face_index * 3],
+						   mesh.indices[face_index * 3 + 1],
+						   mesh.indices[face_index * 3 + 2]}
+					  );
+					  const auto key =
+						  face_material_id < 0 ? std::nullopt : std::optional<uint32_t>(face_material_id);
 
-				const auto indices = std::to_array(
-					{mesh.indices[face_index * 3],
-					 mesh.indices[face_index * 3 + 1],
-					 mesh.indices[face_index * 3 + 2]}
-				);
-				const auto key =
-					face_material_id < 0 ? std::nullopt : std::optional<uint32_t>(face_material_id);
-
-				return std::make_pair(key, indices);
-			})
+					  return std::make_pair(key, indices);
+				  } | ::util::tuple_args)
 		);
 
 		// Sort by material ids

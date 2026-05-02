@@ -4,7 +4,6 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/vector_relational.hpp>
 #include <meshoptimizer.h>
-#include <print>
 #include <ranges>
 
 namespace model

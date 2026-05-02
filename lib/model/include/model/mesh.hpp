@@ -2,6 +2,7 @@
 
 #include "common/util/arithmetic-functor.hpp"
 #include "common/util/error.hpp"
+
 #include <glm/glm.hpp>
 #include <optional>
 #include <vulkan/vulkan.hpp>

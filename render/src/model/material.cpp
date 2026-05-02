@@ -1,4 +1,5 @@
 #include "render/model/material.hpp"
+#include "common/util/unpack.hpp"
 #include "model/material-collector.hpp"
 #include "model/material.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
@@ -206,14 +207,13 @@ namespace render
 
 			const auto binding1_image_infos =
 				combined
-				| std::views::transform([](const auto& pair) {
-					  const auto& [texture, sampler] = pair;
+				| std::views::transform([](const auto& texture, const auto& sampler) {
 					  return vk::DescriptorImageInfo{
 						  .sampler = sampler,
 						  .imageView = texture,
 						  .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 					  };
-				  })
+				  } | util::tuple_args)
 				| std::ranges::to<std::vector>();
 			const auto binding1_write_info =
 				vk::WriteDescriptorSet()

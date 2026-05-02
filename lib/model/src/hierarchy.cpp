@@ -1,4 +1,5 @@
 #include "model/hierarchy.hpp"
+#include "common/util/unpack.hpp"
 #include <algorithm>
 #include <functional>
 #include <libassert/assert.hpp>
@@ -105,17 +106,15 @@ namespace model
 	{
 		return double_linked_nodes
 			| std::views::enumerate
-			| std::views::filter([](const auto& pair) {
-				   const auto [idx, node] = pair;
+			| std::views::filter([](size_t, const FullNode& node) {
 				   return node.data.mesh_index.has_value();
-			   })
-			| std::views::transform([](const auto& tup) {
-				   const auto [idx, node] = tup;
+			   } | util::tuple_args)
+			| std::views::transform([](size_t idx, const FullNode& node) {
 				   return Drawcall{
 					   .node_index = static_cast<uint32_t>(idx),
 					   .mesh_index = node.data.mesh_index.value()
 				   };
-			   })
+			   } | util::tuple_args)
 			| std::ranges::to<std::vector>();
 	}
 

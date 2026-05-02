@@ -30,15 +30,11 @@ namespace vulkan
 
 		for (const auto& phy_device : phy_devices)
 		{
-			std::visit(
-				[&pass_devices, &fail_devices]<typename T>(T result) {
-					if constexpr (std::same_as<T, impl::HeadlessDeviceInfo>)
-						pass_devices.emplace_back(std::move(result));
-					else
-						fail_devices.emplace_back(std::move(result));
-				},
-				impl::check_headless_device(phy_device, option)
-			);
+			auto check_result = impl::check_headless_device(phy_device, option);
+			if (check_result)
+				pass_devices.emplace_back(std::move(check_result.value()));
+			else
+				fail_devices.emplace_back(std::move(check_result.error()));
 		}
 
 		if (pass_devices.empty())
@@ -100,15 +96,11 @@ namespace vulkan
 
 		for (const auto& phy_device : phy_devices)
 		{
-			std::visit(
-				[&pass_devices, &fail_devices]<typename T>(T result) {
-					if constexpr (std::same_as<T, impl::SurfaceDeviceInfo>)
-						pass_devices.emplace_back(std::move(result));
-					else
-						fail_devices.emplace_back(std::move(result));
-				},
-				impl::check_surface_device(phy_device, context, option)
-			);
+			auto check_result = impl::check_surface_device(phy_device, context, option);
+			if (check_result)
+				pass_devices.emplace_back(std::move(check_result.value()));
+			else
+				fail_devices.emplace_back(std::move(check_result.error()));
 		}
 
 		if (pass_devices.empty())

@@ -2,7 +2,6 @@
 
 #include <coro/coro.hpp>
 #include <filesystem>
-#include <mutex>
 
 #include "common/util/async.hpp"
 #include "common/util/error.hpp"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/util/error.hpp"
+
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 

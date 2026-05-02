@@ -1,69 +1,46 @@
-Checks: "
-  modernize-*,
-  bugprone-*,
-  readability-*,
-  performance-*,
-  misc-*,
+Checks: " modernize-*, bugprone-*, readability-*, performance-*, misc-*,
 
   modernize-use-nodiscard,
 
   cppcoreguidelines-slicing,
   cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   cppcoreguidelines-pro-bounds-pointer-arithmetic,
-  cppcoreguidelines-pro-type-const-cast,
-  cppcoreguidelines-pro-type-cstyle-cast,
+  cppcoreguidelines-pro-type-const-cast, cppcoreguidelines-pro-type-cstyle-cast,
   cppcoreguidelines-rvalue-reference-param-not-moved,
   cppcoreguidelines-virtual-class-destructor,
   cppcoreguidelines-avoid-capturing-lambda-coroutines,
-  cppcoreguidelines-no-malloc,
-  cppcoreguidelines-no-suspend-with-lock,
+  cppcoreguidelines-no-malloc, cppcoreguidelines-no-suspend-with-lock,
   cppcoreguidelines-prefer-member-initializer,
 
-  -modernize-use-trailing-return-type,
-  -modernize-loop-convert,
-  -modernize-replace-auto-ptr,
-  -modernize-use-default-member-init,
-  -modernize-use-override,
-  -modernize-avoid-c-arrays,
-  -modernize-avoid-bind,
-  -modernize-type-traits,
-  -bugprone-narrowing-conversions,
+  -modernize-use-trailing-return-type, -modernize-loop-convert,
+  -modernize-replace-auto-ptr, -modernize-use-default-member-init,
+  -modernize-use-override, -modernize-avoid-c-arrays, -modernize-avoid-bind,
+  -modernize-type-traits, -bugprone-narrowing-conversions,
   -bugprone-easily-swappable-parameters,
   -bugprone-implicit-widening-of-multiplication-result,
-  -bugprone-reserved-identifier,
-  -bugprone-exception-escape,
-  -readability-braces-around-statements,
-  -readability-else-after-return,
-  -readability-magic-numbers,
-  -readability-identifier-length,
-  -readability-isolate-declaration,
-  -readability-suspicious-call-argument,
+  -bugprone-reserved-identifier, -bugprone-exception-escape,
+  -readability-braces-around-statements, -readability-else-after-return,
+  -readability-magic-numbers, -readability-identifier-length,
+  -readability-isolate-declaration, -readability-suspicious-call-argument,
   -readability-uppercase-literal-suffix,
-  -readability-convert-member-functions-to-static,
-  -readability-named-parameter,
-  -readability-qualified-auto,
-  -readability-math-missing-parentheses,
-  -performance-no-int-to-ptr,
-  -misc-non-private-member-variables-in-classes,
-  -misc-no-recursion,
-  -misc-unused-parameters,
-  -misc-use-anonymous-namespace,
-  -misc-include-cleaner,
-  -modernize-use-using,
-  -performance-enum-size"
+  -readability-convert-member-functions-to-static, -readability-named-parameter,
+  -readability-qualified-auto, -readability-math-missing-parentheses,
+  -performance-no-int-to-ptr, -misc-non-private-member-variables-in-classes,
+  -misc-no-recursion, -misc-unused-parameters, -misc-use-anonymous-namespace,
+  -misc-include-cleaner, -modernize-use-using, -performance-enum-size"
 
 CheckOptions:
   readability-identifier-naming.ClassCase: CamelCase
-  readability-identifier-naming.ClassIgnoredRegexp: promise_type
+  readability-identifier-naming.ClassIgnoredRegexp: (promise_type|iterator_concept|value_type|difference_type|reference|pointer)
 
   readability-identifier-naming.AbstractClassCase: CamelCase
-  readability-identifier-naming.AbstractClassIgnoredRegexp: promise_type
+  readability-identifier-naming.AbstractClassIgnoredRegexp: (promise_type|iterator_concept|value_type|difference_type|reference|pointer)
 
   readability-identifier-naming.TypeAliasCase: CamelCase
-  readability-identifier-naming.TypeAliasIgnoredRegexp: promise_type
+  readability-identifier-naming.TypeAliasIgnoredRegexp: (promise_type|iterator_concept|value_type|difference_type|reference|pointer)
 
   readability-identifier-naming.StructCase: CamelCase
-  readability-identifier-naming.StructIgnoredRegexp: promise_type
+  readability-identifier-naming.StructIgnoredRegexp: (promise_type|iterator_concept|value_type|difference_type|reference|pointer)
 
   readability-identifier-naming.UnionCase: CamelCase
   readability-identifier-naming.TypeTemplateParameterCase: CamelCase

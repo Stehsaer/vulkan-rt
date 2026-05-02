@@ -1,4 +1,5 @@
 #include "vulkan/util/pool-size.hpp"
+#include "common/util/unpack.hpp"
 
 #include <map>
 #include <ranges>
@@ -21,10 +22,9 @@ namespace vulkan
 		}
 
 		return descriptor_counts
-			| std::views::transform([](const auto& pair) {
-				   const auto& [type, count] = pair;
+			| std::views::transform([](auto type, auto count) {
 				   return vk::DescriptorPoolSize{.type = type, .descriptorCount = count};
-			   })
+			   } | util::tuple_args)
 			| std::ranges::to<std::vector>();
 	}
 }
