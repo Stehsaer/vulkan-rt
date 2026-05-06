@@ -4,7 +4,7 @@
 namespace render
 {
 	std::expected<void, Error> IndirectResource::resize(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		render::PerRenderState<size_t> drawcall_counts
 	) noexcept
 	{

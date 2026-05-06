@@ -15,7 +15,7 @@ TEST_SUITE("Progress")
 		auto [total, current] = ref.get();
 		CHECK(total == 0);
 		CHECK(current == 0);
-		CHECK(ref.get_progress() == 0.0);
+		CHECK(ref.get_progress() == std::nullopt);
 	}
 
 	TEST_CASE("set_total")
@@ -66,10 +66,10 @@ TEST_SUITE("Progress")
 	{
 		const util::Progress progress;
 		auto ref = progress.get_ref();
-		CHECK(ref.get_progress() == 0.0);
+		CHECK(ref.get_progress() == std::nullopt);
 
 		progress.increment(100);
-		CHECK(ref.get_progress() == 0.0);
+		CHECK(ref.get_progress() == std::nullopt);
 	}
 
 	TEST_CASE("multi-threaded concurrency")
@@ -132,7 +132,7 @@ TEST_SUITE("Progress")
 		CHECK(current == 30);
 	}
 
-	TEST_CASE("Progress::Ref non-copy-assignable")
+	TEST_CASE("ProgressRef non-copy-assignable")
 	{
 		const util::Progress progress;
 		auto ref1 = progress.get_ref();

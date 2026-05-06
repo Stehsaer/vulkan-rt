@@ -19,6 +19,8 @@ target("vulkan.context")
 		"lib.common",
 		"vulkan.interface",
 		"vulkan.alloc",
+		"vulkan.numeric",
+		"vulkan.container",
 		{public = true}
 	)
 	add_deps(

@@ -3,7 +3,7 @@
 #include "common/util/error.hpp"
 #include "vulkan/alloc/allocator.hpp"
 #include "vulkan/context/instance.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <utility>
 #include <vulkan/vulkan_raii.hpp>
@@ -58,7 +58,7 @@ namespace vulkan
 		/// @return Device context for rendering and transferring
 		///
 		[[nodiscard]]
-		DeviceContext get() const noexcept
+		Context get() const noexcept
 		{
 			return {
 				.phy_device = *phy_device,
@@ -138,7 +138,7 @@ namespace vulkan
 		/// @return Device context for rendering and transferring
 		///
 		[[nodiscard]]
-		DeviceContext get() const noexcept
+		Context get() const noexcept
 		{
 			return {
 				.phy_device = *phy_device,

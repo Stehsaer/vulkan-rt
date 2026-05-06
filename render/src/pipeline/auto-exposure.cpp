@@ -4,7 +4,7 @@
 #include "shader/auto-exposure/clear.hpp"
 #include "shader/auto-exposure/histogram.hpp"
 #include "shader/auto-exposure/reduce.hpp"
-#include "vulkan/util/pool-size.hpp"
+#include "vulkan/numeric/pool-size.hpp"
 #include "vulkan/util/shader.hpp"
 
 #include <glm/glm.hpp>
@@ -195,7 +195,7 @@ namespace render
 	}
 
 	std::expected<AutoExposurePipeline, Error> AutoExposurePipeline::create(
-		const vulkan::DeviceContext& context
+		const vulkan::Context& context
 	) noexcept
 	{
 		/*===== Descriptor set layout =====*/
@@ -435,8 +435,8 @@ namespace render
 		);
 	}
 
-	std::expected<std::vector<AutoExposurePipeline::ResourceSet>, Error> AutoExposurePipeline::
-		create_resource_sets(const vulkan::DeviceContext& context, uint32_t count) const noexcept
+	std::expected<std::vector<AutoExposurePipeline::ResourceSet>, Error>
+	AutoExposurePipeline::create_resource_sets(const vulkan::Context& context, uint32_t count) const noexcept
 	{
 		const auto bindings = util::array_concat(
 			CLEAR_RESOURCE_BINDINGS,
@@ -521,7 +521,7 @@ namespace render
 	}
 
 	void AutoExposurePipeline::ResourceSet::update(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const vulkan::ElementBufferRef<ExposureParam>& exposure_param,
 		const AutoExposureResource& resource,
 		const AutoExposureResource& prev_resource,

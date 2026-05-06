@@ -1,11 +1,8 @@
-#include "vulkan/util/dyn-buffer.hpp"
+#include "vulkan/container/device/dyn-buffer.hpp"
 
 namespace vulkan
 {
-	std::expected<void, Error> DynBuffer::resize(
-		const vulkan::DeviceContext& context,
-		size_t new_size
-	) noexcept
+	std::expected<void, Error> DynBuffer::resize(const vulkan::Context& context, size_t new_size) noexcept
 	{
 		// Note: exact power of 2 will be rounded up to 3/4 of next power of 2
 		const auto determine_size = [](size_t requested_size) {

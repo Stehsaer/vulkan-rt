@@ -1,4 +1,4 @@
-#include "vulkan/util/linked-struct.hpp"
+#include "vulkan/container/host/linked-struct.hpp"
 
 #include <doctest.h>
 #include <vulkan/vulkan_raii.hpp>

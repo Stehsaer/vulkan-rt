@@ -6,7 +6,7 @@
 #include "render/interface/primitive-drawcall.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/util/staged-buffer.hpp"
+#include "vulkan/container/device/staged-buffer.hpp"
 
 namespace render
 {
@@ -24,7 +24,7 @@ namespace render
 		/// @return Created resource or error
 		///
 		[[nodiscard]]
-		static std::expected<HostParamResource, Error> create(const vulkan::DeviceContext& context) noexcept;
+		static std::expected<HostParamResource, Error> create(const vulkan::Context& context) noexcept;
 
 		///
 		/// @brief Update the resource with new data without actually uploading to GPU
@@ -126,7 +126,7 @@ namespace render
 		///
 		[[nodiscard]]
 		std::expected<void, Error> update(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			PerRenderState<std::span<const PrimitiveDrawcall>> primitive_drawcalls,
 			std::span<const glm::mat4> transforms
 		) noexcept;

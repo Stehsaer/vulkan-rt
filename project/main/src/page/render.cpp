@@ -7,8 +7,8 @@
 #include "render/util/per-render-state.hpp"
 #include "resource/render-resource.hpp"
 #include "resource/sync-primitive.hpp"
-#include "vulkan/util/constants.hpp"
-#include "vulkan/util/glm.hpp"
+#include "vulkan/numeric/base-level.hpp"
+#include "vulkan/numeric/glm.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <expected>
@@ -201,14 +201,14 @@ namespace page
 		};
 	}
 
-	std::expected<RenderPage::SceneData, Error> RenderPage::prepare_scene(glm::u32vec2 extent) noexcept
+	RenderPage::SceneData RenderPage::prepare_scene(glm::u32vec2 extent) noexcept
 	{
 		auto [drawcalls, transforms] = drawcall_generator.compute(model, glm::mat4(1.0f));
 		const auto camera = param.camera.get(extent);
 		const auto primary_light = param.primary_light.get();
 		const auto exposure_param = param.exposure.get(ImGui::GetIO().DeltaTime, extent);
 
-		return RenderPage::SceneData{
+		return {
 			.drawcalls = std::move(drawcalls),
 			.transforms = std::move(transforms),
 			.camera = camera,
@@ -257,8 +257,6 @@ namespace page
 		if (!*acquire_result) return std::nullopt;  // Soft failed, retry next frame
 		const auto frame = **acquire_result;
 
-		/* Check & Recreate */
-
 		/* UI & Scene */
 
 		if (const auto new_frame_result = context.imgui.new_frame(); !new_frame_result)
@@ -269,9 +267,7 @@ namespace page
 		if (const auto render_result = context.imgui.render(); !render_result)
 			return render_result.error().forward("Render ImGui frame failed");
 
-		auto scene_data_result = prepare_scene(frame.swapchain_frame.extent);
-		if (!scene_data_result) return scene_data_result.error().forward("Prepare scene data failed");
-		auto scene_data = *scene_data_result;
+		auto scene_data = prepare_scene(frame.swapchain_frame.extent);
 
 		/* Update & Bind */
 
@@ -308,7 +304,7 @@ namespace page
 			.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-			.image = frame.swapchain.image,
+			.image = frame.swapchain.attachment.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 
@@ -322,7 +318,7 @@ namespace page
 		};
 
 		const auto swapchain_attachment = vk::RenderingAttachmentInfo{
-			.imageView = frame.swapchain.image_view,
+			.imageView = frame.swapchain.attachment.view,
 			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.loadOp = vk::AttachmentLoadOp::eClear,
 			.storeOp = vk::AttachmentStoreOp::eStore,
@@ -352,7 +348,7 @@ namespace page
 			.dstAccessMask = vk::AccessFlagBits2::eNone,
 			.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.newLayout = vk::ImageLayout::ePresentSrcKHR,
-			.image = frame.swapchain.image,
+			.image = frame.swapchain.attachment.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 

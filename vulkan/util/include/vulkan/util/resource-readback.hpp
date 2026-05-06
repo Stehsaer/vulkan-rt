@@ -2,7 +2,7 @@
 
 #include "common/util/error.hpp"
 #include "image/image.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
 
@@ -11,7 +11,7 @@ namespace vulkan
 	namespace impl
 	{
 		std::expected<void, Error> readback_image(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			vk::Image src_image,
 			vk::ImageLayout src_image_layout,
 			vk::Format target_format,
@@ -37,7 +37,7 @@ namespace vulkan
 	///
 	template <image::Format T, image::Layout L>
 	std::expected<image::Image<T, L>, Error> readback_image(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		vk::Image src_image,
 		vk::ImageLayout src_image_layout,
 		vk::Format target_format,

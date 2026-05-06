@@ -5,7 +5,7 @@
 #include "render/internal/auto-exposure.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/alloc/buffer.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 namespace render
 {
@@ -23,9 +23,7 @@ namespace render
 		/// @return Created auto-exposure resource or error
 		///
 		[[nodiscard]]
-		static std::expected<AutoExposureResource, Error> create(
-			const vulkan::DeviceContext& device
-		) noexcept;
+		static std::expected<AutoExposureResource, Error> create(const vulkan::Context& device) noexcept;
 
 		struct Ref
 		{

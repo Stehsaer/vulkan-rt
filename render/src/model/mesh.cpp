@@ -6,7 +6,7 @@
 namespace render
 {
 	std::expected<MeshList, Error> MeshList::create(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		std::span<const model::Mesh> mesh
 	) noexcept
 	{

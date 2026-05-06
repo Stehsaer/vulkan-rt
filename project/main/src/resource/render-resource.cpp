@@ -8,7 +8,7 @@
 
 namespace resource
 {
-	std::expected<RenderResource, Error> RenderResource::create(const vulkan::DeviceContext& context) noexcept
+	std::expected<RenderResource, Error> RenderResource::create(const vulkan::Context& context) noexcept
 	{
 		auto param_result = render::HostParamResource::create(context);
 		if (!param_result) return param_result.error().forward("Create host param resource failed");
@@ -27,7 +27,7 @@ namespace resource
 	}
 
 	std::expected<void, Error> RenderResource::update(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const RenderData& data
 	) noexcept
 	{
@@ -47,7 +47,7 @@ namespace resource
 	}
 
 	std::expected<void, Error> RenderResource::resize(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		glm::u32vec2 extent
 	) noexcept
 	{

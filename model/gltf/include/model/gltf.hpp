@@ -24,7 +24,7 @@ namespace model::gltf
 	using Progress = ::util::SyncedEnumVariant<
 		::util::Tag<ProgressState::Parsing>,
 		::util::Tag<ProgressState::Material>,
-		::util::Tag<ProgressState::Mesh, ::util::Progress::Ref>,
+		::util::Tag<ProgressState::Mesh, ::util::ProgressRef>,
 		::util::Tag<ProgressState::Hierarchy>
 	>;
 

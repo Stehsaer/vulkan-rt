@@ -8,7 +8,7 @@
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
 
@@ -49,7 +49,7 @@ namespace resource
 		/// @return Created render resource or error
 		///
 		[[nodiscard]]
-		static std::expected<RenderResource, Error> create(const vulkan::DeviceContext& context) noexcept;
+		static std::expected<RenderResource, Error> create(const vulkan::Context& context) noexcept;
 
 		///
 		/// @brief Update render resource
@@ -59,10 +59,7 @@ namespace resource
 		/// @return `void` if success, or error
 		///
 		[[nodiscard]]
-		std::expected<void, Error> update(
-			const vulkan::DeviceContext& context,
-			const RenderData& data
-		) noexcept;
+		std::expected<void, Error> update(const vulkan::Context& context, const RenderData& data) noexcept;
 
 		///
 		/// @brief Resize the render resources (typically the render targets)
@@ -72,7 +69,7 @@ namespace resource
 		/// @return `void` if success, or error
 		///
 		[[nodiscard]]
-		std::expected<void, Error> resize(const vulkan::DeviceContext& context, glm::u32vec2 extent) noexcept;
+		std::expected<void, Error> resize(const vulkan::Context& context, glm::u32vec2 extent) noexcept;
 
 		///
 		/// @brief Check if all render targets in the resources are complete (ready to use)

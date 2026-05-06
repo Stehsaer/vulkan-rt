@@ -197,9 +197,9 @@ namespace page
 	}
 
 	template <auto S>
-	static void progress_bar_impl(const util::Tag<S, util::Progress::Ref>& state) noexcept
+	static void progress_bar_impl(const util::Tag<S, util::ProgressRef>& state) noexcept
 	{
-		ImGui::ProgressBar(state.value.get_progress());
+		ImGui::ProgressBar(state.value.get_progress().value_or(0.0));
 	}
 
 	static constexpr auto progress_bar_lambda = [](auto&& state) {

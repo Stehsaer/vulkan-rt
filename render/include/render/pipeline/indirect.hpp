@@ -10,7 +10,7 @@
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 namespace render
 {
@@ -33,7 +33,7 @@ namespace render
 		/// @return Created indirect pipeline, or error
 		///
 		[[nodiscard]]
-		static std::expected<IndirectPipeline, Error> create(const vulkan::DeviceContext& context) noexcept;
+		static std::expected<IndirectPipeline, Error> create(const vulkan::Context& context) noexcept;
 
 		///
 		/// @brief Create a number of resource sets
@@ -44,7 +44,7 @@ namespace render
 		///
 		[[nodiscard]]
 		std::expected<std::vector<ResourceSet>, Error> create_resource_sets(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			uint32_t count
 		) const noexcept;
 
@@ -102,7 +102,7 @@ namespace render
 		/// @param indirect_resource Indirect drawcall resource
 		///
 		void update(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const Model& model,
 			const HostDrawcallResource& drawcall_resource,
 			const IndirectResource& indirect_resource

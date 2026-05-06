@@ -3,7 +3,7 @@
 #include "common/util/error.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/alloc/buffer.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <cstddef>
 #include <vulkan/vulkan_handles.hpp>
@@ -44,7 +44,7 @@ namespace vulkan
 		/// @return Success, or error if resize failed
 		///
 		[[nodiscard]]
-		std::expected<void, Error> resize(const vulkan::DeviceContext& context, size_t new_size) noexcept;
+		std::expected<void, Error> resize(const vulkan::Context& context, size_t new_size) noexcept;
 
 		operator const Buffer&() const noexcept { return buffer.value(); }
 		operator vk::Buffer() const noexcept { return buffer.value(); }
@@ -154,10 +154,7 @@ namespace vulkan
 		/// @return Success, or error if resize failed
 		///
 		[[nodiscard]]
-		std::expected<void, Error> resize(
-			const vulkan::DeviceContext& context,
-			size_t new_size_items
-		) noexcept
+		std::expected<void, Error> resize(const vulkan::Context& context, size_t new_size_items) noexcept
 		{
 			auto result = buffer.resize(context, new_size_items * sizeof(T));
 			if (!result) return result.error().forward("Resize dynamic structured buffer failed");

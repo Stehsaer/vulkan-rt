@@ -1,4 +1,4 @@
-#include "vulkan/util/pool-size.hpp"
+#include "vulkan/numeric/pool-size.hpp"
 #include "common/util/unpack.hpp"
 
 #include <map>

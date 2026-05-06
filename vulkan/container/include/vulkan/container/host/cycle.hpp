@@ -2,7 +2,6 @@
 
 #include <concepts>
 #include <memory>
-#include <optional>
 #include <ranges>
 #include <type_traits>
 #include <vector>
@@ -40,7 +39,7 @@ namespace vulkan
 		requires(std::move_constructible<T>)
 	class Cycle
 	{
-		// `back()` for current frame, `front()` for last frame
+		// `back()` for current frame, `front()` for previous frame
 		std::vector<std::unique_ptr<T>> items;
 
 	  public:
@@ -49,13 +48,6 @@ namespace vulkan
 		Cycle(Cycle&&) = default;
 		Cycle& operator=(const Cycle&) = delete;
 		Cycle& operator=(Cycle&&) = default;
-
-		///
-		/// @brief Create an empty `Cycle`
-		/// @note This is typically used as a placeholder before the actual items are created, e.g. before the
-		/// first acquisition of the swapchain images
-		///
-		Cycle(std::nullopt_t) noexcept {}
 
 		///
 		/// @brief Create a `Cycle` with the given items
@@ -80,6 +72,19 @@ namespace vulkan
 			}
 		};
 
+		///
+		/// @brief Converts a range of elements into a `Cycle`
+		///
+		/// @details
+		/// Used in chained-style creation:
+		///
+		/// ```cpp
+		/// auto image_cycle = foo()
+		/// 	| Error::collect()
+		/// 	| Error::unwrap()
+		/// 	| Cycle::into;
+		/// ```
+		///
 		static constexpr Creator into{};
 
 		///

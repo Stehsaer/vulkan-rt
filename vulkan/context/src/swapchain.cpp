@@ -1,6 +1,7 @@
 #include "vulkan/context/swapchain.hpp"
 #include "common/util/variant.hpp"
-#include "vulkan/util/glm.hpp"
+#include "vulkan/interface/attachment.hpp"
+#include "vulkan/numeric/glm.hpp"
 
 #include <SDL3/SDL_video.h>
 #include <cassert>
@@ -221,13 +222,20 @@ namespace vulkan
 		switch (result)
 		{
 		case vk::Result::eSuccess:
+		{
+			const auto attachment = AttachmentRef{
+				.format = surface_format.format,
+				.image = runtime_state.images.at(idx),
+				.view = runtime_state.image_views.at(idx),
+			};
+
 			return Frame{
 				.extent = runtime_state.extent,
 				.extent_changed = std::exchange(runtime_state.extent_changed, false),
 				.index = idx,
-				.image = runtime_state.images.at(idx),
-				.image_view = runtime_state.image_views.at(idx),
+				.attachment = attachment
 			};
+		}
 
 		case vk::Result::eErrorOutOfDateKHR:
 		case vk::Result::eSuboptimalKHR:

@@ -15,7 +15,8 @@
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/attachment.hpp"
+#include "vulkan/interface/context.hpp"
 
 namespace render
 {
@@ -42,7 +43,7 @@ namespace render
 		///
 		[[nodiscard]]
 		static std::expected<ForwardPipeline, Error> create(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const render::MaterialLayout& material_layout,
 			vk::Format color_format,
 			vk::Format depth_format
@@ -57,7 +58,7 @@ namespace render
 		///
 		[[nodiscard]]
 		std::expected<std::vector<ResourceSet>, Error> create_resource_sets(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			uint32_t count
 		) const noexcept;
 
@@ -81,7 +82,7 @@ namespace render
 		};
 
 		static std::expected<vk::raii::Pipeline, Error> create_pipeline(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const vk::raii::PipelineLayout& pipeline_layout,
 			const vk::raii::ShaderModule& shader_module,
 			vk::Format color_format,
@@ -132,7 +133,7 @@ namespace render
 		/// @param extent Rendering extent
 		///
 		void update(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const Model& model,
 			const vulkan::ElementBufferRef<Camera>& camera_param,
 			const vulkan::ElementBufferRef<DirectLight>& primary_light_param,
@@ -159,8 +160,7 @@ namespace render
 		};
 
 		glm::u32vec2 rendering_extent = {0, 0};
-		vk::Image color_target = nullptr, depth_target = nullptr;
-		vk::ImageView color_target_view = nullptr, depth_target_view = nullptr;
+		vulkan::AttachmentRef color_target = {}, depth_target = {};
 
 		explicit ResourceSet(
 			std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool,

@@ -3,8 +3,8 @@
 #include "common/util/tagged-type.hpp"
 #include "resource/context.hpp"
 #include "resource/sync-primitive.hpp"
+#include "vulkan/container/host/cycle.hpp"
 #include "vulkan/context/swapchain.hpp"
-#include "vulkan/util/cycle.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <vulkan/vulkan_raii.hpp>
@@ -43,7 +43,8 @@ namespace helper
 		/// @param context Vulkan context
 		/// @return Created imgui page or error
 		///
-		static std::expected<ImGuiPage, Error> create(const vulkan::DeviceContext& context) noexcept;
+		[[nodiscard]]
+		static std::expected<ImGuiPage, Error> create(const vulkan::Context& context) noexcept;
 
 		///
 		/// @brief Run frame

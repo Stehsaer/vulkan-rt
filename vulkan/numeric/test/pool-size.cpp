@@ -2,7 +2,7 @@
 #include <ranges>
 #include <vulkan/vulkan.hpp>
 
-#include "vulkan/util/pool-size.hpp"
+#include "vulkan/numeric/pool-size.hpp"
 
 TEST_CASE("Trivial")
 {

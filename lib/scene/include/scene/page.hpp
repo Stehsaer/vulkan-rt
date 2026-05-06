@@ -36,6 +36,7 @@ namespace scene
 		/// @return The result of running the page for one frame, indicating whether to continue, switch page,
 		/// report an error, or quit.
 		///
+		[[nodiscard]]
 		virtual std::expected<ResultType, Error> run_frame() noexcept = 0;
 
 		virtual ~Page() noexcept = default;
@@ -48,6 +49,7 @@ namespace scene
 		/// @retval void Success, quitting the page runner
 		/// @retval Error An error occurred during page execution, with details provided in the error
 		///
+		[[nodiscard]]
 		static std::expected<void, Error> run(std::unique_ptr<Page> initial_page) noexcept;
 
 		///
@@ -55,6 +57,7 @@ namespace scene
 		///
 		/// @return A unique pointer to the page instance.
 		///
+		[[nodiscard]]
 		std::unique_ptr<Page> as_ptr(this auto&& self) noexcept
 		{
 			return std::make_unique<std::remove_cvref_t<decltype(self)>>(std::forward<decltype(self)>(self));

@@ -2,7 +2,7 @@
 
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/util/per-render-state.hpp"
-#include "vulkan/util/dyn-buffer.hpp"
+#include "vulkan/container/device/dyn-buffer.hpp"
 
 namespace render
 {
@@ -24,7 +24,7 @@ namespace render
 		///
 		[[nodiscard]]
 		std::expected<void, Error> resize(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			render::PerRenderState<size_t> drawcall_counts
 		) noexcept;
 

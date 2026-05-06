@@ -29,7 +29,7 @@ namespace vulkan
 		///
 		[[nodiscard]]
 		static std::expected<StagedBuffer, Error> create(
-			const DeviceContext& device_context,
+			const Context& device_context,
 			vk::BufferUsageFlags usage_flags
 		) noexcept
 		{
@@ -165,7 +165,7 @@ namespace vulkan
 		///
 		[[nodiscard]]
 		std::expected<void, Error> update(
-			const vulkan::DeviceContext& device_context,
+			const vulkan::Context& device_context,
 			std::span<const T> data
 		) noexcept
 		{

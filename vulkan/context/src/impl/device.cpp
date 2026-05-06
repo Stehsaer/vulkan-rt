@@ -1,4 +1,5 @@
 #include "impl/device.hpp"
+#include "common/formatter.hpp"
 #include "impl/common.hpp"
 
 #include <map>

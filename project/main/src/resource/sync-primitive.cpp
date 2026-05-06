@@ -2,7 +2,7 @@
 
 namespace resource
 {
-	std::expected<SyncPrimitive, Error> SyncPrimitive::create(const vulkan::DeviceContext& context) noexcept
+	std::expected<SyncPrimitive, Error> SyncPrimitive::create(const vulkan::Context& context) noexcept
 	{
 		auto fence_result =
 			context.device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled})

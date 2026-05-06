@@ -1,5 +1,7 @@
 #include "vulkan/util/static-resource-creator.hpp"
-#include "vulkan/util/constants.hpp"
+#include "common/formatter.hpp"
+#include "vulkan/numeric/base-level.hpp"
+
 #include <utility>
 
 namespace vulkan

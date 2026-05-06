@@ -2,6 +2,7 @@
 
 #include <doctest.h>
 #include <source_location>
+#include <vulkan/vulkan.hpp>
 
 TEST_CASE("Error creation")
 {

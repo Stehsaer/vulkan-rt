@@ -6,8 +6,8 @@
 #include "image/image.hpp"
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/alloc/image.hpp"
-#include "vulkan/interface/common-context.hpp"
-#include "vulkan/util/constants.hpp"
+#include "vulkan/interface/context.hpp"
+#include "vulkan/numeric/base-level.hpp"
 
 #include <functional>
 #include <mutex>
@@ -41,7 +41,7 @@ namespace vulkan
 		///
 		/// @param context Vulkan device context to create resources with
 		///
-		explicit StaticResourceCreator(const DeviceContext& context) noexcept :
+		explicit StaticResourceCreator(const Context& context) noexcept :
 			device(context.device),
 			allocator(context.allocator),
 			transfer_queue(context.queue),

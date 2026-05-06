@@ -28,7 +28,7 @@ TEST_CASE("Normal")
 	EXPECT_SUCCESS(material_list_result);
 }
 
-TEST_CASE("Errneous material")
+TEST_CASE("Erroneous material")
 {
 	/* NOTE: Exit on fail */
 

@@ -4,7 +4,7 @@ namespace render
 {
 	coro::task<std::expected<MeshList, Error>> Model::create_mesh(
 		coro::thread_pool& thread_pool,
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const model::Model& model
 	) noexcept
 	{
@@ -15,7 +15,7 @@ namespace render
 
 	std::pair<coro::task<std::expected<Model, Error>>, std::shared_ptr<const Model::Progress>> Model::create(
 		coro::thread_pool& thread_pool,
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const MaterialLayout& material_layout,
 		const model::Model& model,
 		Option option
@@ -29,7 +29,7 @@ namespace render
 	coro::task<std::expected<Model, Error>> Model::create_impl(
 		coro::thread_pool& thread_pool,
 		std::shared_ptr<Progress> progress,
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const MaterialLayout& material_layout,
 		const model::Model& model,
 		Option option

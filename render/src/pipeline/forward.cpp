@@ -1,8 +1,8 @@
 #include "render/pipeline/forward.hpp"
 #include "shader/forward.hpp"
-#include "vulkan/util/glm.hpp"
-#include "vulkan/util/linked-struct.hpp"
-#include "vulkan/util/pool-size.hpp"
+#include "vulkan/container/host/linked-struct.hpp"
+#include "vulkan/numeric/glm.hpp"
+#include "vulkan/numeric/pool-size.hpp"
 #include "vulkan/util/shader.hpp"
 
 #include <ranges>
@@ -57,7 +57,7 @@ namespace render
 		});
 	}
 	static std::expected<vk::raii::DescriptorSetLayout, Error> create_descriptor_set_layout(
-		const vulkan::DeviceContext& context
+		const vulkan::Context& context
 	) noexcept
 	{
 		constexpr auto bindings = get_descriptor_set_bindings();
@@ -71,7 +71,7 @@ namespace render
 	}
 
 	static std::expected<vk::raii::PipelineLayout, Error> create_pipeline_layout(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		vk::DescriptorSetLayout material_descriptor_set_layout,
 		vk::DescriptorSetLayout data_descriptor_set_layout
 	) noexcept
@@ -127,7 +127,7 @@ namespace render
 	}
 
 	std::expected<vk::raii::Pipeline, Error> ForwardPipeline::create_pipeline(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const vk::raii::PipelineLayout& pipeline_layout,
 		const vk::raii::ShaderModule& shader_module,
 		vk::Format color_format,
@@ -284,7 +284,7 @@ namespace render
 	}
 
 	std::expected<ForwardPipeline, Error> ForwardPipeline::create(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const render::MaterialLayout& material_layout,
 		vk::Format color_format,
 		vk::Format depth_format
@@ -336,7 +336,7 @@ namespace render
 	}
 
 	std::expected<std::vector<ForwardPipeline::ResourceSet>, Error> ForwardPipeline::create_resource_sets(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		uint32_t count
 	) const noexcept
 	{
@@ -408,7 +408,7 @@ namespace render
 				| vk::AccessFlagBits2::eDepthStencilAttachmentRead,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-			.image = resource_set.depth_target,
+			.image = resource_set.depth_target.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eDepth)
 		};
 
@@ -419,7 +419,7 @@ namespace render
 			.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-			.image = resource_set.color_target,
+			.image = resource_set.color_target.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 
@@ -432,7 +432,7 @@ namespace render
 		/*===== Draw =====*/
 
 		const auto swapchain_attachment_info = vk::RenderingAttachmentInfo{
-			.imageView = resource_set.color_target_view,
+			.imageView = resource_set.color_target.view,
 			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.loadOp = vk::AttachmentLoadOp::eClear,
 			.storeOp = vk::AttachmentStoreOp::eStore,
@@ -440,7 +440,7 @@ namespace render
 		};
 
 		const auto depth_attachment_info = vk::RenderingAttachmentInfo{
-			.imageView = resource_set.depth_target_view,
+			.imageView = resource_set.depth_target.view,
 			.imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
 			.loadOp = vk::AttachmentLoadOp::eClear,
 			.storeOp = vk::AttachmentStoreOp::eDontCare,
@@ -516,7 +516,7 @@ namespace render
 			.dstAccessMask = vk::AccessFlagBits2::eShaderRead,
 			.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-			.image = resource_set.color_target,
+			.image = resource_set.color_target.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 
@@ -524,7 +524,7 @@ namespace render
 	}
 
 	void ForwardPipeline::ResourceSet::update(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const Model& model,
 		const vulkan::ElementBufferRef<Camera>& camera_param,
 		const vulkan::ElementBufferRef<DirectLight>& primary_light_param,
@@ -636,9 +636,7 @@ namespace render
 		indirect_buffers = indirect_resource.ref();
 
 		rendering_extent = extent;
-		color_target = forward_resource->hdr.image;
-		depth_target = forward_resource->depth.image;
-		color_target_view = forward_resource->hdr.view;
-		depth_target_view = forward_resource->depth.view;
+		color_target = forward_resource->hdr;
+		depth_target = forward_resource->depth;
 	}
 }

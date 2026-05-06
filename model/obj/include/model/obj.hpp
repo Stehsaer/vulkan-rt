@@ -34,7 +34,7 @@ namespace model::obj
 
 	using Progress = ::util::SyncedEnumVariant<
 		::util::Tag<ProgressState::Parsing>,
-		::util::Tag<ProgressState::ProcessingMesh, ::util::Progress::Ref>,
+		::util::Tag<ProgressState::ProcessingMesh, ::util::ProgressRef>,
 		::util::Tag<ProgressState::ProcessingTextures>
 	>;
 

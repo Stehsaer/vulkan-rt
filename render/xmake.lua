@@ -12,7 +12,15 @@ target("render")
 	add_headerfiles("include/(**.hpp)")
 
 	add_slang_deps("common", "render")
-	add_deps("lib.model", "vulkan.alloc", "vulkan.util", "lib.scene", {public = true})
+	add_deps(
+		"lib.model",
+		"vulkan.alloc",
+		"vulkan.numeric",
+		"vulkan.container",
+		"vulkan.util",
+		"lib.scene",
+		{public = true}
+	)
 	add_packages("libcoro", {public = true})
 
 -- Common library for testing
@@ -25,7 +33,7 @@ target("render.test.model.common")
 	add_headerfiles("test/model/common/include/(**.hpp)")
 	add_packages("doctest", {public = true})
 
-	add_deps("render", "vulkan.test-driver", {public = true})
+	add_deps("render", {public = true})
 
 -- Unit tests for model
 target("render.test.model")

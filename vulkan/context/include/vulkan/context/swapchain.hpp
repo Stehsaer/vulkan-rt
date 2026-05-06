@@ -8,6 +8,7 @@
 #include "common/util/error.hpp"
 #include "vulkan/context/device.hpp"
 #include "vulkan/context/instance.hpp"
+#include "vulkan/interface/attachment.hpp"
 
 namespace vulkan
 {
@@ -22,7 +23,7 @@ namespace vulkan
 	/// @details
 	/// #### Creation
 	/// Call @p create to create a swapchain context. Make sure to create an `SurfaceInstanceContext` and
-	/// `DeviceContext` prior to creating this context.
+	/// `Context` prior to creating this context.
 	///
 	/// #### Swapchain Configuration
 	/// - Swapchain configuration is auto-determined at creation based on the capabilities of the physical
@@ -53,8 +54,7 @@ namespace vulkan
 			glm::u32vec2 extent;
 			bool extent_changed;
 			uint32_t index;
-			vk::Image image;
-			vk::ImageView image_view;
+			AttachmentRef attachment;
 		};
 
 		struct Config

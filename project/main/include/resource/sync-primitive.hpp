@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
@@ -28,6 +28,6 @@ namespace resource
 		/// @return Created sync primitive or error
 		///
 		[[nodiscard]]
-		static std::expected<SyncPrimitive, Error> create(const vulkan::DeviceContext& context) noexcept;
+		static std::expected<SyncPrimitive, Error> create(const vulkan::Context& context) noexcept;
 	};
 }

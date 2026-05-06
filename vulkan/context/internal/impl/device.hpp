@@ -1,8 +1,8 @@
 #pragma once
 
+#include "vulkan/container/host/linked-struct.hpp"
 #include "vulkan/context/device.hpp"
 #include "vulkan/context/instance.hpp"
-#include "vulkan/util/linked-struct.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
 

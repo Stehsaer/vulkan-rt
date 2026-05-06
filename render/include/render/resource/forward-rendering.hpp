@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/util/error.hpp"
-#include "vulkan/interface/common-context.hpp"
-#include "vulkan/util/frame-buffer.hpp"
+#include "vulkan/container/device/frame-buffer.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <optional>
 
@@ -38,15 +38,15 @@ namespace render
 		/// @return `void` if success, or error
 		///
 		[[nodiscard]]
-		std::expected<void, Error> resize(const vulkan::DeviceContext& context, glm::u32vec2 extent) noexcept;
+		std::expected<void, Error> resize(const vulkan::Context& context, glm::u32vec2 extent) noexcept;
 
 		struct Ref
 		{
 			// Depth Target
-			vulkan::FrameBuffer::Ref depth;
+			vulkan::AttachmentRef depth;
 
 			// HDR Target
-			vulkan::FrameBuffer::Ref hdr;
+			vulkan::AttachmentRef hdr;
 
 			const Ref* operator->() const noexcept { return this; }
 		};
@@ -61,8 +61,8 @@ namespace render
 		{
 			ASSUME(is_complete());
 			return Ref{
-				.depth = depth->ref(),
-				.hdr = hdr->ref(),
+				.depth = *depth,
+				.hdr = *hdr,
 			};
 		}
 

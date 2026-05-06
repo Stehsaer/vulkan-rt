@@ -10,11 +10,7 @@
 #include <ranges>
 #include <source_location>
 #include <string>
-
-// IWYU pragma: begin_exports
-#include "common/formatter/vec.hpp"
-#include "common/formatter/vulkan.hpp"
-// IWYU pragma: end_exports
+#include <vector>
 
 ///
 /// @brief Error class, supports error chaining and unwrapping
@@ -351,6 +347,7 @@ class Error
 	/// @param location Source location where the error is forwarded (default: current location)
 	/// @return Functor to forward the error with additional context
 	///
+	[[nodiscard]]
 	static ForwardFunctor forward_func(
 		std::string message,
 		std::source_location location = std::source_location::current()
@@ -367,6 +364,7 @@ class Error
 	/// @param location Source location where the error is forwarded (default: current location)
 	/// @return Functor to forward the error with additional context and detail
 	///
+	[[nodiscard]]
 	static ForwardFunctor forward_func(
 		std::string message,
 		std::string detail,

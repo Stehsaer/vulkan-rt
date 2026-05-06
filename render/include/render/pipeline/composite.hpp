@@ -2,7 +2,7 @@
 
 #include "render/resource/auto-exposure.hpp"
 #include "render/resource/forward-rendering.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -28,7 +28,7 @@ namespace render
 		///
 		[[nodiscard]]
 		static std::expected<CompositePipeline, Error> create(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			vk::Format target_format
 		) noexcept;
 
@@ -41,7 +41,7 @@ namespace render
 		///
 		[[nodiscard]]
 		std::expected<std::vector<ResourceSet>, Error> create_resource_sets(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			uint32_t count
 		) const noexcept;
 
@@ -99,7 +99,7 @@ namespace render
 		/// @param image_size Size of the input and output image
 		///
 		void update(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const AutoExposureResource& exposure_resource,
 			const ForwardRenderResource& forward_resource,
 			glm::u32vec2 image_size

@@ -2,7 +2,7 @@
 
 #include "common/util/error.hpp"
 #include "vulkan/alloc/image.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 namespace resource
 {
@@ -22,6 +22,6 @@ namespace resource
 		/// @return Created resource or error
 		///
 		[[nodiscard]]
-		static std::expected<AuxResource, Error> create(const vulkan::DeviceContext& context) noexcept;
+		static std::expected<AuxResource, Error> create(const vulkan::Context& context) noexcept;
 	};
 }

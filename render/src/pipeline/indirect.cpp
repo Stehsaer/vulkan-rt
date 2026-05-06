@@ -2,7 +2,7 @@
 #include "common/util/array.hpp"
 #include "render/util/per-render-state.hpp"
 #include "shader/indirect.hpp"
-#include "vulkan/util/pool-size.hpp"
+#include "vulkan/numeric/pool-size.hpp"
 #include "vulkan/util/shader.hpp"
 
 #include <ranges>
@@ -51,7 +51,7 @@ namespace render
 	}
 
 	static std::expected<vk::raii::DescriptorSetLayout, Error> create_descriptor_set_layout(
-		const vulkan::DeviceContext& context
+		const vulkan::Context& context
 	) noexcept
 	{
 		constexpr auto bindings = get_descriptor_set_bindings();
@@ -65,7 +65,7 @@ namespace render
 	}
 
 	static std::expected<vk::raii::PipelineLayout, Error> create_pipeline_layout(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const vk::raii::DescriptorSetLayout& data_descriptor_set_layout
 	) noexcept
 	{
@@ -88,9 +88,7 @@ namespace render
 		return std::move(*layout_result);
 	}
 
-	std::expected<IndirectPipeline, Error> IndirectPipeline::create(
-		const vulkan::DeviceContext& context
-	) noexcept
+	std::expected<IndirectPipeline, Error> IndirectPipeline::create(const vulkan::Context& context) noexcept
 	{
 		auto shader_module_result = vulkan::create_shader(context.device, shader::indirect);
 		if (!shader_module_result) return shader_module_result.error().forward("Create shader module failed");
@@ -128,7 +126,7 @@ namespace render
 	}
 
 	std::expected<std::vector<IndirectPipeline::ResourceSet>, Error> IndirectPipeline::create_resource_sets(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		uint32_t count
 	) const noexcept
 	{
@@ -231,7 +229,7 @@ namespace render
 	}
 
 	void IndirectPipeline::ResourceSet::update(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const Model& model,
 		const HostDrawcallResource& drawcall_resource,
 		const IndirectResource& indirect_resource

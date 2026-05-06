@@ -3,9 +3,7 @@
 
 namespace render
 {
-	std::expected<HostParamResource, Error> HostParamResource::create(
-		const vulkan::DeviceContext& context
-	) noexcept
+	std::expected<HostParamResource, Error> HostParamResource::create(const vulkan::Context& context) noexcept
 	{
 		auto camera_buffer_result =
 			vulkan::StagedBuffer<Camera>::create(context, vk::BufferUsageFlagBits::eUniformBuffer);
@@ -77,7 +75,7 @@ namespace render
 	}
 
 	std::expected<void, Error> HostDrawcallResource::update(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		PerRenderState<std::span<const PrimitiveDrawcall>> primitive_drawcalls,
 		std::span<const glm::mat4> transforms
 	) noexcept

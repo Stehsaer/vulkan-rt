@@ -1,4 +1,5 @@
 #include "image/bc-image.hpp"
+#include "common/formatter.hpp"
 
 #include <algorithm>
 #include <bc7enc.h>

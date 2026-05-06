@@ -1,4 +1,5 @@
 #include "vulkan/context/imgui.hpp"
+#include "common/formatter.hpp"
 #include "common/util/error.hpp"
 
 #include <SDL3/SDL_video.h>
@@ -20,7 +21,7 @@ namespace vulkan
 
 	std::expected<ImGuiContext, Error> ImGuiContext::create(
 		const SurfaceInstanceContext& instance_context,
-		const DeviceContext& device_context,
+		const Context& device_context,
 		const Config& config
 	) noexcept
 	{

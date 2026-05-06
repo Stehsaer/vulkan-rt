@@ -4,7 +4,7 @@
 #include "common/util/error.hpp"
 #include "model/material.hpp"
 #include "render/model/texture.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
 
 #include <coro/coro.hpp>
@@ -53,7 +53,7 @@ namespace render
 		static coro::task<std::expected<TextureList, Error>> create(
 			coro::thread_pool& thread_pool,
 			util::Progress progress,
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const model::MaterialList& material_list,
 			LoadOption load_option
 		) noexcept;

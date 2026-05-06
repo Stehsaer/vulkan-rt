@@ -2,9 +2,9 @@
 #include "common/util/construct.hpp"
 #include "render/pipeline/util/fullscreen-pipeline.hpp"
 #include "shader/composite.hpp"
-#include "vulkan/util/glm.hpp"
-#include "vulkan/util/linked-struct.hpp"
-#include "vulkan/util/pool-size.hpp"
+#include "vulkan/container/host/linked-struct.hpp"
+#include "vulkan/numeric/glm.hpp"
+#include "vulkan/numeric/pool-size.hpp"
 #include "vulkan/util/shader.hpp"
 
 namespace render
@@ -34,7 +34,7 @@ namespace render
 	}
 
 	std::expected<CompositePipeline, Error> CompositePipeline::create(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		vk::Format target_format
 	) noexcept
 	{
@@ -145,7 +145,7 @@ namespace render
 	}
 
 	std::expected<std::vector<CompositePipeline::ResourceSet>, Error> CompositePipeline::create_resource_sets(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		uint32_t count
 	) const noexcept
 	{
@@ -216,7 +216,7 @@ namespace render
 	}
 
 	void CompositePipeline::ResourceSet::update(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const AutoExposureResource& exposure_resource,
 		const ForwardRenderResource& forward_resource,
 		glm::u32vec2 image_size

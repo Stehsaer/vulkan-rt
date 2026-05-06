@@ -2,7 +2,7 @@
 
 #include "common/util/error.hpp"
 #include "render/resource/auto-exposure.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
 
@@ -27,9 +27,7 @@ namespace render
 		/// @return Created pipeline or error
 		///
 		[[nodiscard]]
-		static std::expected<AutoExposurePipeline, Error> create(
-			const vulkan::DeviceContext& context
-		) noexcept;
+		static std::expected<AutoExposurePipeline, Error> create(const vulkan::Context& context) noexcept;
 
 		///
 		/// @brief Create a given number of resource sets
@@ -40,7 +38,7 @@ namespace render
 		///
 		[[nodiscard]]
 		std::expected<std::vector<ResourceSet>, Error> create_resource_sets(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			uint32_t count
 		) const noexcept;
 
@@ -118,7 +116,7 @@ namespace render
 		/// @param image_size Image size
 		///
 		void update(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const vulkan::ElementBufferRef<ExposureParam>& exposure_param,
 			const AutoExposureResource& resource,
 			const AutoExposureResource& prev_resource,

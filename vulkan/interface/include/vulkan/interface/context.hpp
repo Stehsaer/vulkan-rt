@@ -8,9 +8,9 @@
 namespace vulkan
 {
 	///
-	/// @brief Primary device context for rendering and transferring
+	/// @brief Common context for rendering and transferring
 	///
-	struct DeviceContext
+	struct Context
 	{
 		const vk::raii::PhysicalDevice& phy_device;
 		const vk::raii::Device& device;

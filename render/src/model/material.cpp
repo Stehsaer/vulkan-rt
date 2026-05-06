@@ -3,7 +3,7 @@
 #include "model/material-collector.hpp"
 #include "model/material.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
 
 #include <expected>
@@ -55,7 +55,7 @@ namespace render
 	namespace
 	{
 		std::expected<vulkan::ArrayBuffer<MaterialInfo>, Error> create_info_buffer(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const std::span<const MaterialInfo> material_infos
 		) noexcept
 		{
@@ -82,7 +82,7 @@ namespace render
 			Error
 		>
 		collect_textures(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const TextureList& texture_list,
 			const model::MaterialList& material_list
 		) noexcept
@@ -231,7 +231,7 @@ namespace render
 	std::pair<coro::task<std::expected<MaterialList, Error>>, std::shared_ptr<const MaterialList::Progress>>
 	MaterialList::create(
 		coro::thread_pool& thread_pool,
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const MaterialLayout& layout,
 		const model::MaterialList& material_list,
 		TextureList::LoadOption texture_load_option
@@ -245,7 +245,7 @@ namespace render
 	coro::task<std::expected<MaterialList, Error>> MaterialList::create_impl(
 		coro::thread_pool& thread_pool,
 		std::shared_ptr<Progress> progress,
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const MaterialLayout& layout,
 		const model::MaterialList& material_list,
 		TextureList::LoadOption texture_load_option

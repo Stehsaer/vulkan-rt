@@ -45,7 +45,7 @@ function _get_filepaths(target, paths, source_path)
 
 	local spv_temp_path = path.join(paths.temp, rel_directory, base_name .. ".spv") 			
 	local header_output_path = path.join(paths.header, rel_directory, base_name .. ".hpp")
-	local object_output_path = target:objectfile(module_name)
+	local object_output_path = target:objectfile(source_path)
 
 	return {
 		source = source_path,
@@ -196,24 +196,7 @@ function prepare_file(target, source_path, opt)
 		and ("::" .. files.rel_directory:gsub("[/\\]", "::"):gsub("[%.%-]", "_")) 
 		or ""
 
-	local header_file_template = [[
-#pragma once
-#include <span>
-
-extern "C" 
-{
-	extern const std::byte %s_start;
-	extern const std::byte %s_end;
-}
-
-namespace shader%s
-{
-	inline static const std::span<const std::byte> %s = {
-		&%s_start,
-		&%s_end
-	};
-}
-	]]
+	local header_file_template = io.readfile(path.join(os.projectdir(), "rule", "slang", "header.txt"))
 
 	local header_file_content = format(
 		header_file_template, 

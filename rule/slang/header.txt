@@ -1,0 +1,16 @@
+#pragma once
+#include <span>
+
+extern "C" 
+{
+	extern const std::byte %s_start;
+	extern const std::byte %s_end;
+}
+
+namespace shader%s
+{
+	inline static const std::span<const std::byte> %s = {
+		&%s_start,
+		&%s_end
+	};
+}

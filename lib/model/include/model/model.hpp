@@ -38,6 +38,7 @@ namespace model
 		/// @param hierarchy Input hierarchy
 		/// @return Verified model, or `Error`
 		///
+		[[nodiscard]]
 		static std::expected<Model, Error> assemble(
 			MaterialList material_list,
 			std::vector<Mesh> meshes,

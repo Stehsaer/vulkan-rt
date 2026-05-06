@@ -12,8 +12,8 @@
 #include "resource/render-resource.hpp"
 #include "resource/sync-primitive.hpp"
 #include "scene/page.hpp"
+#include "vulkan/container/host/cycle.hpp"
 #include "vulkan/context/swapchain.hpp"
-#include "vulkan/util/cycle.hpp"
 
 #include <glm/ext/scalar_constants.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -134,7 +134,7 @@ namespace page
 		std::expected<std::optional<FrameAcquireResult>, Error> acquire_frame() noexcept;
 
 		[[nodiscard]]
-		std::expected<SceneData, Error> prepare_scene(glm::u32vec2 extent) noexcept;
+		SceneData prepare_scene(glm::u32vec2 extent) noexcept;
 
 		[[nodiscard]]
 		std::expected<std::optional<Frame>, Error> prepare_frame() noexcept;

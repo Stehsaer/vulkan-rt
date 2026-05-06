@@ -1,13 +1,13 @@
 #include "helper/imgui-page.hpp"
 #include "config.hpp"
 #include "vulkan/context/swapchain.hpp"
-#include "vulkan/util/constants.hpp"
+#include "vulkan/numeric/base-level.hpp"
 #include <SDL3/SDL_events.h>
 #include <utility>
 
 namespace helper
 {
-	std::expected<ImGuiPage, Error> ImGuiPage::create(const vulkan::DeviceContext& context) noexcept
+	std::expected<ImGuiPage, Error> ImGuiPage::create(const vulkan::Context& context) noexcept
 	{
 		auto command_pool_result =
 			context.device
@@ -110,7 +110,7 @@ namespace helper
 			.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-			.image = frame_context.swapchain.image,
+			.image = frame_context.swapchain.attachment.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 		frame_context.command_buffer.pipelineBarrier2(
@@ -118,7 +118,7 @@ namespace helper
 		);
 
 		const auto swapchain_attachment_info = vk::RenderingAttachmentInfo{
-			.imageView = frame_context.swapchain.image_view,
+			.imageView = frame_context.swapchain.attachment.view,
 			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.loadOp = vk::AttachmentLoadOp::eClear,
 			.storeOp = vk::AttachmentStoreOp::eStore,
@@ -148,7 +148,7 @@ namespace helper
 			.dstAccessMask = {},
 			.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.newLayout = vk::ImageLayout::ePresentSrcKHR,
-			.image = frame_context.swapchain.image,
+			.image = frame_context.swapchain.attachment.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 		frame_context.command_buffer.pipelineBarrier2(

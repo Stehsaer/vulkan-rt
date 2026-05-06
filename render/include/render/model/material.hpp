@@ -5,7 +5,7 @@
 #include "model/material.hpp"
 #include "render/model/texture-list.hpp"
 #include "vulkan/alloc/buffer.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <coro/coro.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -81,7 +81,7 @@ namespace render
 		///
 		using Progress = util::SyncedEnumVariant<
 			util::Tag<ProgressState::Preparing>,
-			util::Tag<ProgressState::TextureList, util::Progress::Ref>,
+			util::Tag<ProgressState::TextureList, util::ProgressRef>,
 			util::Tag<ProgressState::Processing>
 		>;
 
@@ -100,7 +100,7 @@ namespace render
 		static std::pair<coro::task<std::expected<MaterialList, Error>>, std::shared_ptr<const Progress>>
 		create(
 			coro::thread_pool& thread_pool,
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const MaterialLayout& layout,
 			const model::MaterialList& material_list,
 			TextureList::LoadOption texture_load_option
@@ -163,7 +163,7 @@ namespace render
 		static coro::task<std::expected<MaterialList, Error>> create_impl(
 			coro::thread_pool& thread_pool,
 			std::shared_ptr<Progress> progress,
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const MaterialLayout& layout,
 			const model::MaterialList& material_list,
 			TextureList::LoadOption texture_load_option

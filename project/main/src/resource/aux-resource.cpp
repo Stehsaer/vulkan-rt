@@ -1,5 +1,5 @@
 #include "resource/aux-resource.hpp"
-#include "vulkan/util/constants.hpp"
+#include "vulkan/numeric/base-level.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
 
 extern "C"
@@ -15,7 +15,7 @@ extern "C"
 
 namespace resource
 {
-	std::expected<AuxResource, Error> AuxResource::create(const vulkan::DeviceContext& context) noexcept
+	std::expected<AuxResource, Error> AuxResource::create(const vulkan::Context& context) noexcept
 	{
 		auto exposure_mask_image_result =
 			image::Image<image::Format::Unorm8, image::Layout::Grey>::decode(exposure_mask_data);

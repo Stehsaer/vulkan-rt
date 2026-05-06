@@ -4,7 +4,7 @@
 namespace render
 {
 	std::expected<AutoExposureResource, Error> AutoExposureResource::create(
-		const vulkan::DeviceContext& device
+		const vulkan::Context& device
 	) noexcept
 	{
 		auto histogram_buffer_result =

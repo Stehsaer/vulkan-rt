@@ -128,7 +128,7 @@ namespace render
 	coro::task<std::expected<TextureList, Error>> TextureList::create(
 		coro::thread_pool& thread_pool,
 		util::Progress progress,
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const model::MaterialList& material_list,
 		LoadOption load_option
 	) noexcept

@@ -1,7 +1,8 @@
 #include "vulkan/util/resource-readback.hpp"
+#include "common/formatter.hpp"
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/alloc/image.hpp"
-#include "vulkan/util/constants.hpp"
+#include "vulkan/numeric/base-level.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
@@ -108,7 +109,7 @@ namespace vulkan::impl
 	}
 
 	std::expected<void, Error> readback_image(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		vk::Image src_image,
 		vk::ImageLayout src_image_layout,
 		vk::Format target_format,

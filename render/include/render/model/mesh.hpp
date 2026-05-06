@@ -4,7 +4,7 @@
 #include "model/mesh.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/alloc/buffer.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <coro/task.hpp>
 #include <glm/glm.hpp>
@@ -75,7 +75,7 @@ namespace render
 		///
 		[[nodiscard]]
 		static std::expected<MeshList, Error> create(
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			std::span<const model::Mesh> mesh
 		) noexcept;
 

@@ -5,7 +5,7 @@
 namespace resource
 {
 	std::expected<Pipeline, Error> Pipeline::create(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const render::MaterialLayout& material_layout,
 		vk::Format composite_format
 	) noexcept
@@ -44,7 +44,7 @@ namespace resource
 	}
 
 	std::expected<std::vector<ResourceSet>, Error> Pipeline::create_resource_sets(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		uint32_t count
 	) const noexcept
 	{
@@ -87,7 +87,7 @@ namespace resource
 	}
 
 	void ResourceSet::update(
-		const vulkan::DeviceContext& context,
+		const vulkan::Context& context,
 		const render::Model& model,
 		const resource::RenderResource& curr_resource,
 		const resource::RenderResource& prev_resource,

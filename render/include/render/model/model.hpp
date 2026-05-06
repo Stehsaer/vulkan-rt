@@ -4,7 +4,7 @@
 #include "model/model.hpp"
 #include "render/model/material.hpp"
 #include "render/model/mesh.hpp"
-#include "vulkan/interface/common-context.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <coro/task.hpp>
 
@@ -63,7 +63,7 @@ namespace render
 		[[nodiscard]]
 		static std::pair<coro::task<std::expected<Model, Error>>, std::shared_ptr<const Progress>> create(
 			coro::thread_pool& thread_pool,
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const MaterialLayout& material_layout,
 			const model::Model& model,
 			Option option = {}
@@ -96,7 +96,7 @@ namespace render
 		static coro::task<std::expected<Model, Error>> create_impl(
 			coro::thread_pool& thread_pool,
 			std::shared_ptr<Progress> progress,
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const MaterialLayout& material_layout,
 			const model::Model& model,
 			Option option
@@ -105,7 +105,7 @@ namespace render
 		[[nodiscard]]
 		static coro::task<std::expected<MeshList, Error>> create_mesh(
 			coro::thread_pool& thread_pool,
-			const vulkan::DeviceContext& context,
+			const vulkan::Context& context,
 			const model::Model& model
 		) noexcept;
 
