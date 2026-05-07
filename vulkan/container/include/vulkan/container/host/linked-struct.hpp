@@ -1,25 +1,64 @@
 #pragma once
 
-#include <any>
 #include <concepts>
 #include <memory>
 #include <type_traits>
-#include <variant>
 #include <vector>
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.hpp>
 
 namespace vulkan
 {
 	template <typename T>
+	concept VulkanPNextType = std::same_as<std::remove_reference_t<T>, const void*>
+		|| std::same_as<std::remove_reference_t<T>, void*>;
+
+	template <typename T>
 	concept LinkableType =
 		requires(T a) {
-			a.pNext;
-			a.sType;
+			{ a.pNext } -> VulkanPNextType;
+			{ a.sType } -> std::convertible_to<vk::StructureType>;
 		}
 		&& std::copy_constructible<T>
 		&& !std::is_pointer_v<T>
 		&& !std::is_reference_v<T>
 		&& !std::is_const_v<T>;
+
+	namespace impl
+	{
+		struct LinkedNodeBase
+		{
+			virtual ~LinkedNodeBase() = default;
+
+			virtual void set_pnext(void* pnext) noexcept = 0;
+			virtual void* get_void_ptr() noexcept = 0;
+		};
+
+		template <LinkableType T>
+		class LinkedNode : public LinkedNodeBase
+		{
+		  public:
+
+			LinkedNode(const T& val) noexcept :
+				value(val)
+			{}
+
+			void set_pnext(void* pnext) noexcept override { value.pNext = pnext; }
+			void* get_void_ptr() noexcept override { return &value; }
+
+			const T& get() const noexcept { return value; }
+
+		  private:
+
+			T value;
+
+		  public:
+
+			LinkedNode(const LinkedNode&) = delete;
+			LinkedNode(LinkedNode&&) = delete;
+			LinkedNode& operator=(const LinkedNode&) = delete;
+			LinkedNode& operator=(LinkedNode&&) = delete;
+		};
+	}
 
 	///
 	/// @brief Helper for dynamically linking Vulkan structures
@@ -46,9 +85,8 @@ namespace vulkan
 	template <LinkableType Primary>
 	class LinkedStruct
 	{
-		std::unique_ptr<Primary> primary;
-		std::vector<std::any> linked_structs;
-		std::vector<std::variant<void**, const void**>> pnext_ptrs;
+		std::unique_ptr<impl::LinkedNode<Primary>> primary;
+		std::vector<std::unique_ptr<impl::LinkedNodeBase>> secondary_nodes;
 
 	  public:
 
@@ -58,14 +96,26 @@ namespace vulkan
 		LinkedStruct& operator=(LinkedStruct&&) = default;
 
 		///
-		/// @brief Construct a new struct linker by providing the primary structure
+		/// @brief Construct a new linked struct by providing the primary struct
 		///
-		/// @param primary_struct Primary structure
+		/// @param primary_struct Primary struct
 		///
 		LinkedStruct(const Primary& primary_struct) noexcept :
-			primary(std::make_unique<Primary>(primary_struct))
+			primary(std::make_unique<impl::LinkedNode<Primary>>(primary_struct))
+		{}
+
+		///
+		/// @brief Construct a new linked struct by providing the primary and secondary structs
+		///
+		/// @tparam T Types of secondary structs
+		/// @param primary_struct Primary struct
+		/// @param secondary_structs Secondary structs
+		///
+		template <LinkableType... T>
+		LinkedStruct(const Primary& primary_struct, const T&... secondary_structs) :
+			LinkedStruct(primary_struct)
 		{
-			pnext_ptrs.push_back(&this->primary->pNext);
+			(push(secondary_structs), ...);
 		}
 
 		///
@@ -78,12 +128,14 @@ namespace vulkan
 		template <LinkableType T>
 		auto push(this auto&& self, const T& new_struct) noexcept -> decltype(self)
 		{
-			std::shared_ptr<T> struct_ptr = std::make_shared<T>(new_struct);
+			impl::LinkedNodeBase& prev_node =
+				self.secondary_nodes.empty() ? *self.primary : *self.secondary_nodes.back();
 
-			std::visit([&](auto&& ptr) { *ptr = struct_ptr.get(); }, self.pnext_ptrs.back());
-			self.pnext_ptrs.push_back(&struct_ptr->pNext);
+			self.secondary_nodes.push_back(std::make_unique<impl::LinkedNode<T>>(new_struct));
+			impl::LinkedNodeBase& node = *self.secondary_nodes.back();
 
-			self.linked_structs.push_back(std::make_any<std::shared_ptr<T>>(struct_ptr));
+			prev_node.set_pnext(node.get_void_ptr());
+			node.set_pnext(nullptr);
 
 			return std::forward<decltype(self)>(self);
 		}
@@ -97,11 +149,11 @@ namespace vulkan
 		[[nodiscard]]
 		bool try_pop() noexcept
 		{
-			if (linked_structs.empty()) return false;
-			linked_structs.pop_back();
+			if (secondary_nodes.empty()) return false;
+			secondary_nodes.pop_back();
 
-			pnext_ptrs.pop_back();
-			std::visit([&](auto&& ptr) { *ptr = nullptr; }, pnext_ptrs.back());
+			impl::LinkedNodeBase& prev_node = secondary_nodes.empty() ? *primary : *secondary_nodes.back();
+			prev_node.set_pnext(nullptr);
 
 			return true;
 		}
@@ -114,7 +166,7 @@ namespace vulkan
 		[[nodiscard]]
 		const Primary& get() const noexcept
 		{
-			return *primary;
+			return primary->get();
 		}
 	};
 }

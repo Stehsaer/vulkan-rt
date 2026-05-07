@@ -173,10 +173,12 @@ namespace vulkan::impl
 		if (!required_features_vulkan12.has_value()) return required_features_vulkan12.error();
 		if (!required_features_vulkan13.has_value()) return required_features_vulkan13.error();
 
-		return vulkan::LinkedStruct(vk::PhysicalDeviceFeatures2{.features = *required_features_vulkan10})
-			.push(*required_features_vulkan11)
-			.push(*required_features_vulkan12)
-			.push(*required_features_vulkan13);
+		return vulkan::LinkedStruct(
+			vk::PhysicalDeviceFeatures2{.features = *required_features_vulkan10},
+			*required_features_vulkan11,
+			*required_features_vulkan12,
+			*required_features_vulkan13
+		);
 	}
 
 	constexpr auto mandatory_device_extensions = std::to_array({vk::KHRShaderNonSemanticInfoExtensionName});

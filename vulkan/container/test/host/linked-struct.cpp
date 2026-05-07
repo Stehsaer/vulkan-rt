@@ -2,6 +2,7 @@
 
 #include <doctest.h>
 #include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan_structs.hpp>
 
 TEST_CASE("Push (Move)")
 {
@@ -41,14 +42,36 @@ TEST_CASE("Push (Non-move)")
 	REQUIRE(features11->pNext == nullptr);
 }
 
+TEST_CASE("Multi-construct")
+{
+	auto linked = vulkan::LinkedStruct(
+		vk::DeviceCreateInfo(),
+		vk::PhysicalDeviceFeatures2(),
+		vk::PhysicalDeviceVulkan11Features()
+	);
+
+	const auto primary = linked.get();
+	REQUIRE(primary.sType == vk::StructureType::eDeviceCreateInfo);
+	REQUIRE(primary.pNext != nullptr);
+
+	const auto features2 = reinterpret_cast<const vk::PhysicalDeviceFeatures2*>(primary.pNext);
+	REQUIRE(features2->sType == vk::StructureType::ePhysicalDeviceFeatures2);
+	REQUIRE(features2->pNext != nullptr);
+
+	const auto features11 = reinterpret_cast<const vk::PhysicalDeviceVulkan11Features*>(features2->pNext);
+	REQUIRE(features11->sType == vk::StructureType::ePhysicalDeviceVulkan11Features);
+	REQUIRE(features11->pNext == nullptr);
+}
+
 TEST_CASE("Pop")
 {
 	SUBCASE("Pop all")
 	{
-		auto linked =
-			vulkan::LinkedStruct(vk::DeviceCreateInfo())
-				.push(vk::PhysicalDeviceFeatures2())
-				.push(vk::PhysicalDeviceVulkan11Features());
+		auto linked = vulkan::LinkedStruct(
+			vk::DeviceCreateInfo(),
+			vk::PhysicalDeviceFeatures2(),
+			vk::PhysicalDeviceVulkan11Features()
+		);
 
 		REQUIRE(linked.try_pop());
 		REQUIRE(linked.try_pop());
@@ -61,10 +84,11 @@ TEST_CASE("Pop")
 
 	SUBCASE("Pop some")
 	{
-		auto linked =
-			vulkan::LinkedStruct(vk::DeviceCreateInfo())
-				.push(vk::PhysicalDeviceFeatures2())
-				.push(vk::PhysicalDeviceVulkan11Features());
+		auto linked = vulkan::LinkedStruct(
+			vk::DeviceCreateInfo(),
+			vk::PhysicalDeviceFeatures2(),
+			vk::PhysicalDeviceVulkan11Features()
+		);
 
 		REQUIRE(linked.try_pop());
 
@@ -77,3 +101,10 @@ TEST_CASE("Pop")
 		REQUIRE(features2->pNext == nullptr);
 	}
 }
+
+static_assert(vulkan::LinkableType<vk::PhysicalDeviceFeatures2>);
+static_assert(vulkan::LinkableType<vk::GraphicsPipelineCreateInfo>);
+static_assert(vulkan::LinkableType<vk::RenderingInfo>);
+static_assert(vulkan::LinkableType<vk::DeviceCreateInfo>);
+static_assert(vulkan::LinkableType<vk::PhysicalDeviceVulkan11Features>);
+static_assert(vulkan::LinkableType<vk::BufferCreateInfo>);
