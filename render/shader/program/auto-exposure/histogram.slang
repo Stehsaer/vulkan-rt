@@ -1,6 +1,7 @@
 import internal.auto_exposure;
 import interop.auto_exposure;
 import algorithm.id_swizzle;
+import sv.compute;
 
 static groupshared uint local_histogram[BINS];
 
@@ -24,12 +25,12 @@ func calc_bin_idx(luminance: float)->uint
 }
 
 [[shader("compute"), numthreads(16, 16, 1)]]
-void main(uint local_linear_idx: SV_GroupIndex, uint2 group_idx: SV_GroupID)
+func main(sv: compute::ShaderVar)
 {
-	let pixel_coord = group_idx * 16 + id_swizzle::swizzle<4, 16>(local_linear_idx);
+	let pixel_coord = sv.global_group_coord.xy * 16 + id_swizzle::swizzle<4, 16>(sv.local_thread_index);
 	let texcoord = (float2(pixel_coord) + 0.5) / float2(exposure_param.image_size);
 
-	local_histogram[local_linear_idx] = 0;
+	local_histogram[sv.local_thread_index] = 0;
 	GroupMemoryBarrier();
 
 	[[branch]]
@@ -46,7 +47,7 @@ void main(uint local_linear_idx: SV_GroupIndex, uint2 group_idx: SV_GroupID)
 
 	GroupMemoryBarrier();
 
-	InterlockedAdd(histogram_buffer[local_linear_idx], local_histogram[local_linear_idx]);
+	InterlockedAdd(histogram_buffer[sv.local_thread_index], local_histogram[sv.local_thread_index]);
 }
 
 

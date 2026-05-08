@@ -12,7 +12,7 @@ struct VertexData
 	float2 texcoord;
 	float3 normal;
 	float4 tangent;
-	nointerpolation uint32_t primitive_id;
+	nointerpolation uint primitive_id;
 };
 
 layout(set = 0) ParameterBlock<model::MaterialList> material_list;
@@ -38,7 +38,7 @@ struct VertexOutput
 };
 
 [[shader("vertex")]]
-VertexOutput main_vertex(model::Vertex vertex, uint32_t instance_id: SV_VulkanInstanceID)
+VertexOutput main_vertex(model::Vertex vertex, uint instance_id: SV_StartInstanceLocation)
 {
 	let indirect_drawcall = indirect_drawcalls[instance_id];
 	let transform = node_transforms[indirect_drawcall.drawcall.node_index];

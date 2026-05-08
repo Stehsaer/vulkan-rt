@@ -1,6 +1,7 @@
 import inter_stage.auto_exposure;
 import interop.auto_exposure;
 import internal.auto_exposure;
+import sv.compute;
 
 layout(set = 0, binding = 0) ConstantBuffer<ExposureParam> exposure_param;
 layout(set = 0, binding = 1) RWStructuredBuffer<uint> histogram_buffer;
@@ -15,7 +16,7 @@ static const float DARK_WEIGHT = 0.3;
 static const float BRIGHT_WEIGHT = 1.0;
 
 [[shader("compute"), numthreads(32, 1, 1), WaveSize(32)]]
-void main(uint thread_id: SV_GroupIndex)
+func main(sv: compute::ShaderVar)
 {
 	/* Percentile reduction */
 
@@ -24,7 +25,7 @@ void main(uint thread_id: SV_GroupIndex)
 	[[unroll(BINS / 32)]]
 	for (uint i = 0; i < BINS / 32; i++)
 	{
-		let idx = i * 32 + thread_id;
+		let idx = i * 32 + sv.local_thread_index;
 		let bin_weight = histogram_buffer[idx];
 
 		let local_cumsum = WavePrefixSum(bin_weight);
@@ -45,7 +46,7 @@ void main(uint thread_id: SV_GroupIndex)
 
 	for (uint i = 0; i < bins_per_thread; i++)
 	{
-		let bin_idx = thread_id * bins_per_thread + i;
+		let bin_idx = sv.local_thread_index * bins_per_thread + i;
 
 		let log_luminance =
 			lerp(exposure_param.min_log_luminance, exposure_param.max_log_luminance, (bin_idx + 0.5) / BINS);

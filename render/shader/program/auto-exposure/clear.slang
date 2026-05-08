@@ -1,11 +1,12 @@
 import internal.auto_exposure;
+import sv.compute;
 
 layout(set = 0, binding = 0) RWStructuredBuffer<uint> histogram_buffer;
 
 [[shader("compute"), numthreads(BINS, 1, 1)]]
-void main(uint thread_id: SV_GroupIndex)
+func main(sv: compute::ShaderVar)
 {
-	histogram_buffer[thread_id] = 0;
+	histogram_buffer[sv.local_thread_index] = 0;
 }
 
 
