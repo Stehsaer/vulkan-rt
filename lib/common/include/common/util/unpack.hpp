@@ -12,8 +12,8 @@ namespace util
 	template <typename F>
 	constexpr auto operator|(F&& func, TupleArgsTag)
 	{
-		return [&func](auto&& tuple) {
-			return std::apply(std::forward<decltype(func)>(func), std::forward<decltype(tuple)>(tuple));
+		return [func = std::forward<F>(func)](auto&& tuple) {
+			return std::apply(func, std::forward<decltype(tuple)>(tuple));
 		};
 	}
 }
