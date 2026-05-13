@@ -1,8 +1,19 @@
 #include "model/texture.hpp"
 #include "common/file.hpp"
 #include "common/test-macro.hpp"
+#include "common/util/span.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <doctest.h>
+#include <filesystem>
+#include <ranges>
+#include <utility>
+#include <variant>
+#include <vector>
 
 constexpr auto test_bmp = std::to_array<uint8_t>({
 	0x42, 0x4d, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00, 0x28,

@@ -3,7 +3,9 @@
 #include "common/util/error.hpp"
 #include "common/util/tagged-type.hpp"
 
+#include <expected>
 #include <memory>
+#include <type_traits>
 
 namespace scene
 {

@@ -1,9 +1,12 @@
 #pragma once
 
+#include "common/util/error.hpp"
 #include "vulkan/context/device.hpp"
 #include "vulkan/context/imgui.hpp"
 #include "vulkan/context/instance.hpp"
 #include "vulkan/context/swapchain.hpp"
+
+#include <expected>
 
 namespace resource
 {

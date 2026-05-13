@@ -3,9 +3,14 @@
 #include "common/util/error.hpp"
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/alloc/image.hpp"
+#include "vulkan/alloc/wrapper.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <expected>
 #include <memory>
+#include <span>
+#include <utility>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>

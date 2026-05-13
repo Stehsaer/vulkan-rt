@@ -1,9 +1,12 @@
 #include <doctest/doctest.h>
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <span>
+#include <utility>
 
 #include "common/test-macro.hpp"
 #include "image/bc-image.hpp"
-
+#include "image/common.hpp"
+#include "image/image.hpp"
 #include "test-asset.hpp"
 
 using ImageType = image::Image<image::Format::Unorm8, image::Layout::RGBA>;

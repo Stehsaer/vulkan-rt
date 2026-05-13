@@ -1,6 +1,16 @@
 #include "material.hpp"
+#include "asset.hpp"
+#include "common/util/error.hpp"
 #include "fastgltf-vec.hpp"
+#include "model/material.hpp"
+#include "model/texture.hpp"
+
+#include <expected>
 #include <fastgltf/types.hpp>
+#include <glm/ext/vector_float2.hpp>
+#include <ranges>
+#include <utility>
+#include <vector>
 
 namespace model::gltf::impl
 {

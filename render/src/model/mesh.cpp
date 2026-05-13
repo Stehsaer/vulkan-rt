@@ -1,7 +1,19 @@
 #include "render/model/mesh.hpp"
-#include "common/util/span.hpp"
+#include "common/util/error.hpp"
+#include "model/mesh.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
+
+#include <algorithm>
+#include <cstdint>
+#include <expected>
+#include <functional>
+#include <iterator>
 #include <ranges>
+#include <span>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 
 namespace render
 {

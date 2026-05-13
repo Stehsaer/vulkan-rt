@@ -1,5 +1,16 @@
 #include "asset.hpp"
+#include "buffer.hpp"
+#include "common/util/error.hpp"
+#include "file-cache.hpp"
+
+#include <cstddef>
+#include <expected>
+#include <fastgltf/types.hpp>
+#include <filesystem>
+#include <memory>
+#include <optional>
 #include <ranges>
+#include <span>
 #include <utility>
 
 namespace model::gltf::impl

@@ -1,9 +1,22 @@
 #include "model/hierarchy.hpp"
 #include "common/test-macro.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <doctest.h>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/quaternion_trigonometric.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <glm/fwd.hpp>
+#include <glm/gtc/constants.hpp>
+#include <glm/gtc/epsilon.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <glm/vector_relational.hpp>
+#include <optional>
+#include <ranges>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 TEST_SUITE("Normal Hierarchy Creation")

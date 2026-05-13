@@ -1,8 +1,16 @@
 #pragma once
 
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <glm/glm.hpp>
+#include <limits>
+#include <memory>
 #include <optional>
+#include <span>
 #include <variant>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include "common/util/error.hpp"

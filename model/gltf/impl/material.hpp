@@ -1,9 +1,13 @@
 #pragma once
 
 #include "asset.hpp"
+#include "common/util/error.hpp"
 #include "model/material.hpp"
 #include "model/texture.hpp"
+
 #include <expected>
+#include <fastgltf/types.hpp>
+#include <vector>
 
 namespace model::gltf::impl
 {

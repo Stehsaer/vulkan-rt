@@ -7,7 +7,9 @@
 
 #include <coro/task.hpp>
 #include <coro/thread_pool.hpp>
+#include <expected>
 #include <fastgltf/types.hpp>
+#include <vector>
 
 namespace model::gltf::impl
 {

@@ -1,8 +1,12 @@
 #include "vulkan/numeric/pool-size.hpp"
 #include "common/util/unpack.hpp"
 
+#include <cstdint>
 #include <map>
 #include <ranges>
+#include <span>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 
 namespace vulkan
 {

@@ -1,10 +1,20 @@
 #pragma once
 
-#include "common/util/arithmetic-functor.hpp"
 #include "common/util/error.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 #include <glm/glm.hpp>
 #include <optional>
+#include <ranges>
+#include <span>
+#include <utility>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 
 namespace model
@@ -290,7 +300,9 @@ namespace model
 			std::span<const T> vertices
 		) noexcept
 		{
-			if (!std::ranges::all_of(indices, ::util::LessThanValue(vertices.size())))
+			if (!std::ranges::all_of(indices, [total = vertices.size()](uint32_t idx) {
+					return idx < total;
+				}))
 				return Error("Invalid index found");
 
 			return indices

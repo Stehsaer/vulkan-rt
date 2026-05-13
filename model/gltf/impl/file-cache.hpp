@@ -2,6 +2,8 @@
 
 #include "common/util/error.hpp"
 
+#include <cstddef>
+#include <expected>
 #include <filesystem>
 #include <memory>
 #include <mio/mmap.hpp>

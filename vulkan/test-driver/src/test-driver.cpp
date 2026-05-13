@@ -1,5 +1,10 @@
 #include "vulkan/test-driver.hpp"
+#include "vulkan/context/device.hpp"
 #include "vulkan/context/instance.hpp"
+
+#include <cstdlib>
+#include <libassert/assert.hpp>
+#include <utility>
 
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest.h>

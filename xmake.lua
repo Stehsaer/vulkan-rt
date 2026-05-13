@@ -22,6 +22,7 @@ end
 if is_plat("linux") then
 	add_cxxflags("-Wno-maybe-uninitialized")
 	add_cxxflags("-Wno-stringop-overflow")
+	add_cxxflags("-Wno-array-bounds")
 end
 
 -- I hate <windows.h> :-(

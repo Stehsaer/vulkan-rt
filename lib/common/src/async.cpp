@@ -1,5 +1,10 @@
 #include "common/util/async.hpp"
+
 #include <atomic>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace util
 {

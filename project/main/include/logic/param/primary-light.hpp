@@ -3,6 +3,7 @@
 #include "render/interface/direct-light.hpp"
 
 #include <glm/ext/scalar_constants.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 
 namespace logic

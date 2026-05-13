@@ -2,13 +2,19 @@
 
 #include <cstdint>
 #include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <memory>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
+#include "common/util/error.hpp"
 #include "model/mesh.hpp"
 #include "render/interface/camera.hpp"
 #include "render/interface/direct-light.hpp"
 #include "render/interface/indirect-drawcall.hpp"
+#include "render/model/material.hpp"
 #include "render/model/model.hpp"
 #include "render/resource/forward-rendering.hpp"
 #include "render/resource/host.hpp"

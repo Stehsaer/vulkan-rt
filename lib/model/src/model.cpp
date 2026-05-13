@@ -1,6 +1,14 @@
 #include "model/model.hpp"
+#include "common/util/error.hpp"
+#include "model/hierarchy.hpp"
+#include "model/material.hpp"
+#include "model/mesh.hpp"
 
+#include <expected>
+#include <format>
 #include <ranges>
+#include <utility>
+#include <vector>
 
 namespace model
 {

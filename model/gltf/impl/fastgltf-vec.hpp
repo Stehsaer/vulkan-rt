@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstddef>
+#include <fastgltf/math.hpp>
 #include <fastgltf/types.hpp>
+#include <glm/detail/qualifier.hpp>
 #include <glm/glm.hpp>
 
 namespace model::gltf::impl

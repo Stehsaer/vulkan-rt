@@ -1,5 +1,13 @@
 #include "model/vk-object.hpp"
+#include "common/util/error.hpp"
 #include "model/enum-conv.hpp"
+#include "model/texture.hpp"
+#include "render/model/texture.hpp"
+
+#include <expected>
+#include <utility>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace render::impl
 {

@@ -1,9 +1,19 @@
 #pragma once
 
+#include <compare>
 #include <cstdint>
+#include <expected>
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 #include <glm/glm.hpp>
+#include <optional>
+#include <utility>
+#include <vector>
 
 #include "common/util/error.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
 #include "texture.hpp"
 
 namespace model

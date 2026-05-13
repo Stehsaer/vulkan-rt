@@ -1,7 +1,17 @@
 #include "image/impl/encode.hpp"
+#include "common/util/error.hpp"
 #include "common/util/overload.hpp"
+#include "image/common.hpp"
 
+#include <cstddef>
+#include <expected>
+#include <functional>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <span>
 #include <stb_image_write.h>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace image::impl
 {

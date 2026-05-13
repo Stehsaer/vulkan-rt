@@ -1,11 +1,21 @@
 #pragma once
 
+#include "common/util/error.hpp"
+#include "model/material.hpp"
 #include "model/obj.hpp"
+#include "model/texture.hpp"
 #include "typedef.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <expected>
 #include <functional>
 #include <map>
+#include <optional>
+#include <span>
+#include <string>
 #include <tiny_obj_loader.h>
+#include <vector>
 
 namespace model::obj::impl
 {

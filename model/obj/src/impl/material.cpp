@@ -1,4 +1,25 @@
 #include "material.hpp"
+#include "common/util/error.hpp"
+#include "model/material.hpp"
+#include "model/obj.hpp"
+#include "model/texture.hpp"
+#include "typedef.hpp"
+
+#include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <filesystem>
+#include <functional>
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <optional>
+#include <ranges>
+#include <span>
+#include <string>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace model::obj::impl
 {

@@ -5,13 +5,23 @@
 #include "hierarchy.hpp"
 #include "material.hpp"
 #include "mesh.hpp"
+#include "model/model.hpp"
 
 #include <algorithm>
+#include <coro/task.hpp>
+#include <coro/thread_pool.hpp>
+#include <coro/when_all.hpp>
+#include <cstddef>
+#include <expected>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <ranges>
+#include <string>
 #include <tiny_obj_loader.h>
 #include <utility>
+#include <variant>
+#include <vector>
 
 namespace model::obj
 {

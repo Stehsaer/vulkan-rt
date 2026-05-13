@@ -1,11 +1,17 @@
 #pragma once
 
 #include "common/util/error.hpp"
+#include "image/bc-image.hpp"
 #include "image/common.hpp"
+#include "image/image.hpp"
 #include "model/texture.hpp"
 #include "vulkan/alloc/image.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace render

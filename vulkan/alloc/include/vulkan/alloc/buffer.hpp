@@ -4,8 +4,13 @@
 #include "common/util/span.hpp"
 #include "vulkan/alloc/wrapper.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <expected>
+#include <libassert/assert.hpp>
 #include <memory>
+#include <span>
+#include <utility>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>

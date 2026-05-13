@@ -1,5 +1,16 @@
+#include "common/util/error.hpp"
 #include "model/material-collector.hpp"
+#include "model/material.hpp"
+#include "model/texture.hpp"
 #include "model/vk-object.hpp"
+#include "render/model/material.hpp"
+#include "render/model/texture-list.hpp"
+#include "render/model/texture.hpp"
+
+#include <cstdint>
+#include <expected>
+#include <utility>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace render::impl
 {

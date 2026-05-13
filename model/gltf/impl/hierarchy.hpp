@@ -2,6 +2,8 @@
 
 #include "common/util/error.hpp"
 #include "model/hierarchy.hpp"
+
+#include <expected>
 #include <fastgltf/types.hpp>
 
 namespace model::gltf::impl

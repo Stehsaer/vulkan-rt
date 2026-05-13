@@ -1,9 +1,14 @@
 #pragma once
 
+#include "common/util/error.hpp"
 #include "dyn-buffer.hpp"
+#include "vulkan/alloc/allocator.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/alloc/buffer.hpp"
+#include "vulkan/interface/context.hpp"
 
+#include <expected>
+#include <span>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>

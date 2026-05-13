@@ -1,5 +1,19 @@
 #include "model/material.hpp"
+#include "common/util/error.hpp"
+#include "image/common.hpp"
 #include "image/image.hpp"
+#include "model/texture.hpp"
+
+#include <array>
+#include <cstdint>
+#include <expected>
+#include <format>
+#include <optional>
+#include <ranges>
+#include <string_view>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace model
 {

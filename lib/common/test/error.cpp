@@ -1,8 +1,16 @@
 #include "common/util/error.hpp"
 
 #include <doctest.h>
+#include <expected>
+#include <format>
+#include <optional>
+#include <ranges>
 #include <source_location>
+#include <string>
+#include <utility>
+#include <vector>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_to_string.hpp>
 
 TEST_CASE("Error creation")
 {

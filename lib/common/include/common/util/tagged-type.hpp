@@ -3,10 +3,13 @@
 #include <algorithm>
 #include <array>
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <stdexcept>
+#include <type_traits>
 #include <variant>
 
 namespace util

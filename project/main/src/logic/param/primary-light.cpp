@@ -1,5 +1,8 @@
 #include "logic/param/primary-light.hpp"
+#include "render/interface/direct-light.hpp"
 
+#include <glm/ext/vector_float3.hpp>
+#include <glm/trigonometric.hpp>
 #include <imgui.h>
 
 namespace logic

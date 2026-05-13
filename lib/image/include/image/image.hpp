@@ -6,12 +6,21 @@
 #include "image/impl/decode.hpp"
 #include "image/impl/encode.hpp"
 
+#include <algorithm>
 #include <bit>
+#include <concepts>
 #include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <glm/glm.hpp>
+#include <libassert/assert.hpp>
+#include <ranges>
 #include <span>
 #include <stb_image_resize2.h>
+#include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace image
 {

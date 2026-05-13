@@ -2,6 +2,8 @@
 
 #include "common/util/error.hpp"
 
+#include <cstddef>
+#include <expected>
 #include <span>
 #include <vulkan/vulkan_raii.hpp>
 

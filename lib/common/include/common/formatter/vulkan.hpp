@@ -1,7 +1,9 @@
 #pragma once
 
+#include <concepts>
 #include <format>
 #include <ranges>
+#include <string>
 #include <vulkan/vulkan.hpp>
 
 namespace vk_formatter

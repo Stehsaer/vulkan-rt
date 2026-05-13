@@ -2,10 +2,14 @@
 #include <iostream>
 #include <print>
 #include <ranges>
+#include <span>
+#include <string>
+#include <utility>
 
 #include "argument.hpp"
 #include "common/util/error.hpp"
 #include "page/init.hpp"
+#include "scene/page.hpp"
 
 static Argument get_arguments(int argc, const char* argv[])
 {

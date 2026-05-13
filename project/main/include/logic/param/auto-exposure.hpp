@@ -2,6 +2,8 @@
 
 #include "render/interface/auto-exposure.hpp"
 
+#include <glm/ext/vector_uint2_sized.hpp>
+
 namespace logic
 {
 	///

@@ -3,13 +3,17 @@
 #include <cstdint>
 #include <expected>
 #include <memory>
+#include <utility>
+#include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
+#include "common/util/error.hpp"
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/model/model.hpp"
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
+#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 
 namespace render

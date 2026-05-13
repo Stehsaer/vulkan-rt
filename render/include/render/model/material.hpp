@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/util/async.hpp"
 #include "common/util/error.hpp"
 #include "common/util/tagged-type.hpp"
 #include "model/material.hpp"
@@ -8,6 +9,14 @@
 #include "vulkan/interface/context.hpp"
 
 #include <coro/coro.hpp>
+#include <coro/task.hpp>
+#include <coro/thread_pool.hpp>
+#include <cstdint>
+#include <expected>
+#include <memory>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace render

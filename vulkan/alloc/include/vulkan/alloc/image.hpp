@@ -3,6 +3,7 @@
 #include "vulkan/alloc/wrapper.hpp"
 
 #include <memory>
+#include <utility>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>

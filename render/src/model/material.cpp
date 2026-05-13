@@ -1,13 +1,32 @@
 #include "render/model/material.hpp"
+#include "common/util/async.hpp"
+#include "common/util/error.hpp"
 #include "common/util/unpack.hpp"
 #include "model/material-collector.hpp"
 #include "model/material.hpp"
+#include "render/model/texture-list.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
+#include "vulkan/alloc/buffer.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
 
+#include <array>
+#include <coro/task.hpp>
+#include <coro/thread_pool.hpp>
+#include <cstddef>
+#include <cstdint>
 #include <expected>
+#include <format>
+#include <memory>
+#include <ranges>
+#include <span>
+#include <tuple>
+#include <utility>
+#include <variant>
+#include <vector>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_hpp_macros.hpp>
+#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
 namespace render

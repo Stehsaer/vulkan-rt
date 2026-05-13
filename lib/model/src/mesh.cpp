@@ -1,10 +1,25 @@
 #include "model/mesh.hpp"
+#include "common/util/error.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <format>
+#include <glm/common.hpp>
+#include <glm/ext/matrix_float2x2.hpp>
+#include <glm/ext/matrix_float2x3.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <glm/geometric.hpp>
 #include <glm/gtx/vector_angle.hpp>
+#include <glm/matrix.hpp>
 #include <glm/vector_relational.hpp>
 #include <meshoptimizer.h>
 #include <ranges>
+#include <span>
+#include <vector>
 
 namespace model
 {

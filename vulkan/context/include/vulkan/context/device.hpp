@@ -5,6 +5,11 @@
 #include "vulkan/context/instance.hpp"
 #include "vulkan/interface/context.hpp"
 
+#include <cstdint>
+#include <expected>
+#include <memory>
+#include <mutex>
+#include <optional>
 #include <utility>
 #include <vulkan/vulkan_raii.hpp>
 

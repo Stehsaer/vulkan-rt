@@ -1,9 +1,24 @@
 #include "helper/imgui-page.hpp"
+#include "common/util/error.hpp"
 #include "config.hpp"
+#include "resource/context.hpp"
+#include "resource/sync-primitive.hpp"
+#include "vulkan/container/host/cycle.hpp"
 #include "vulkan/context/swapchain.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
+
 #include <SDL3/SDL_events.h>
+#include <array>
+#include <cstdint>
+#include <expected>
+#include <limits>
+#include <mutex>
+#include <optional>
+#include <ranges>
 #include <utility>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace helper
 {

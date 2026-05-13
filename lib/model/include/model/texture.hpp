@@ -1,12 +1,15 @@
 #pragma once
 
 #include <cstddef>
+#include <expected>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <variant>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 
 #include "common/util/error.hpp"
+#include "image/common.hpp"
 #include "image/image.hpp"
 
 namespace model

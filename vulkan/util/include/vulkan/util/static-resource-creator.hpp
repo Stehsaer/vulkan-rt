@@ -3,17 +3,30 @@
 #include "common/util/error.hpp"
 #include "common/util/span.hpp"
 #include "image/bc-image.hpp"
+#include "image/common.hpp"
 #include "image/image.hpp"
+#include "vulkan/alloc/allocator.hpp"
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/alloc/image.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <expected>
 #include <functional>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <memory>
 #include <mutex>
 #include <ranges>
 #include <span>
+#include <type_traits>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
 namespace vulkan

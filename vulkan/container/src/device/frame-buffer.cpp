@@ -4,7 +4,14 @@
 #include "vulkan/numeric/base-level.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <libassert/assert.hpp>
+#include <ranges>
+#include <string>
+#include <utility>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_format_traits.hpp>
 #include <vulkan/vulkan_raii.hpp>
 

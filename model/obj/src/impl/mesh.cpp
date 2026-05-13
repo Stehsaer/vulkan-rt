@@ -1,6 +1,24 @@
 #include "mesh.hpp"
-#include "common/util/arithmetic-functor.hpp"
+#include "common/util/async.hpp"
+#include "common/util/error.hpp"
 #include "common/util/unpack.hpp"
+#include "model/mesh.hpp"
+#include "typedef.hpp"
+
+#include <algorithm>
+#include <array>
+#include <coro/task.hpp>
+#include <coro/thread_pool.hpp>
+#include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <functional>
+#include <glm/ext/vector_float2.hpp>
+#include <optional>
+#include <ranges>
+#include <span>
+#include <utility>
+#include <vector>
 
 namespace model::obj::impl
 {
@@ -87,7 +105,7 @@ namespace model::obj::impl
 		const std::array<tinyobj::index_t, 3>& indices
 	) noexcept
 	{
-		if (std::ranges::all_of(indices, ::util::GreaterEqualToValue(0), &tinyobj::index_t::normal_index))
+		if (std::ranges::all_of(indices, [](auto v) { return v >= 0; }, &tinyobj::index_t::normal_index))
 		{
 			return std::to_array({
 				NormalOnlyVertex::from(

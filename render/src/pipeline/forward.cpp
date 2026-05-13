@@ -1,11 +1,35 @@
 #include "render/pipeline/forward.hpp"
+#include "common/util/error.hpp"
+#include "model/material.hpp"
+#include "model/mesh.hpp"
+#include "render/interface/camera.hpp"
+#include "render/interface/direct-light.hpp"
+#include "render/interface/indirect-drawcall.hpp"
+#include "render/model/material.hpp"
+#include "render/model/model.hpp"
+#include "render/resource/forward-rendering.hpp"
+#include "render/resource/host.hpp"
+#include "render/resource/indirect.hpp"
+#include "render/util/per-render-state.hpp"
 #include "shader/forward.hpp"
+#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/container/host/linked-struct.hpp"
+#include "vulkan/interface/context.hpp"
+#include "vulkan/numeric/base-level.hpp"
 #include "vulkan/numeric/glm.hpp"
 #include "vulkan/numeric/pool-size.hpp"
 #include "vulkan/util/shader.hpp"
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <format>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <memory>
 #include <ranges>
+#include <utility>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 

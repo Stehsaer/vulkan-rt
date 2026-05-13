@@ -1,10 +1,12 @@
 #include <coro/sync_wait.hpp>
 #include <coro/thread_pool.hpp>
 #include <doctest.h>
+#include <utility>
 #include <vulkan/vulkan.hpp>
 
 #include "common/test-macro.hpp"
 #include "render/model/material.hpp"
+#include "render/model/texture-list.hpp"
 #include "test-common.hpp"
 #include "vulkan/test-driver.hpp"
 

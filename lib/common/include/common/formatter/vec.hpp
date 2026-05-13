@@ -1,5 +1,8 @@
 #pragma once
 
+// IWYU pragma: private, include "common/formatter.hpp"
+
+#include <concepts>
 #include <format>
 
 namespace vec_formatter

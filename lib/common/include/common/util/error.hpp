@@ -1,15 +1,19 @@
 #pragma once
 
 #include <algorithm>
+#include <concepts>
 #include <cstddef>
 #include <expected>
 #include <format>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <optional>
 #include <ranges>
 #include <source_location>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 ///

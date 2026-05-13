@@ -1,6 +1,16 @@
 #include "resource/aux-resource.hpp"
+#include "common/util/error.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
+
+#include <cstddef>
+#include <expected>
+#include <span>
+#include <utility>
+#include <vulkan/vulkan.hpp>
 
 extern "C"
 {

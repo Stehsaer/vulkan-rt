@@ -1,8 +1,12 @@
 #pragma once
 
+#include "common/util/error.hpp"
 #include "logic/drawcall-gen.hpp"
 #include "logic/param.hpp"
+#include "render/interface/auto-exposure.hpp"
+#include "render/interface/camera.hpp"
 #include "render/interface/direct-light.hpp"
+#include "render/interface/primitive-drawcall.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
 #include "render/util/per-render-state.hpp"
@@ -15,7 +19,13 @@
 #include "vulkan/container/host/cycle.hpp"
 #include "vulkan/context/swapchain.hpp"
 
+#include <expected>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/scalar_constants.hpp>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <optional>
+#include <utility>
+#include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace page

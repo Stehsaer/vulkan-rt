@@ -1,9 +1,14 @@
 #pragma once
 
+#include "common/util/error.hpp"
 #include "model/material.hpp"
 
+#include <array>
 #include <concepts>
+#include <expected>
+#include <libassert/assert.hpp>
 #include <ranges>
+#include <type_traits>
 
 namespace render
 {

@@ -1,6 +1,12 @@
 #include "hierarchy.hpp"
+#include "model/hierarchy.hpp"
 
+#include <cstdint>
 #include <libassert/assert.hpp>
+#include <optional>
+#include <ranges>
+#include <utility>
+#include <vector>
 
 namespace model::obj::impl
 {

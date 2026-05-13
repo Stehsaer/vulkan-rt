@@ -7,7 +7,13 @@
 #include "vulkan/interface/context.hpp"
 
 #include <coro/task.hpp>
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
+#include <span>
+#include <utility>
+#include <vector>
 
 namespace render
 {

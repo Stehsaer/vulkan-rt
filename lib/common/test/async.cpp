@@ -1,7 +1,12 @@
 #include "common/util/async.hpp"
 
+#include <chrono>
 #include <doctest.h>
+#include <future>
+#include <optional>
 #include <thread>
+#include <utility>
+#include <vector>
 
 /* AI-generated test cases */
 

@@ -1,7 +1,16 @@
 #include "vulkan/alloc/allocator.hpp"
+#include "common/util/error.hpp"
+#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/alloc/image.hpp"
+#include "vulkan/alloc/wrapper.hpp"
 
+#include <expected>
+#include <memory>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan_to_string.hpp>
 
 namespace vulkan
 {

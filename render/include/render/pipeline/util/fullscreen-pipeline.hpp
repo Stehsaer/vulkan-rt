@@ -2,6 +2,9 @@
 
 #include "common/util/error.hpp"
 
+#include <array>
+#include <cstdint>
+#include <expected>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 

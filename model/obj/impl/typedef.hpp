@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <optional>
 #include <tiny_obj_loader.h>
+#include <utility>
 #include <vector>
 
 namespace model::obj::impl

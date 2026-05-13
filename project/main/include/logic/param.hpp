@@ -4,6 +4,8 @@
 #include "param/camera.hpp"
 #include "param/primary-light.hpp"
 
+#include <glm/ext/vector_uint2_sized.hpp>
+
 namespace logic
 {
 	///

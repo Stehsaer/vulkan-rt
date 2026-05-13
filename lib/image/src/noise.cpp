@@ -1,5 +1,14 @@
 #include "image/noise.hpp"
+#include "common/util/error.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
+
+#include <cstddef>
+#include <expected>
+#include <memory>
 #include <mutex>
+#include <span>
+#include <utility>
 
 extern "C"
 {

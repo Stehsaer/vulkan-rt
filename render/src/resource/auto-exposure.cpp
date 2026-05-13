@@ -1,5 +1,13 @@
 #include "render/resource/auto-exposure.hpp"
+#include "common/util/error.hpp"
+#include "render/interface/auto-exposure.hpp"
+#include "render/internal/auto-exposure.hpp"
 #include "vulkan/alloc/allocator.hpp"
+#include "vulkan/interface/context.hpp"
+
+#include <expected>
+#include <utility>
+#include <vulkan/vulkan.hpp>
 
 namespace render
 {

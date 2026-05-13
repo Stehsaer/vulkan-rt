@@ -2,6 +2,8 @@
 
 #include "model/texture.hpp"
 
+#include <vulkan/vulkan.hpp>
+
 namespace render::impl
 {
 	///

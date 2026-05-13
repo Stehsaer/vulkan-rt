@@ -1,8 +1,16 @@
 #include "image/impl/decode.hpp"
 #include "common/util/error.hpp"
+#include "image/common.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <expected>
 #include <libassert/assert.hpp>
+#include <ranges>
+#include <span>
 #include <stb_image.h>
+#include <utility>
+#include <vector>
 #include <webp/decode.h>
 
 namespace image::impl

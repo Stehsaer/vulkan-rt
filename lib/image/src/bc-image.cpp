@@ -1,11 +1,20 @@
 #include "image/bc-image.hpp"
 #include "common/formatter.hpp"
+#include "common/util/error.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
 
 #include <algorithm>
+#include <array>
 #include <bc7enc.h>
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <libassert/assert.hpp>
 #include <mutex>
+#include <ranges>
 #include <rgbcx.h>
+#include <span>
 #include <stb_dxt/stb_dxt.h>
 
 namespace image

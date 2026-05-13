@@ -1,6 +1,19 @@
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <doctest/doctest.h>
+#include <functional>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <glm/ext/vector_uint4_sized.hpp>
+#include <glm/fwd.hpp>
+#include <glm/vector_relational.hpp>
 #include <print>
+#include <ranges>
 #include <span>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #include "common/test-macro.hpp"
 #include "common/util/span.hpp"

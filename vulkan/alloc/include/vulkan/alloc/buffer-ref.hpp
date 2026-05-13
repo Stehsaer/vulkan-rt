@@ -2,7 +2,9 @@
 
 #include "vulkan/alloc/buffer.hpp"
 
+#include <cstddef>
 #include <vk_mem_alloc.h>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_raii.hpp>

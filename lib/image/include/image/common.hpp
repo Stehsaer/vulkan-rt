@@ -1,7 +1,11 @@
 #pragma once
 
+#include <concepts>
+#include <cstdint>
+#include <glm/detail/qualifier.hpp>
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
+#include <libassert/assert.hpp>
 #include <optional>
 #include <span>
 #include <stb_image_resize2.h>

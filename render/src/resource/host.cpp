@@ -1,5 +1,22 @@
 #include "render/resource/host.hpp"
 #include "common/util/array.hpp"
+#include "common/util/error.hpp"
+#include "render/interface/auto-exposure.hpp"
+#include "render/interface/camera.hpp"
+#include "render/interface/direct-light.hpp"
+#include "render/interface/primitive-drawcall.hpp"
+#include "render/util/per-render-state.hpp"
+#include "vulkan/container/device/staged-buffer.hpp"
+#include "vulkan/interface/context.hpp"
+
+#include <array>
+#include <expected>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <ranges>
+#include <span>
+#include <utility>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace render
 {

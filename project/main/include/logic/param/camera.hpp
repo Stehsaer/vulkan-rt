@@ -3,6 +3,9 @@
 #include "render/interface/camera.hpp"
 #include "scene/camera.hpp"
 
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <optional>
+
 namespace logic
 {
 	///

@@ -3,12 +3,22 @@
 #include "common/util/async.hpp"
 #include "common/util/error.hpp"
 #include "model/material.hpp"
+#include "model/texture.hpp"
 #include "render/model/texture.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
 
 #include <coro/coro.hpp>
+#include <coro/task.hpp>
 #include <coro/thread_pool.hpp>
+#include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace render

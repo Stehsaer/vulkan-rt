@@ -1,5 +1,9 @@
 #pragma once
 
+#include <concepts>
+#include <glm/ext/matrix_double4x4.hpp>
+#include <glm/ext/vector_double2.hpp>
+#include <glm/ext/vector_double3.hpp>
 #include <glm/glm.hpp>
 #include <optional>
 

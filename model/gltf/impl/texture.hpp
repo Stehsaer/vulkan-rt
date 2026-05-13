@@ -4,7 +4,10 @@
 #include "common/util/error.hpp"
 #include "model/texture.hpp"
 
+#include <expected>
 #include <fastgltf/types.hpp>
+#include <variant>
+#include <vector>
 
 namespace model::gltf::impl
 {

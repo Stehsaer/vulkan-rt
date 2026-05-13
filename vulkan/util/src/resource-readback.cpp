@@ -1,11 +1,23 @@
 #include "vulkan/util/resource-readback.hpp"
 #include "common/formatter.hpp"
+#include "common/util/error.hpp"
+#include "vulkan/alloc/allocator.hpp"
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/alloc/image.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <mutex>
+#include <span>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
-#include <vulkan/vulkan_structs.hpp>
 
 namespace vulkan::impl
 {

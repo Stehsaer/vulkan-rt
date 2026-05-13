@@ -1,6 +1,10 @@
 #include <doctest.h>
+#include <utility>
 
 #include "common/test-macro.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
+#include "model/texture.hpp"
 #include "render/model/texture.hpp"
 #include "vulkan/test-driver.hpp"
 #include "vulkan/util/static-resource-creator.hpp"

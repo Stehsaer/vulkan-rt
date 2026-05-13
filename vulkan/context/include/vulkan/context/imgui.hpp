@@ -1,11 +1,16 @@
 #pragma once
 
 #include "common/util/error.hpp"
-#include "vulkan/context/device.hpp"
 #include "vulkan/context/instance.hpp"
+#include "vulkan/interface/context.hpp"
 
+#include <cstdint>
+#include <expected>
 #include <imgui_impl_sdl3.h>
+#include <memory>
 #include <variant>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>

@@ -1,4 +1,6 @@
+#include <array>
 #include <doctest.h>
+#include <map>
 #include <ranges>
 #include <vulkan/vulkan.hpp>
 

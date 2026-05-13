@@ -1,7 +1,10 @@
 #include "common/util/tagged-type.hpp"
 
+#include <concepts>
 #include <doctest.h>
 #include <memory>
+#include <type_traits>
+#include <utility>
 
 TEST_CASE("EnumVariant basic")
 {

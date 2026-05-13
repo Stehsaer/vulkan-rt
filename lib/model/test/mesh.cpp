@@ -1,8 +1,15 @@
 #include "model/mesh.hpp"
 #include "common/test-macro.hpp"
 
+#include <array>
+#include <cstdint>
 #include <doctest.h>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/epsilon.hpp>
+#include <glm/vector_relational.hpp>
+#include <ranges>
+#include <utility>
+#include <vector>
 
 TEST_CASE("Normal Generation")
 {

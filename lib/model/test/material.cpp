@@ -1,7 +1,13 @@
 #include "model/material.hpp"
 #include "common/test-macro.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
+#include "model/texture.hpp"
 
 #include <doctest.h>
+#include <ranges>
+#include <utility>
+#include <vector>
 
 TEST_CASE("Valid Material Set")
 {

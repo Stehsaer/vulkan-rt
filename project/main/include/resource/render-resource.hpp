@@ -3,6 +3,8 @@
 #include "common/util/error.hpp"
 #include "render/interface/auto-exposure.hpp"
 #include "render/interface/camera.hpp"
+#include "render/interface/direct-light.hpp"
+#include "render/interface/primitive-drawcall.hpp"
 #include "render/resource/auto-exposure.hpp"
 #include "render/resource/forward-rendering.hpp"
 #include "render/resource/host.hpp"
@@ -10,6 +12,10 @@
 #include "render/util/per-render-state.hpp"
 #include "vulkan/interface/context.hpp"
 
+#include <expected>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <span>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace resource

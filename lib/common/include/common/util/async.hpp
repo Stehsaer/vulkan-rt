@@ -2,6 +2,8 @@
 
 #include <atomic>
 #include <cassert>
+#include <chrono>
+#include <cstddef>
 #include <future>
 #include <memory>
 #include <optional>

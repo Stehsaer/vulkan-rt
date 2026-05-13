@@ -4,8 +4,11 @@
 #include "image/common.hpp"
 
 #include <cstddef>
+#include <cstdint>
+#include <expected>
 #include <glm/glm.hpp>
 #include <span>
+#include <vector>
 
 namespace image::impl
 {

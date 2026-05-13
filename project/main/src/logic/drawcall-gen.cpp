@@ -1,4 +1,12 @@
 #include "logic/drawcall-gen.hpp"
+#include "render/interface/primitive-drawcall.hpp"
+#include "render/model/model.hpp"
+#include "render/util/per-render-state.hpp"
+
+#include <glm/ext/matrix_float4x4.hpp>
+#include <ranges>
+#include <utility>
+#include <vector>
 
 namespace logic
 {

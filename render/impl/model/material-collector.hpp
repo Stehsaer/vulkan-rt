@@ -1,12 +1,19 @@
 #pragma once
 
+#include "common/util/error.hpp"
+#include "model/material.hpp"
 #include "model/texture.hpp"
 #include "render/model/material.hpp"
+#include "render/model/texture-list.hpp"
+#include "render/model/texture.hpp"
 
 #include <cstdint>
 #include <expected>
 #include <map>
+#include <utility>
+#include <vector>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
 namespace render::impl

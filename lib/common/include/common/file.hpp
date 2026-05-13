@@ -3,8 +3,12 @@
 #include "common/util/error.hpp"
 #include "common/util/span.hpp"
 
+#include <cstddef>
+#include <expected>
 #include <filesystem>
+#include <ranges>
 #include <span>
+#include <vector>
 
 namespace file
 {

@@ -1,5 +1,14 @@
 #include "page/init.hpp"
+#include "argument.hpp"
+#include "common/util/async.hpp"
+#include "common/util/error.hpp"
 #include "page/load.hpp"
+#include "resource/context.hpp"
+
+#include <expected>
+#include <future>
+#include <memory>
+#include <utility>
 
 namespace page
 {

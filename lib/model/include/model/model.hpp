@@ -5,6 +5,10 @@
 #include "material.hpp"
 #include "mesh.hpp"
 
+#include <expected>
+#include <utility>
+#include <vector>
+
 namespace model
 {
 	///

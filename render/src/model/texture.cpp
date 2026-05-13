@@ -1,10 +1,23 @@
 #include "render/model/texture.hpp"
+#include "common/util/error.hpp"
 #include "common/util/overload.hpp"
 #include "image/bc-image.hpp"
+#include "image/common.hpp"
 #include "image/image.hpp"
+#include "model/texture.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
 
+#include <cstdint>
+#include <expected>
+#include <format>
+#include <glm/common.hpp>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <glm/ext/vector_uint4_sized.hpp>
+#include <libassert/assert.hpp>
 #include <map>
+#include <ranges>
+#include <utility>
+#include <variant>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_structs.hpp>
 

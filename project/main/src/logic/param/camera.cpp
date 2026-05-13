@@ -1,5 +1,10 @@
 #include "logic/param/camera.hpp"
+#include "render/interface/camera.hpp"
+#include "scene/camera.hpp"
 
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <glm/matrix.hpp>
 #include <imgui.h>
 
 namespace logic

@@ -3,7 +3,11 @@
 #include "common/util/error.hpp"
 #include "image/common.hpp"
 
+#include <cstddef>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <span>
+#include <vector>
 
 namespace image::impl
 {

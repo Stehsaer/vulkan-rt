@@ -1,8 +1,29 @@
 #include "vulkan/util/static-resource-creator.hpp"
 #include "common/formatter.hpp"
+#include "common/util/error.hpp"
+#include "common/util/span.hpp"
+#include "image/bc-image.hpp"
+#include "vulkan/alloc/allocator.hpp"
+#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/alloc/image.hpp"
 #include "vulkan/numeric/base-level.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <functional>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <glm/vector_relational.hpp>
+#include <limits>
+#include <mutex>
+#include <ranges>
+#include <span>
 #include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_to_string.hpp>
 
 namespace vulkan
 {

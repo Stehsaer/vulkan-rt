@@ -3,7 +3,14 @@
 #include "common/util/error.hpp"
 
 #include <SDL3/SDL_video.h>
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <glm/glm.hpp>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace vulkan
@@ -24,8 +31,8 @@ namespace vulkan
 
 		std::string application_name = "Vulkan Application";
 		std::string engine_name = "No Engine";
-		uint32_t application_version = VK_MAKE_VERSION(0, 0, 0);
-		uint32_t engine_version = VK_MAKE_VERSION(0, 0, 0);
+		uint32_t application_version = vk::makeVersion(0, 0, 0);
+		uint32_t engine_version = vk::makeVersion(0, 0, 0);
 
 		bool validation = DEFAULT_ENABLE_VALIDATION;
 	};

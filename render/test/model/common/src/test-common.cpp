@@ -2,8 +2,20 @@
 #include "common/test-macro.hpp"
 #include "image/common.hpp"
 #include "image/noise.hpp"
+#include "model/material.hpp"
+#include "model/texture.hpp"
+#include "render/model/texture-list.hpp"
+#include "render/model/texture.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <doctest.h>
+#include <glm/ext/vector_uint4_sized.hpp>
+#include <optional>
+#include <ranges>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 
 namespace test
 {

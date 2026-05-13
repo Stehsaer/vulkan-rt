@@ -1,13 +1,24 @@
 #include "model/gltf.hpp"
 #include "asset.hpp"
+#include "common/util/async.hpp"
+#include "common/util/error.hpp"
 #include "hierarchy.hpp"
 #include "material.hpp"
 #include "mesh.hpp"
+#include "model/model.hpp"
 #include "texture.hpp"
 
+#include <coro/task.hpp>
+#include <coro/thread_pool.hpp>
+#include <cstddef>
+#include <expected>
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>
 #include <filesystem>
+#include <format>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace model::gltf
 {

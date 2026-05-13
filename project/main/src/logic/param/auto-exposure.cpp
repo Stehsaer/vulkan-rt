@@ -1,5 +1,8 @@
 #include "logic/param/auto-exposure.hpp"
+#include "render/interface/auto-exposure.hpp"
 
+#include <glm/exponential.hpp>
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <imgui.h>
 
 namespace logic

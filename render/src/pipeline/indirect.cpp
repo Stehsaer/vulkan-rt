@@ -1,13 +1,25 @@
 #include "render/pipeline/indirect.hpp"
 #include "common/util/array.hpp"
+#include "common/util/error.hpp"
+#include "render/model/model.hpp"
+#include "render/resource/host.hpp"
+#include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
 #include "shader/indirect.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/pool-size.hpp"
 #include "vulkan/util/shader.hpp"
 
+#include <array>
+#include <cstdint>
+#include <expected>
+#include <memory>
 #include <ranges>
+#include <utility>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
 namespace render

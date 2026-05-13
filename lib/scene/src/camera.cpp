@@ -1,7 +1,18 @@
 #include "scene/camera.hpp"
 
+#include <cmath>
+#include <cstdlib>
+#include <glm/common.hpp>
+#include <glm/exponential.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_double4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_double2.hpp>
+#include <glm/ext/vector_double3.hpp>
+#include <glm/ext/vector_double4.hpp>
+#include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/trigonometric.hpp>
 
 namespace scene::camera
 {

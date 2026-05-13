@@ -1,9 +1,18 @@
 #pragma once
 
 #include "common/util/error.hpp"
+#include "render/interface/auto-exposure.hpp"
 #include "render/resource/auto-exposure.hpp"
+#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <memory>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace render

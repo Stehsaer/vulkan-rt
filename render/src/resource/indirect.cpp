@@ -1,4 +1,10 @@
 #include "render/resource/indirect.hpp"
+#include "common/util/error.hpp"
+#include "render/util/per-render-state.hpp"
+#include "vulkan/interface/context.hpp"
+
+#include <cstddef>
+#include <expected>
 #include <ranges>
 
 namespace render

@@ -1,5 +1,17 @@
 #include "page/error.hpp"
+#include "common/util/error.hpp"
+#include "helper/imgui-page.hpp"
+#include "resource/context.hpp"
+
+#include <expected>
+#include <format>
 #include <imgui.h>
+#include <iterator>
+#include <memory>
+#include <ranges>
+#include <string>
+#include <utility>
+#include <vulkan/vulkan.hpp>
 
 namespace page
 {

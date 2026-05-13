@@ -1,11 +1,14 @@
 #pragma once
 
 #include <cassert>
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <libassert/assert.hpp>
 #include <memory>
 #include <ranges>
 #include <span>
+#include <type_traits>
 
 namespace util
 {

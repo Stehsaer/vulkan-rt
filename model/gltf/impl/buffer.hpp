@@ -3,10 +3,19 @@
 #include "common/util/error.hpp"
 #include "file-cache.hpp"
 
+#include <cstddef>
+#include <expected>
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
+#include <filesystem>
+#include <memory>
 #include <mio/mmap.hpp>
 #include <mutex>
+#include <optional>
+#include <span>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace model::gltf::impl
 {

@@ -2,16 +2,21 @@
 #include "common/util/span.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <cstdlib>
 #include <doctest.h>
 #include <filesystem>
+#include <iterator>
+#include <limits>
 #include <print>
 #include <random>
+#include <vector>
 
 TEST_CASE("Write and read")
 {
 	/* Generate Random Data */
 
-	std::mt19937_64 rng(114514);
+	std::mt19937_64 rng(114514);  // NOLINT
 	std::uniform_int_distribution<uint16_t> dist(0, std::numeric_limits<uint8_t>::max());
 
 	std::vector<uint8_t> random_data;

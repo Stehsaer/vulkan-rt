@@ -1,4 +1,10 @@
 #include "resource/sync-primitive.hpp"
+#include "common/util/error.hpp"
+#include "vulkan/interface/context.hpp"
+
+#include <expected>
+#include <utility>
+#include <vulkan/vulkan.hpp>
 
 namespace resource
 {

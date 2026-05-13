@@ -1,6 +1,8 @@
 #pragma once
 
 #include "argument.hpp"
+#include "common/util/async.hpp"
+#include "common/util/error.hpp"
 #include "common/util/tagged-type.hpp"
 #include "helper/imgui-page.hpp"
 #include "model/gltf.hpp"
@@ -9,6 +11,9 @@
 #include "resource/context.hpp"
 #include "scene/page.hpp"
 
+#include <expected>
+#include <memory>
+#include <utility>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace page

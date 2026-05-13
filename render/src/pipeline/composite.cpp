@@ -1,11 +1,26 @@
 #include "render/pipeline/composite.hpp"
 #include "common/util/construct.hpp"
+#include "common/util/error.hpp"
 #include "render/pipeline/util/fullscreen-pipeline.hpp"
+#include "render/resource/auto-exposure.hpp"
+#include "render/resource/forward-rendering.hpp"
 #include "shader/composite.hpp"
 #include "vulkan/container/host/linked-struct.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/glm.hpp"
 #include "vulkan/numeric/pool-size.hpp"
 #include "vulkan/util/shader.hpp"
+
+#include <array>
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <memory>
+#include <ranges>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace render
 {

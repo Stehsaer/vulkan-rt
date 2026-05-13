@@ -1,6 +1,18 @@
 #include "texture.hpp"
+#include "asset.hpp"
+#include "common/util/error.hpp"
 #include "model/texture.hpp"
+
+#include <cstddef>
+#include <expected>
 #include <fastgltf/types.hpp>
+#include <libassert/assert.hpp>
+#include <optional>
+#include <ranges>
+#include <utility>
+#include <variant>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 
 namespace model::gltf::impl
 {

@@ -1,8 +1,16 @@
 #pragma once
 
+#include "common/util/error.hpp"
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/util/per-render-state.hpp"
+#include "vulkan/alloc/allocator.hpp"
+#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/container/device/dyn-buffer.hpp"
+#include "vulkan/interface/context.hpp"
+
+#include <cstddef>
+#include <expected>
+#include <vulkan/vulkan.hpp>
 
 namespace render
 {

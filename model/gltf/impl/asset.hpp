@@ -1,10 +1,18 @@
 #pragma once
 
 #include "buffer.hpp"
+#include "common/util/error.hpp"
 #include "file-cache.hpp"
 
 #include <cstddef>
+#include <expected>
 #include <fastgltf/types.hpp>
+#include <filesystem>
+#include <memory>
+#include <optional>
+#include <span>
+#include <utility>
+#include <vector>
 
 namespace model::gltf::impl
 {

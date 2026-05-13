@@ -2,9 +2,12 @@
 
 #include <exception>
 #include <filesystem>
+#include <format>
+#include <iterator>
 #include <libassert/assert.hpp>
 #include <system_error>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_to_string.hpp>  // Silent clang-tidy include cleaners
 
 template <>
 Error Error::FromFunctor<vk::Result>::operator()(const vk::Result& result) const noexcept

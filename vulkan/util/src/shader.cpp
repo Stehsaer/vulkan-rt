@@ -1,4 +1,14 @@
 #include "vulkan/util/shader.hpp"
+#include "common/util/error.hpp"
+
+#include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <memory>
+#include <span>
+#include <utility>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace vulkan
 {

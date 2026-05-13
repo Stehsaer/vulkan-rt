@@ -1,5 +1,10 @@
 #include "scene/page.hpp"
+#include "common/util/error.hpp"
+
+#include <expected>
 #include <libassert/assert.hpp>
+#include <memory>
+#include <utility>
 
 namespace scene
 {

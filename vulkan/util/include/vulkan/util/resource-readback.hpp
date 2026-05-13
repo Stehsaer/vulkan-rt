@@ -1,9 +1,15 @@
 #pragma once
 
 #include "common/util/error.hpp"
+#include "image/common.hpp"
 #include "image/image.hpp"
 #include "vulkan/interface/context.hpp"
 
+#include <cstddef>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <span>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace vulkan

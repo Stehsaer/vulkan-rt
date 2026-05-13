@@ -1,4 +1,5 @@
 #include "impl/instance.hpp"
+#include "common/util/error.hpp"
 #include "impl/common.hpp"
 #include "vulkan/context/instance.hpp"
 
@@ -7,8 +8,14 @@
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_vulkan.h>
+#include <expected>
+#include <format>
+#include <ranges>
 #include <set>
+#include <span>
 #include <string>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 

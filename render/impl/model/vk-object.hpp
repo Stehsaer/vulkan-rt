@@ -1,7 +1,9 @@
 #pragma once
 
+#include <expected>
 #include <vulkan/vulkan_raii.hpp>
 
+#include "common/util/error.hpp"
 #include "model/texture.hpp"
 #include "render/model/texture.hpp"
 

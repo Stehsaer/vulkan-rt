@@ -1,4 +1,13 @@
 #include "vulkan/alloc/buffer.hpp"
+#include "common/util/error.hpp"
+#include "vulkan/alloc/wrapper.hpp"
+
+#include <cstddef>
+#include <expected>
+#include <span>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_to_string.hpp>
 
 namespace vulkan
 {

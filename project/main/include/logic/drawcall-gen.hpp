@@ -4,8 +4,10 @@
 #include "render/model/model.hpp"
 #include "render/util/per-render-state.hpp"
 
+#include <glm/ext/matrix_float4x4.hpp>
 #include <memory>
 #include <memory_resource>
+#include <vector>
 
 namespace logic
 {

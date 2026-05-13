@@ -1,11 +1,18 @@
 #include "model/model.hpp"
+#include "common/test-macro.hpp"
 #include "common/util/error.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
 #include "model/hierarchy.hpp"
 #include "model/material.hpp"
 #include "model/mesh.hpp"
+#include "model/texture.hpp"
 
-#include "common/test-macro.hpp"
+#include <cstdint>
 #include <doctest.h>
+#include <ranges>
+#include <utility>
+#include <vector>
 
 static model::MaterialList get_valid_material_list() noexcept
 {

@@ -1,4 +1,15 @@
 #include "render/model/model.hpp"
+#include "common/util/error.hpp"
+#include "model/model.hpp"
+#include "render/model/material.hpp"
+#include "render/model/mesh.hpp"
+#include "vulkan/interface/context.hpp"
+
+#include <coro/task.hpp>
+#include <coro/thread_pool.hpp>
+#include <expected>
+#include <memory>
+#include <utility>
 
 namespace render
 {

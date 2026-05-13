@@ -1,5 +1,10 @@
 #include "image/image.hpp"
 
+#include <bit>
+#include <cstddef>
+#include <cstdint>
+#include <libassert/assert.hpp>
+#include <span>
 #include <stb_image.h>
 #include <webp/decode.h>
 

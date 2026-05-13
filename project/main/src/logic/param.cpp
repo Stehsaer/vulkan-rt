@@ -1,5 +1,6 @@
 #include "logic/param.hpp"
 
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <imgui.h>
 
 namespace logic

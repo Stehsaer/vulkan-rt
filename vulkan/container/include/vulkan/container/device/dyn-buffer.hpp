@@ -1,11 +1,16 @@
 #pragma once
 
 #include "common/util/error.hpp"
+#include "vulkan/alloc/allocator.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/interface/context.hpp"
 
 #include <cstddef>
+#include <expected>
+#include <libassert/assert.hpp>
+#include <optional>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
 namespace vulkan

@@ -1,7 +1,16 @@
 #include "common/file.hpp"
+#include "common/util/error.hpp"
 
+#include <cstddef>
+#include <expected>
+#include <filesystem>
+#include <format>
 #include <fstream>
+#include <ios>
+#include <span>
+#include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace file
 {

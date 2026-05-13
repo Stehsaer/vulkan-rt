@@ -1,8 +1,19 @@
 #include "model/texture.hpp"
-#include "common/file.hpp"
+#include "common/util/error.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
 
+#include <cstddef>
+#include <expected>
+#include <filesystem>
+#include <format>
+#include <glm/ext/vector_uint4_sized.hpp>
 #include <mio/mmap.hpp>
+#include <span>
+#include <system_error>
+#include <utility>
 #include <variant>
+#include <vector>
 
 namespace model
 {

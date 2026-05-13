@@ -1,12 +1,22 @@
 #pragma once
 
 #include "common/util/error.hpp"
+
+#include <concepts>
+#include <cstdint>
+#include <expected>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <memory_resource>
 #include <optional>
 #include <ranges>
+#include <span>
+#include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace model
 {

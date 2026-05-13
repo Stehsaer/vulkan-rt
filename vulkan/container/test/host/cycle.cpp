@@ -1,5 +1,10 @@
 #include "vulkan/container/host/cycle.hpp"
+
+#include <array>
 #include <doctest.h>
+#include <ranges>
+#include <utility>
+#include <vector>
 
 namespace
 {

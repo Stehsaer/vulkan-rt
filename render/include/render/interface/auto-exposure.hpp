@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <glm/glm.hpp>
 
 namespace render

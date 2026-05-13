@@ -1,11 +1,18 @@
 #include "vulkan/context/imgui.hpp"
 #include "common/formatter.hpp"
 #include "common/util/error.hpp"
+#include "vulkan/context/instance.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <SDL3/SDL_video.h>
+#include <concepts>
+#include <expected>
+#include <functional>
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
+#include <type_traits>
+#include <variant>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>

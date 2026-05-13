@@ -1,6 +1,24 @@
 #include "resource/pipeline.hpp"
 #include "common/util/construct.hpp"
+#include "common/util/error.hpp"
+#include "render/model/material.hpp"
+#include "render/model/model.hpp"
+#include "render/pipeline/auto-exposure.hpp"
+#include "render/pipeline/composite.hpp"
+#include "render/pipeline/forward.hpp"
+#include "render/pipeline/indirect.hpp"
 #include "render/resource/forward-rendering.hpp"
+#include "resource/aux-resource.hpp"
+#include "resource/render-resource.hpp"
+#include "vulkan/context/swapchain.hpp"
+#include "vulkan/interface/context.hpp"
+
+#include <cstdint>
+#include <expected>
+#include <ranges>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 
 namespace resource
 {

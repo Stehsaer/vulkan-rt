@@ -5,11 +5,16 @@
 #include "model/mesh.hpp"
 #include "typedef.hpp"
 
+#include <array>
 #include <coro/task.hpp>
 #include <coro/thread_pool.hpp>
+#include <cstdint>
 #include <expected>
+#include <glm/detail/qualifier.hpp>
 #include <glm/glm.hpp>
 #include <libassert/assert.hpp>
+#include <span>
+#include <utility>
 
 namespace model::obj::impl
 {

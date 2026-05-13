@@ -1,6 +1,7 @@
 #include "vulkan/container/host/linked-struct.hpp"
 
 #include <doctest.h>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 

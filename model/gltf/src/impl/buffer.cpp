@@ -1,8 +1,23 @@
 #include "buffer.hpp"
+#include "common/util/error.hpp"
 #include "common/util/overload.hpp"
+#include "file-cache.hpp"
 
+#include <cstddef>
+#include <expected>
+#include <fastgltf/types.hpp>
+#include <filesystem>
+#include <format>
 #include <libassert/assert.hpp>
+#include <memory>
+#include <mio/mmap.hpp>
+#include <mutex>
+#include <optional>
+#include <ranges>
+#include <span>
 #include <utility>
+#include <variant>
+#include <vector>
 
 namespace model::gltf::impl
 {

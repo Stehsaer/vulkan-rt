@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model/hierarchy.hpp"
+
 #include <cstdint>
 
 namespace model::obj::impl

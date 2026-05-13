@@ -1,9 +1,28 @@
 #include "impl/device.hpp"
 #include "common/formatter.hpp"
+#include "common/util/error.hpp"
 #include "impl/common.hpp"
+#include "vulkan/container/host/linked-struct.hpp"
+#include "vulkan/context/device.hpp"
+#include "vulkan/context/instance.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <expected>
+#include <functional>
 #include <map>
+#include <memory>
+#include <optional>
+#include <ranges>
 #include <set>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace vulkan::impl
 {
@@ -114,10 +133,10 @@ namespace vulkan::impl
 				"Vulkan API version too low",
 				std::format(
 					"Expecting > {}.{}, got {}.{}",
-					VK_VERSION_MAJOR(API_VERSION),
-					VK_VERSION_MINOR(API_VERSION),
-					VK_VERSION_MAJOR(properties.apiVersion),
-					VK_VERSION_MINOR(properties.apiVersion)
+					vk::versionMajor(API_VERSION),
+					vk::versionMinor(API_VERSION),
+					vk::versionMajor(properties.apiVersion),
+					vk::versionMinor(properties.apiVersion)
 				)
 			);
 

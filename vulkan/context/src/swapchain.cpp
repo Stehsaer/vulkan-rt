@@ -1,12 +1,30 @@
 #include "vulkan/context/swapchain.hpp"
+#include "common/util/error.hpp"
 #include "common/util/variant.hpp"
+#include "vulkan/context/device.hpp"
+#include "vulkan/context/instance.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/numeric/glm.hpp"
 
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_video.h>
+#include <algorithm>
+#include <array>
 #include <cassert>
+#include <cstdint>
+#include <expected>
+#include <glm/common.hpp>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <libassert/assert.hpp>
+#include <memory>
+#include <optional>
+#include <span>
+#include <tuple>
+#include <utility>
 #include <variant>
-#include <vulkan/vulkan_enums.hpp>
+#include <vector>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace vulkan
 {

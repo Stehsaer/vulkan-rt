@@ -3,6 +3,8 @@
 #include "common/util/error.hpp"
 #include "vulkan/context/instance.hpp"
 
+#include <SDL3/SDL_video.h>
+#include <expected>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>

@@ -1,6 +1,10 @@
 #pragma once
 
+#include "common/util/error.hpp"
 #include "image.hpp"
+#include "image/common.hpp"
+
+#include <expected>
 
 namespace image
 {

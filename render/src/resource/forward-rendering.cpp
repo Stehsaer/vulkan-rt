@@ -1,5 +1,11 @@
 #include "render/resource/forward-rendering.hpp"
+#include "common/util/error.hpp"
 #include "vulkan/container/device/frame-buffer.hpp"
+#include "vulkan/interface/context.hpp"
+
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <utility>
 
 namespace render
 {

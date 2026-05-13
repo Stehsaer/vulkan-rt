@@ -1,6 +1,25 @@
 #include "render/model/texture-list.hpp"
+#include "common/util/async.hpp"
+#include "common/util/error.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
+#include "model/material.hpp"
+#include "model/texture.hpp"
+#include "render/model/texture.hpp"
+#include "vulkan/interface/context.hpp"
+#include "vulkan/util/static-resource-creator.hpp"
 
+#include <coro/task.hpp>
+#include <coro/thread_pool.hpp>
+#include <coro/when_all.hpp>
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_uint4_sized.hpp>
+#include <optional>
 #include <ranges>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace render
 {

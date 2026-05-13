@@ -1,13 +1,27 @@
 #include "mesh.hpp"
+#include "asset.hpp"
+#include "common/util/async.hpp"
 #include "common/util/construct.hpp"
+#include "common/util/error.hpp"
 #include "model/mesh.hpp"
 
+#include <algorithm>
+#include <array>
+#include <coro/task.hpp>
 #include <coro/thread_pool.hpp>
 #include <coro/when_all.hpp>
+#include <cstddef>
+#include <cstdint>
+#include <expected>
 #include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/tools.hpp>
+#include <fastgltf/types.hpp>
+#include <format>
+#include <functional>
 #include <glm/fwd.hpp>
 #include <ranges>
+#include <utility>
+#include <vector>
 
 namespace model::gltf::impl
 {

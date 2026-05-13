@@ -1,9 +1,15 @@
 #pragma once
 
+#include "common/util/error.hpp"
 #include "image/common.hpp"
 #include "image/image.hpp"
 
+#include <array>
+#include <cstddef>
 #include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <libassert/assert.hpp>
+#include <vector>
 
 namespace image
 {

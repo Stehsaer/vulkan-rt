@@ -1,15 +1,21 @@
 #pragma once
 
+#include "aux-resource.hpp"
 #include "common/util/error.hpp"
+#include "render-resource.hpp"
 #include "render/model/material.hpp"
+#include "render/model/model.hpp"
 #include "render/pipeline/auto-exposure.hpp"
 #include "render/pipeline/composite.hpp"
 #include "render/pipeline/forward.hpp"
 #include "render/pipeline/indirect.hpp"
-
-#include "aux-resource.hpp"
-#include "render-resource.hpp"
 #include "vulkan/context/swapchain.hpp"
+#include "vulkan/interface/context.hpp"
+
+#include <cstdint>
+#include <expected>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 
 namespace resource
 {

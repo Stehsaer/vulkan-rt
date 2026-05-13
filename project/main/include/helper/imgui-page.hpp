@@ -1,12 +1,18 @@
 #pragma once
 
+#include "common/util/error.hpp"
 #include "common/util/tagged-type.hpp"
 #include "resource/context.hpp"
 #include "resource/sync-primitive.hpp"
 #include "vulkan/container/host/cycle.hpp"
 #include "vulkan/context/swapchain.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <SDL3/SDL_events.h>
+#include <expected>
+#include <optional>
+#include <type_traits>
+#include <utility>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace helper

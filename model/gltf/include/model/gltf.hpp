@@ -6,6 +6,14 @@
 #include "model/model.hpp"
 
 #include <coro/coro.hpp>
+#include <coro/task.hpp>
+#include <coro/thread_pool.hpp>
+#include <cstddef>
+#include <expected>
+#include <filesystem>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace model::gltf
 {

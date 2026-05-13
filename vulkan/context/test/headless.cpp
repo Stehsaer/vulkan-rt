@@ -3,6 +3,7 @@
 #include "vulkan/context/instance.hpp"
 
 #include <doctest.h>
+#include <utility>
 
 static void test_create(
 	const vulkan::InstanceConfig& instance_config,

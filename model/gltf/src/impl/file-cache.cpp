@@ -1,4 +1,14 @@
 #include "file-cache.hpp"
+#include "common/util/error.hpp"
+
+#include <cstddef>
+#include <expected>
+#include <filesystem>
+#include <format>
+#include <memory>
+#include <mio/mmap.hpp>
+#include <mutex>
+#include <system_error>
 
 namespace model::gltf::impl
 {

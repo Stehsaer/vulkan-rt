@@ -1,4 +1,8 @@
 #include "model/enum-conv.hpp"
+#include "model/texture.hpp"
+
+#include <libassert/assert.hpp>
+#include <vulkan/vulkan.hpp>
 
 namespace render::impl
 {

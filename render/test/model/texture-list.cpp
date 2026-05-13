@@ -1,9 +1,16 @@
+#include <coro/sync_wait.hpp>
 #include <coro/thread_pool.hpp>
+#include <cstddef>
+#include <cstdlib>
 #include <doctest.h>
+#include <filesystem>
+#include <span>
+#include <utility>
 #include <vulkan/vulkan.hpp>
 
 #include "common/file.hpp"
 #include "common/test-macro.hpp"
+#include "common/util/async.hpp"
 #include "image/common.hpp"
 #include "image/image.hpp"
 #include "render/model/texture-list.hpp"

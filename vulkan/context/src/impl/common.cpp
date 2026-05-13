@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <iterator>
+#include <set>
+#include <string>
+#include <vector>
 
 namespace vulkan
 {

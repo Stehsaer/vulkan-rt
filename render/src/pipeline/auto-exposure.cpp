@@ -1,15 +1,30 @@
 #include "render/pipeline/auto-exposure.hpp"
 #include "common/util/array.hpp"
 #include "common/util/construct.hpp"
+#include "common/util/error.hpp"
+#include "render/interface/auto-exposure.hpp"
+#include "render/resource/auto-exposure.hpp"
 #include "shader/auto-exposure/clear.hpp"
 #include "shader/auto-exposure/histogram.hpp"
 #include "shader/auto-exposure/reduce.hpp"
+#include "vulkan/alloc/buffer-ref.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/pool-size.hpp"
 #include "vulkan/util/shader.hpp"
 
+#include <array>
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <glm/ext/vector_uint3.hpp>
+#include <glm/ext/vector_uint3_sized.hpp>
 #include <glm/glm.hpp>
+#include <memory>
 #include <ranges>
-#include <vulkan/vulkan_structs.hpp>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace render
 {

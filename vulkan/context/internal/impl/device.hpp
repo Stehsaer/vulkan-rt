@@ -1,9 +1,17 @@
 #pragma once
 
+#include "common/util/error.hpp"
 #include "vulkan/container/host/linked-struct.hpp"
 #include "vulkan/context/device.hpp"
 #include "vulkan/context/instance.hpp"
 
+#include <cstdint>
+#include <expected>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace vulkan::impl
