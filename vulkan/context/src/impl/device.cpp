@@ -195,8 +195,12 @@ namespace vulkan::impl
 		extensions.insert_range(mandatory_device_extensions);
 		if (support_present) extensions.insert_range(present_mandatory_device_extensions);
 
-		const auto available_extensions =
-			phy_device.enumerateDeviceExtensionProperties()
+		const auto available_extensions_result =
+			phy_device.enumerateDeviceExtensionProperties().transform_error(Error::from<vk::Result>());
+		if (!available_extensions_result)
+			return available_extensions_result.error().forward("Enumerate device extensions failed");
+
+		const auto available_extensions = *available_extensions_result
 			| std::views::transform([](const vk::ExtensionProperties& properties) {
 				  return std::string(properties.extensionName.data());
 			  })
@@ -338,10 +342,7 @@ namespace vulkan::impl
 		if (!device_result) return device_result.error().forward("Create device failed");
 		auto device = std::move(*device_result);
 
-		auto queue_result =
-			device.getQueue(render_family_index, 0).transform_error(Error::from<vk::Result>());
-		if (!queue_result) return queue_result.error().forward("Retrieve render queue instance failed");
-		auto queue = std::make_shared<vk::raii::Queue>(std::move(*queue_result));
+		auto queue = std::make_shared<vk::raii::Queue>(device.getQueue(render_family_index, 0));
 
 		return std::make_pair(
 			std::move(device),
@@ -383,13 +384,7 @@ namespace vulkan::impl
 
 		std::map<uint32_t, std::shared_ptr<const vk::raii::Queue>> queue_map;
 		for (const auto family : unique_families)
-		{
-			auto queue_result = device.getQueue(family, 0).transform_error(Error::from<vk::Result>());
-			if (!queue_result)
-				return queue_result.error()
-					.forward("Retrieve queue failed", std::format("Queue index {}", family));
-			queue_map.emplace(family, std::make_shared<vk::raii::Queue>(std::move(*queue_result)));
-		}
+			queue_map.emplace(family, std::make_shared<vk::raii::Queue>(device.getQueue(family, 0)));
 
 		const auto render_queue =
 			DeviceQueue{.queue = queue_map.at(render_family_index), .family_index = render_family_index};

@@ -14,8 +14,10 @@ namespace logic
 		{
 			const auto primitive_range = model.mesh_list->mesh_ranges_array[mesh];
 
-			for (const auto primitive_idx :
-				 std::views::iota(primitive_range.offset, primitive_range.offset + primitive_range.count))
+			for (
+				const auto primitive_idx :
+				std::views::iota(primitive_range.offset, primitive_range.offset + primitive_range.count)
+			)
 			{
 				const auto primitive_attr = model.mesh_list->primitive_attr_array[primitive_idx];
 				const auto material_mode =

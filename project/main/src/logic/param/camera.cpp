@@ -16,7 +16,7 @@ namespace logic
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) view = view.mouse_rotate(mouse_delta);
 
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-				view = view.mouse_pan(mouse_delta, extent.x / double(extent.y), 1.0);
+				view = view.mouse_pan(mouse_delta, extent.x / static_cast<double>(extent.y), 1.0);
 
 			view = view.mouse_scroll(mouse_scroll);
 		}

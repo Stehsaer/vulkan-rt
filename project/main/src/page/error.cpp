@@ -35,7 +35,10 @@ namespace page
 
 			if (quit)
 			{
-				context->device->waitIdle();
+				if (const auto result =
+						context->device->waitIdle().transform_error(Error::from<vk::Result>());
+					!result)
+					return result.error().forward("Wait for device idle failed");
 				return ResultType::from<Result::Quit>();
 			}
 			else
@@ -44,11 +47,15 @@ namespace page
 			}
 		}
 		case helper::ImGuiPage::ResultState::Quit:
-			context->device->waitIdle();
+			if (const auto result = context->device->waitIdle().transform_error(Error::from<vk::Result>());
+				!result)
+				return result.error().forward("Wait for device idle failed");
 			return error.forward("User quit from error page");
 
 		case helper::ImGuiPage::ResultState::Error:
-			context->device->waitIdle();
+			if (const auto result = context->device->waitIdle().transform_error(Error::from<vk::Result>());
+				!result)
+				return result.error().forward("Wait for device idle failed");
 			return ui_result.get<helper::ImGuiPage::ResultState::Error>();
 
 		default:

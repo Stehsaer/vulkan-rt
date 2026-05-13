@@ -9,7 +9,7 @@ namespace vulkan
 	{
 		if (span.size() % sizeof(uint32_t) != 0)
 			return Error("Shader bytecode size is not a multiple of 4 bytes");
-		if (uintptr_t(span.data()) % alignof(uint32_t) != 0)
+		if (reinterpret_cast<uintptr_t>(span.data()) % alignof(uint32_t) != 0)
 			return Error("Shader bytecode data is not properly aligned for uint32_t");
 
 		const vk::ShaderModuleCreateInfo create_info{

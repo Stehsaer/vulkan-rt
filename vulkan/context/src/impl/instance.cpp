@@ -71,8 +71,12 @@ namespace vulkan::impl
 	{
 		/* Check layers */
 
-		const auto available_layers =
-			context.enumerateInstanceLayerProperties()
+		const auto available_layers_result =
+			context.enumerateInstanceLayerProperties().transform_error(Error::from<vk::Result>());
+		if (!available_layers_result)
+			return available_layers_result.error().forward("Enumerate instance layers failed");
+
+		const auto available_layers = *available_layers_result
 			| std::views::transform([](const vk::LayerProperties& layer_properties) {
 				  return std::string(layer_properties.layerName.data());
 			  })
@@ -84,8 +88,12 @@ namespace vulkan::impl
 
 		/* Check extensions */
 
-		const auto available_extensions =
-			context.enumerateInstanceExtensionProperties()
+		const auto available_extensions_result =
+			context.enumerateInstanceExtensionProperties().transform_error(Error::from<vk::Result>());
+		if (!available_extensions_result)
+			return available_extensions_result.error().forward("Enumerate instance extensions failed");
+
+		const auto available_extensions = *available_extensions_result
 			| std::views::transform([](const vk::ExtensionProperties& properties) {
 				  return std::string(properties.extensionName.data());
 			  })

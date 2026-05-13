@@ -141,9 +141,14 @@ namespace render
 		) noexcept
 		{
 			const auto pool_sizes = std::to_array<vk::DescriptorPoolSize>({
-				{.type = vk::DescriptorType::eStorageBuffer,        .descriptorCount = 1},
-				{.type = vk::DescriptorType::eCombinedImageSampler,
-				 .descriptorCount = uint32_t(texture_count)                             },
+				{
+                 .type = vk::DescriptorType::eStorageBuffer,
+                 .descriptorCount = 1,
+				 },
+				{
+                 .type = vk::DescriptorType::eCombinedImageSampler,
+                 .descriptorCount = static_cast<uint32_t>(texture_count),
+				 },
 			});
 			const auto descriptor_pool_create_info =
 				vk::DescriptorPoolCreateInfo()
@@ -167,7 +172,7 @@ namespace render
 			size_t texture_count
 		) noexcept
 		{
-			const std::vector variable_descriptor_counts = {uint32_t(texture_count)};
+			const std::vector variable_descriptor_counts = {static_cast<uint32_t>(texture_count)};
 			const auto variable_count_allocate_info =
 				vk::DescriptorSetVariableDescriptorCountAllocateInfo()
 					.setDescriptorCounts(variable_descriptor_counts);

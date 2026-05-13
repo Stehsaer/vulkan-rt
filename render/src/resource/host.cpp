@@ -83,8 +83,10 @@ namespace render
 		if (const auto result = transform_buffer.update(context, transforms); !result)
 			return result.error().forward("Update transform buffer failed");
 
-		for (const auto& [data, buffer] :
-			 std::views::zip(primitive_drawcalls.all(), primitive_drawcall_buffers.all()))
+		for (
+			const auto& [data, buffer] :
+			std::views::zip(primitive_drawcalls.all(), primitive_drawcall_buffers.all())
+		)
 		{
 			if (const auto result = buffer.update(context, data); !result)
 				return result.error().forward("Update primitive drawcall buffer failed");

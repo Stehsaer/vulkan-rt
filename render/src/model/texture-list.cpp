@@ -8,8 +8,10 @@ namespace render
 	{
 		auto image = image::Image<image::Format::Unorm8, image::Layout::RGBA>({16, 16});
 
-		for (const auto [y, x] :
-			 std::views::cartesian_product(std::views::iota(0u, 16u), std::views::iota(0u, 16u)))
+		for (
+			const auto [y, x] :
+			std::views::cartesian_product(std::views::iota(0u, 16u), std::views::iota(0u, 16u))
+		)
 		{
 			const bool is_purple = (x + y) % 2 == 0;
 			image[x, y] = is_purple ? glm::u8vec4(255, 0, 255, 255) : glm::u8vec4(0, 0, 0, 255);
@@ -90,7 +92,9 @@ namespace render
 					co_return color_texture_result.error().forward("Load color texture failed");
 			}
 			else
+			{
 				color_texture = std::move(*color_texture_result);
+			}
 		}
 
 		if (texture_usage.normal)
@@ -108,7 +112,9 @@ namespace render
 					co_return normal_texture_result.error().forward("Load normal texture failed");
 			}
 			else
+			{
 				normal_texture = std::move(*normal_texture_result);
+			}
 		}
 
 		if (const auto upload_result =

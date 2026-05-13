@@ -27,7 +27,10 @@ namespace render
 		/// @return If the resource is ready to use
 		///
 		[[nodiscard]]
-		bool is_complete() const noexcept;
+		bool is_complete() const noexcept
+		{
+			return depth.has_value() && hdr.has_value();
+		}
 
 		///
 		/// @brief Resize the resource to a given extent
@@ -59,7 +62,9 @@ namespace render
 		[[nodiscard]]
 		Ref ref() const noexcept
 		{
-			ASSUME(is_complete());
+			ASSUME(depth.has_value());
+			ASSUME(hdr.has_value());
+
 			return Ref{
 				.depth = *depth,
 				.hdr = *hdr,

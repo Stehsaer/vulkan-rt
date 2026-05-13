@@ -148,7 +148,7 @@ namespace render
 		/*===== Histogram =====*/
 
 		const auto histogram_group_count =
-			(glm::u32vec3(resource_set.image_size, 1) + HISTOGRAM_WORKGROUP_SIZE - uint32_t(1))
+			(glm::u32vec3(resource_set.image_size, 1) + HISTOGRAM_WORKGROUP_SIZE - 1u)
 			/ HISTOGRAM_WORKGROUP_SIZE;
 
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, histogram_pipeline);

@@ -37,7 +37,7 @@ namespace render
 		return Texture{
 			.image = std::move(vk_image),
 			.format = Format::Rgba8Unorm,
-			.mipmap_levels = uint32_t(mipmap_chain.size())
+			.mipmap_levels = static_cast<uint32_t>(mipmap_chain.size())
 		};
 	}
 
@@ -92,7 +92,7 @@ namespace render
 		return Texture{
 			.image = std::move(vk_image),
 			.format = texture_format,
-			.mipmap_levels = uint32_t(mipmap_chain.size())
+			.mipmap_levels = static_cast<uint32_t>(mipmap_chain.size())
 		};
 	}
 
@@ -119,7 +119,7 @@ namespace render
 				return Texture{
 					.image = std::move(vk_image),
 					.format = Format::Rg8Unorm,
-					.mipmap_levels = uint32_t(mipmap_chain.size())
+					.mipmap_levels = static_cast<uint32_t>(mipmap_chain.size())
 				};
 			});
 	}
@@ -147,7 +147,7 @@ namespace render
 				return Texture{
 					.image = std::move(vk_image),
 					.format = Format::Rg16Unorm,
-					.mipmap_levels = uint32_t(mipmap_chain.size())
+					.mipmap_levels = static_cast<uint32_t>(mipmap_chain.size())
 				};
 			});
 	}
@@ -207,7 +207,7 @@ namespace render
 		auto image = std::move(*image_result);
 
 		const auto unorm16_to_unorm8 = [](const glm::u16vec4& pixel) {
-			return glm::u8vec4(pixel >> uint16_t(8));
+			return glm::u8vec4(pixel >> static_cast<uint16_t>(8));
 		};
 
 		const auto convert_to_unorm8 = util::Overload(

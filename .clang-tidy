@@ -15,19 +15,25 @@ Checks: " modernize-*, bugprone-*, readability-*, performance-*, misc-*,
   -modernize-use-trailing-return-type, -modernize-loop-convert,
   -modernize-replace-auto-ptr, -modernize-use-default-member-init,
   -modernize-use-override, -modernize-avoid-c-arrays, -modernize-avoid-bind,
-  -modernize-type-traits, -bugprone-narrowing-conversions,
+  -modernize-type-traits, -modernize-use-using,
+
+  -bugprone-narrowing-conversions, -bugprone-std-namespace-modification,
   -bugprone-easily-swappable-parameters,
   -bugprone-implicit-widening-of-multiplication-result,
   -bugprone-reserved-identifier, -bugprone-exception-escape,
+  -bugprone-unchecked-optional-access,
+
   -readability-braces-around-statements, -readability-else-after-return,
   -readability-magic-numbers, -readability-identifier-length,
   -readability-isolate-declaration, -readability-suspicious-call-argument,
   -readability-uppercase-literal-suffix,
   -readability-convert-member-functions-to-static, -readability-named-parameter,
   -readability-qualified-auto, -readability-math-missing-parentheses,
-  -performance-no-int-to-ptr, -misc-non-private-member-variables-in-classes,
-  -misc-no-recursion, -misc-unused-parameters, -misc-use-anonymous-namespace,
-  -misc-include-cleaner, -modernize-use-using, -performance-enum-size"
+
+  -performance-no-int-to-ptr,-performance-enum-size,
+
+  -misc-non-private-member-variables-in-classes, -misc-no-recursion,
+  -misc-unused-parameters, -misc-use-anonymous-namespace, -misc-include-cleaner"
 
 CheckOptions:
   readability-identifier-naming.ClassCase: CamelCase

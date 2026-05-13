@@ -267,10 +267,10 @@ namespace render
 		static PerRenderState from_args(Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
 		{
 			return PerRenderState{
-				.opaque_single_sided = T(std::forward<Args>(args)...),
-				.opaque_double_sided = T(std::forward<Args>(args)...),
-				.masked_single_sided = T(std::forward<Args>(args)...),
-				.masked_double_sided = T(std::forward<Args>(args)...),
+				.opaque_single_sided = T(args...),
+				.opaque_double_sided = T(args...),
+				.masked_single_sided = T(args...),
+				.masked_double_sided = T(args...),
 			};
 		}
 

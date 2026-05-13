@@ -6,7 +6,7 @@ namespace util
 	/// @brief Overload template, primarily used for `std::visit`
 	///
 	template <typename... Ts>
-	struct Overload : Ts...
+	struct Overload : Ts...  // NOLINT
 	{
 		using Ts::operator()...;
 	};

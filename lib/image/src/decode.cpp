@@ -85,7 +85,7 @@ namespace image::impl
 
 		stbi_uc* data = stbi_load_from_memory(
 			reinterpret_cast<const stbi_uc*>(encoded_data.data()),
-			int(encoded_data.size()),
+			static_cast<int>(encoded_data.size()),
 			&width,
 			&height,
 			&channels,
@@ -136,7 +136,7 @@ namespace image::impl
 
 		stbi_us* data = stbi_load_16_from_memory(
 			reinterpret_cast<const stbi_uc*>(encoded_data.data()),
-			int(encoded_data.size()),
+			static_cast<int>(encoded_data.size()),
 			&width,
 			&height,
 			&channels,
@@ -166,7 +166,7 @@ namespace image::impl
 
 		float* data = stbi_loadf_from_memory(
 			reinterpret_cast<const stbi_uc*>(encoded_data.data()),
-			int(encoded_data.size()),
+			static_cast<int>(encoded_data.size()),
 			&width,
 			&height,
 			&channels,

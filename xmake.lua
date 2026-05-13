@@ -13,7 +13,10 @@ set_policy("run.autobuild", true)
 set_encodings("utf-8")
 set_warnings("all", "pedantic", "extra")
 set_languages("c++23")
-add_vectorexts("all")
+
+if is_arch("x86_64") then
+	add_vectorexts("avx2")
+end
 
 -- GCC false warning
 if is_plat("linux") then
@@ -33,12 +36,12 @@ if is_plat("linux") then
 end
 
 -- Third-party packages
+includes("package/*.lua")
 add_requires(
 	-- Utilities
 	"gzip-hpp v0.1.0",
 	"doctest 2.4.12",
 	"argparse v3.2",
-	"libcoro v0.16.0",
 	"mio 2023.3.3",
 	"libassert[magic_enum=n] v2.2.1",
 
@@ -53,9 +56,10 @@ add_requires(
 	"vulkan-memory-allocator 3.3.0"
 )
 
-add_requireconfs("**vulkan-hpp", {version = "1.4.309", override = true, system = false})
-add_requireconfs("**vulkan-headers", {version = "1.4.309+0", override = true, system = false})
+add_requireconfs("**vulkan-hpp", {version = "v1.4.351", override = true, system = false})
+add_requireconfs("**vulkan-headers", {version = "v1.4.351", override = true, system = false})
 add_requireconfs("**libsdl3", {version = "3.4.2", override = true, system = false})
+add_requires("libcoro-alt v0.16.0", {alias = "libcoro"})
 
 -- Global defines
 add_defines(
@@ -71,7 +75,8 @@ add_defines(
 	"VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=0",
 	"VULKAN_HPP_NO_EXCEPTIONS", 
 	"VULKAN_HPP_NO_STRUCT_CONSTRUCTORS", 
-	"VULKAN_HPP_ASSERT_ON_RESULT=;"
+	"VULKAN_HPP_ASSERT_ON_RESULT=(void)",
+	"VULKAN_HPP_USE_STD_EXPECTED"
 )
 
 -- Rules

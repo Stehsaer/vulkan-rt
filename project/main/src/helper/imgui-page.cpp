@@ -101,7 +101,11 @@ namespace helper
 		const FrameContext& frame_context
 	) noexcept
 	{
-		frame_context.command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+		if (const auto result =
+				frame_context.command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit})
+					.transform_error(Error::from<vk::Result>());
+			!result)
+			return result.error().forward("Begin command buffer failed");
 
 		const auto swapchain_acquire_image_barrier = vk::ImageMemoryBarrier2{
 			.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
@@ -155,7 +159,9 @@ namespace helper
 			vk::DependencyInfo{}.setImageMemoryBarriers(swapchain_image_present_barrier)
 		);
 
-		frame_context.command_buffer.end();
+		if (const auto result = frame_context.command_buffer.end().transform_error(Error::from<vk::Result>());
+			!result)
+			return result.error().forward("End command buffer failed");
 
 		{
 			const auto wait_semaphores =
@@ -172,11 +178,20 @@ namespace helper
 					.setSignalSemaphores(signal_semaphores)
 					.setWaitDstStageMask(wait_stages);
 
-			context.device->resetFences({frame_context.sync.draw_fence});
+			if (const auto result =
+					context.device->resetFences({frame_context.sync.draw_fence})
+						.transform_error(Error::from<vk::Result>());
+				!result)
+				return result.error().forward("Reset fences failed");
 
 			const std::scoped_lock lock(context.device.get().submit_mutex);
 
-			context.device.get().queue.submit(graphic_submit_info, frame_context.sync.draw_fence);
+			if (const auto result =
+					context.device.get()
+						.queue.submit(graphic_submit_info, frame_context.sync.draw_fence)
+						.transform_error(Error::from<vk::Result>());
+				!result)
+				return result.error().forward("Submit commands failed");
 
 			if (const auto present_result = context.swapchain.present(
 					context.device,

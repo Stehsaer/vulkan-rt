@@ -21,6 +21,18 @@ BracedInitializerIndentWidth: 4
 BreakBinaryOperations: RespectPrecedence
 BreakAfterAttributes: Always
 
+BreakAfterOpenBracketBracedList: true
+BreakAfterOpenBracketFunction: true
+BreakAfterOpenBracketIf: true
+BreakAfterOpenBracketLoop: true
+BreakAfterOpenBracketSwitch: true
+
+BreakBeforeCloseBracketBracedList: true
+BreakBeforeCloseBracketFunction: true
+BreakBeforeCloseBracketIf: true
+BreakBeforeCloseBracketLoop: true
+BreakBeforeCloseBracketSwitch: true
+
 # Bin-packs
 BinPackArguments: false
 BinPackParameters: false
@@ -77,4 +89,5 @@ PenaltyBreakAssignment: 0
 PenaltyBreakBeforeMemberAccess: 100
 PenaltyIndentedWhitespace: 10
 PenaltyBreakScopeResolution: 1000
+
 # Standard: auto

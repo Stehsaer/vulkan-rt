@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <libassert/assert.hpp>
 #include <system_error>
-#include <vulkan/vulkan_to_string.hpp>
+#include <vulkan/vulkan.hpp>
 
 template <>
 Error Error::FromFunctor<vk::Result>::operator()(const vk::Result& result) const noexcept

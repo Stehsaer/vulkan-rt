@@ -105,7 +105,7 @@ namespace vulkan
 					.size = sizeof(T),
 					.usage = usage_flags,
 					.sharingMode = sharing_mode,
-					.queueFamilyIndexCount = uint32_t(queue_family_indices.size()),
+					.queueFamilyIndexCount = static_cast<uint32_t>(queue_family_indices.size()),
 					.pQueueFamilyIndices = queue_family_indices.data(),
 				},
 				usage
@@ -140,7 +140,7 @@ namespace vulkan
 					.size = element_count * sizeof(T),
 					.usage = usage_flags,
 					.sharingMode = sharing_mode,
-					.queueFamilyIndexCount = uint32_t(queue_family_indices.size()),
+					.queueFamilyIndexCount = static_cast<uint32_t>(queue_family_indices.size()),
 					.pQueueFamilyIndices = queue_family_indices.data(),
 				},
 				usage

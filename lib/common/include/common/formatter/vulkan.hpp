@@ -2,7 +2,7 @@
 
 #include <format>
 #include <ranges>
-#include <vulkan/vulkan_to_string.hpp>
+#include <vulkan/vulkan.hpp>
 
 namespace vk_formatter
 {

@@ -16,11 +16,11 @@ namespace model::obj::impl
 			mesh.material_ids
 				| std::views::enumerate
 				| std::views::transform([&mesh](size_t face_index, int face_material_id) {
-					  const auto indices = std::to_array(
-						  {mesh.indices[face_index * 3],
-						   mesh.indices[face_index * 3 + 1],
-						   mesh.indices[face_index * 3 + 2]}
-					  );
+					  const auto indices = std::to_array({
+						  mesh.indices[face_index * 3],
+						  mesh.indices[face_index * 3 + 1],
+						  mesh.indices[face_index * 3 + 2],
+					  });
 					  const auto key =
 						  face_material_id < 0 ? std::nullopt : std::optional<uint32_t>(face_material_id);
 
@@ -137,8 +137,8 @@ namespace model::obj::impl
 			full_vertices.append_range(full);
 		}
 
-		const auto full_indices =
-			std::views::iota(0u, uint32_t(full_vertices.size())) | std::ranges::to<std::vector>();
+		const auto full_indices = std::views::iota(0u, static_cast<uint32_t>(full_vertices.size()))
+			| std::ranges::to<std::vector>();
 
 		auto geometry_result = Geometry::create(full_vertices, full_indices);
 		if (!geometry_result) return geometry_result.error().forward("Create geometry failed");

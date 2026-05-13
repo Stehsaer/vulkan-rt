@@ -107,14 +107,18 @@ namespace page
 		const auto event = handle_events();
 		if (event == Event::Quit)
 		{
-			context.device->waitIdle();
+			if (const auto result = context.device->waitIdle().transform_error(Error::from<vk::Result>());
+				!result)
+				return result.error().forward("Wait for device idle failed");
 			return ResultType::from<Result::Quit>();
 		}
 
 		auto prepare_frame_result = prepare_frame();
 		if (!prepare_frame_result)
 		{
-			context.device->waitIdle();
+			if (const auto result = context.device->waitIdle().transform_error(Error::from<vk::Result>());
+				!result)
+				return result.error().forward("Wait for device idle failed");
 			return prepare_frame_result.error().forward("Prepare frame failed");
 		}
 		if (!*prepare_frame_result) return ResultType::from<Result::Continue>();
@@ -122,13 +126,17 @@ namespace page
 
 		if (const auto draw_result = draw_frame(frame); !draw_result)
 		{
-			context.device->waitIdle();
+			if (const auto result = context.device->waitIdle().transform_error(Error::from<vk::Result>());
+				!result)
+				return result.error().forward("Wait for device idle failed");
 			return draw_result.error().forward("Draw frame failed");
 		}
 
 		if (const auto present_result = present_frame(frame); !present_result)
 		{
-			context.device->waitIdle();
+			if (const auto result = context.device->waitIdle().transform_error(Error::from<vk::Result>());
+				!result)
+				return result.error().forward("Wait for device idle failed");
 			return present_result.error().forward("Present frame failed");
 		}
 
@@ -163,16 +171,11 @@ namespace page
 
 		/* Check, recreate if needed */
 
-		bool waited_idle = false;
-		const auto wait_idle = [this, &waited_idle] {
-			if (waited_idle) return;
-			context.device->waitIdle();
-			waited_idle = true;
-		};
-
 		if (swapchain_frame.extent_changed || !curr_resource.render_resource.is_complete())
 		{
-			wait_idle();
+			if (const auto result = context.device->waitIdle().transform_error(Error::from<vk::Result>());
+				!result)
+				return result.error().forward("Wait for device idle failed");
 
 			for (auto& resource : frame_resources.iterate())
 			{
@@ -361,7 +364,9 @@ namespace page
 
 	std::expected<void, Error> RenderPage::draw_frame(const Frame& frame) noexcept
 	{
-		frame.command_buffer.begin({});
+		if (const auto result = frame.command_buffer.begin({}).transform_error(Error::from<vk::Result>());
+			!result)
+			return result.error().forward("Begin command buffer failed");
 
 		frame.render_resource.upload(frame.command_buffer);
 
@@ -373,7 +378,9 @@ namespace page
 		if (const auto composite_result = render_final_composite(frame); !composite_result)
 			return composite_result.error().forward("Render final composite failed");
 
-		frame.command_buffer.end();
+		if (const auto result = frame.command_buffer.end().transform_error(Error::from<vk::Result>());
+			!result)
+			return result.error().forward("End command buffer failed");
 
 		return {};
 	}
@@ -399,8 +406,18 @@ namespace page
 				.setWaitSemaphoreInfos(wait_semaphore_info)
 				.setSignalSemaphoreInfos(signal_semaphore_info);
 
-		context.device->resetFences(*frame.sync_primitive.draw_fence);
-		context.device.get().queue.submit2(submit_info, frame.sync_primitive.draw_fence);
+		if (const auto result =
+				context.device->resetFences(*frame.sync_primitive.draw_fence)
+					.transform_error(Error::from<vk::Result>());
+			!result)
+			return result.error().forward("Reset fences failed");
+
+		if (const auto result =
+				context.device.get()
+					.queue.submit2(submit_info, frame.sync_primitive.draw_fence)
+					.transform_error(Error::from<vk::Result>());
+			!result)
+			return result.error().forward("Submit failed");
 
 		const auto present_result =
 			context.swapchain

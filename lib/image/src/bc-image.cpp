@@ -47,10 +47,10 @@ namespace image
 		auto process_func
 	) noexcept
 	{
-		for (const auto [y, x] : std::views::cartesian_product(
-				 std::views::iota(uint32_t(0), size.y),
-				 std::views::iota(uint32_t(0), size.x)
-			 ))
+		for (
+			const auto [y, x] :
+			std::views::cartesian_product(std::views::iota(0u, size.y), std::views::iota(0u, size.x))
+		)
 		{
 			const glm::u32vec2 coord{x, y};
 			const auto pixel_block = slice_block(raw_image, coord);
@@ -88,7 +88,7 @@ namespace image
 	{
 		std::call_once(rgbcx_init_flag, [] { rgbcx::init(); });
 
-		BCnImage bc3_image(BCnFormat::BC3, raw_image.size / uint32_t(4));
+		BCnImage bc3_image(BCnFormat::BC3, raw_image.size / 4u);
 		bc3_image.iterate_blocks(raw_image, encode_bc3_block);
 		return bc3_image;
 	}
@@ -99,7 +99,7 @@ namespace image
 	{
 		std::call_once(rgbcx_init_flag, [] { rgbcx::init(); });
 
-		BCnImage bc5_image(BCnFormat::BC5, raw_image.size / uint32_t(4));
+		BCnImage bc5_image(BCnFormat::BC5, raw_image.size / 4u);
 		bc5_image.iterate_blocks(raw_image, encode_bc5_block);
 		return bc5_image;
 	}
@@ -110,7 +110,7 @@ namespace image
 	{
 		static std::once_flag bc7_init_flag;
 
-		BCnImage bc7_image(BCnFormat::BC7, raw_image.size / uint32_t(4));
+		BCnImage bc7_image(BCnFormat::BC7, raw_image.size / 4u);
 
 		std::call_once(bc7_init_flag, [] { bc7enc_compress_block_init(); });
 

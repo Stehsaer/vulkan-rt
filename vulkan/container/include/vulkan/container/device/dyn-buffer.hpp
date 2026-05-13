@@ -46,10 +46,29 @@ namespace vulkan
 		[[nodiscard]]
 		std::expected<void, Error> resize(const vulkan::Context& context, size_t new_size) noexcept;
 
-		operator const Buffer&() const noexcept { return buffer.value(); }
-		operator vk::Buffer() const noexcept { return buffer.value(); }
-		const Buffer& operator*() const noexcept { return buffer.value(); }
-		const Buffer* operator->() const noexcept { return &buffer.value(); }
+		operator const Buffer&() const noexcept
+		{
+			ASSUME(buffer.has_value());
+			return buffer.value();
+		}
+
+		operator vk::Buffer() const noexcept
+		{
+			ASSUME(buffer.has_value());
+			return buffer.value();
+		}
+
+		const Buffer& operator*() const noexcept
+		{
+			ASSUME(buffer.has_value());
+			return buffer.value();
+		}
+
+		const Buffer* operator->() const noexcept
+		{
+			ASSUME(buffer.has_value());
+			return &buffer.value();
+		}
 
 		///
 		/// @brief Get the size of the buffer in bytes. Will return 0 if no buffer is allocated
@@ -174,7 +193,11 @@ namespace vulkan
 		///
 		/// @return Reference to the array buffer
 		///
-		ArrayBufferRef<T> ref() const noexcept { return *this; }
+		[[nodiscard]]
+		ArrayBufferRef<T> ref() const noexcept
+		{
+			return *this;
+		}
 
 		///
 		/// @brief Get item count that the buffer holds.

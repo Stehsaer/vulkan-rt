@@ -6,8 +6,8 @@
 #include "common/test-macro.hpp"
 #include "image/common.hpp"
 #include "image/image.hpp"
-#include "test-common.hpp"
 #include "render/model/texture-list.hpp"
+#include "test-common.hpp"
 #include "vulkan/test-driver.hpp"
 #include "vulkan/util/resource-readback.hpp"
 

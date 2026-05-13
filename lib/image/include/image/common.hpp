@@ -119,31 +119,31 @@ namespace image
 		template <Format T>
 		struct FormatTypeImpl
 		{
-			using type = void;
+			using Type = void;
 		};
 
 		template <>
 		struct FormatTypeImpl<Format::Unorm8>
 		{
-			using type = uint8_t;
+			using Type = uint8_t;
 		};
 
 		template <>
 		struct FormatTypeImpl<Format::Unorm16>
 		{
-			using type = uint16_t;
+			using Type = uint16_t;
 		};
 
 		template <>
 		struct FormatTypeImpl<Format::Float32>
 		{
-			using type = float;
+			using Type = float;
 		};
 	}
 
 	template <Format T>
-		requires(!std::same_as<typename detail::FormatTypeImpl<T>::type, void>)
-	using FormatType = detail::FormatTypeImpl<T>::type;
+		requires(!std::same_as<typename detail::FormatTypeImpl<T>::Type, void>)
+	using FormatType = detail::FormatTypeImpl<T>::Type;
 
 	///
 	/// @brief Raw pixel type with specified format and layout
@@ -152,7 +152,7 @@ namespace image
 	/// @tparam L Image layout
 	///
 	template <Format T, Layout L>
-	using Pixel = glm::vec<std::to_underlying(L), typename detail::FormatTypeImpl<T>::type>;
+	using Pixel = glm::vec<std::to_underlying(L), typename detail::FormatTypeImpl<T>::Type>;
 
 	namespace detail::deduce
 	{
@@ -189,8 +189,8 @@ namespace image
 			constexpr auto deduced_layout = deduce_layout<T>();
 			static_assert(deduced_layout.has_value(), "Can't deduce layout");
 
-			constexpr auto format = deduced_format.value();
-			constexpr auto layout = deduced_layout.value();
+			constexpr auto format = deduced_format.value();  // NOLINT
+			constexpr auto layout = deduced_layout.value();  // NOLINT
 
 			static_assert(std::convertible_to<T, Pixel<format, layout>>, "T isn't convertible to image type");
 

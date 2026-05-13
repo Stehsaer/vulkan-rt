@@ -94,7 +94,8 @@ namespace model::gltf::impl
 			);
 		}
 
-		auto expanded_indices = std::vector(std::from_range, std::views::iota(0u, uint32_t(indices.size())));
+		auto expanded_indices =
+			std::vector(std::from_range, std::views::iota(0u, static_cast<uint32_t>(indices.size())));
 
 		/* Expand POSITION */
 

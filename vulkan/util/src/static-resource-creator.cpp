@@ -407,7 +407,11 @@ namespace vulkan
 
 		/* Record commands */
 
-		command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+		if (const auto result =
+				command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit})
+					.transform_error(Error::from<vk::Result>());
+			!result)
+			return result.error().forward("Begin command buffer failed");
 		{
 			// Copy buffers
 			for (const auto& task : buffer_tasks)
@@ -453,7 +457,8 @@ namespace vulkan
 					vk::DependencyInfo{}.setImageMemoryBarriers(image_barriers_post)
 				);
 		}
-		command_buffer.end();
+		if (const auto result = command_buffer.end().transform_error(Error::from<vk::Result>()); !result)
+			return result.error().forward("End command buffer failed");
 
 		/* Submit and wait for results */
 
@@ -462,7 +467,12 @@ namespace vulkan
 
 		{
 			const std::scoped_lock lock(submit_mutex.get());
-			transfer_queue.get().submit(submit_info, fence);
+			if (const auto result =
+					transfer_queue.get()
+						.submit(submit_info, fence)
+						.transform_error(Error::from<vk::Result>());
+				!result)
+				return result.error().forward("Submit commands failed");
 		}
 
 		if (const auto wait_fence_result =

@@ -679,7 +679,7 @@ class std::formatter<Error, char>
 		if (it == end || *it == '}') return it;
 
 		auto pos = std::find(it, end, '}');
-		std::string token(it, pos);
+		const std::string token(it, pos);
 
 		if (token == "msg" || token == "message")
 			kind = Kind::Message;

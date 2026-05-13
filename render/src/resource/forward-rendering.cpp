@@ -3,11 +3,6 @@
 
 namespace render
 {
-	bool ForwardRenderResource::is_complete() const noexcept
-	{
-		return depth.has_value() && hdr.has_value();
-	}
-
 	std::expected<void, Error> ForwardRenderResource::resize(
 		const vulkan::Context& context,
 		glm::u32vec2 extent

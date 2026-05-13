@@ -117,7 +117,8 @@ namespace vulkan::impl
 		std::span<std::byte> output_data
 	) noexcept
 	{
-		context.device.waitIdle();
+		if (const auto result = context.device.waitIdle().transform_error(Error::from<vk::Result>()); !result)
+			return result.error().forward("Wait for device idle failed");
 
 		/* Create resources */
 
@@ -134,7 +135,11 @@ namespace vulkan::impl
 
 		/* Record commands */
 
-		commit_resource.command_buffer.begin(vk::CommandBufferBeginInfo{});
+		if (const auto result =
+				commit_resource.command_buffer.begin(vk::CommandBufferBeginInfo{})
+					.transform_error(Error::from<vk::Result>());
+			!result)
+			return result.error().forward("Begin command buffer failed");
 		{
 			const auto subresource_range = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor);
 			const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
@@ -172,8 +177,8 @@ namespace vulkan::impl
 			// Blit
 			{
 				const auto region = std::to_array({
-					vk::Offset3D{.x = 0,               .y = 0,               .z = 0},
-					vk::Offset3D{.x = int32_t(size.x), .y = int32_t(size.y), .z = 1}
+					vk::Offset3D{.x = 0,                            .y = 0,                            .z = 0},
+					vk::Offset3D{.x = static_cast<int32_t>(size.x), .y = static_cast<int32_t>(size.y), .z = 1}
 				});
 				const auto blit = vk::ImageBlit{
 					.srcSubresource = subresource_layer,
@@ -236,7 +241,10 @@ namespace vulkan::impl
 				);
 			}
 		}
-		commit_resource.command_buffer.end();
+		if (const auto result =
+				commit_resource.command_buffer.end().transform_error(Error::from<vk::Result>());
+			!result)
+			return result.error().forward("Begin comand buffer failed");
 
 		/* Submit */
 
@@ -244,7 +252,12 @@ namespace vulkan::impl
 
 		{
 			const std::scoped_lock lock(context.submit_mutex);
-			context.queue.submit(vk::SubmitInfo().setCommandBuffers(command_buffers), *commit_resource.fence);
+			if (const auto result =
+					context.queue
+						.submit(vk::SubmitInfo().setCommandBuffers(command_buffers), *commit_resource.fence)
+						.transform_error(Error::from<vk::Result>());
+				!result)
+				return result.error().forward("Submit commands failed");
 		}
 
 		/* Wait for fences */
@@ -266,7 +279,8 @@ namespace vulkan::impl
 		const auto download_result = transfer_resource.readback_buffer.download(output_data);
 		if (!download_result) return download_result.error().forward("Download readback buffer failed");
 
-		context.device.waitIdle();
+		if (const auto result = context.device.waitIdle().transform_error(Error::from<vk::Result>()); !result)
+			return result.error().forward("Wait for device idle failed");
 
 		return {};
 	}

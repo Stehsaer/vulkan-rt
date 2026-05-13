@@ -27,7 +27,7 @@ namespace image
 
 		const auto result = stbi_is_16_bit_from_memory(
 			reinterpret_cast<const stbi_uc*>(encoded_data.data()),
-			int(encoded_data.size())
+			static_cast<int>(encoded_data.size())
 		);
 
 		return result != 0;

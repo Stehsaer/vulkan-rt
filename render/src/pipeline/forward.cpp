@@ -478,11 +478,13 @@ namespace render
 		);
 		command_buffer.setScissor(0, rendering_rect);
 
-		for (const auto& [pipeline, data_descriptor_set, indirect_buffer] : std::views::zip(
-				 pipelines.all(),
-				 resource_set.data_descriptor_set.all(),
-				 resource_set.indirect_buffers.all()
-			 ))
+		for (
+			const auto& [pipeline, data_descriptor_set, indirect_buffer] : std::views::zip(
+				pipelines.all(),
+				resource_set.data_descriptor_set.all(),
+				resource_set.indirect_buffers.all()
+			)
+		)
 		{
 			if (indirect_buffer.count() == 0) continue;
 
@@ -568,8 +570,10 @@ namespace render
 			.range = vk::WholeSize,
 		};
 
-		for (const auto& [descriptor_set, indirect_buffer_write] :
-			 std::views::zip(data_descriptor_set.all(), indirect_buffer_writes.all()))
+		for (
+			const auto& [descriptor_set, indirect_buffer_write] :
+			std::views::zip(data_descriptor_set.all(), indirect_buffer_writes.all())
+		)
 		{
 			const auto primitive_attr_buffer_write_set = vk::WriteDescriptorSet{
 				.dstSet = descriptor_set,

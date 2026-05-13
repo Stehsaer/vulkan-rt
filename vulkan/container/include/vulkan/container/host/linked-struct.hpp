@@ -43,9 +43,18 @@ namespace vulkan
 			{}
 
 			void set_pnext(void* pnext) noexcept override { value.pNext = pnext; }
-			void* get_void_ptr() noexcept override { return &value; }
 
-			const T& get() const noexcept { return value; }
+			[[nodiscard]]
+			void* get_void_ptr() noexcept override
+			{
+				return &value;
+			}
+
+			[[nodiscard]]
+			const T& get() const noexcept
+			{
+				return value;
+			}
 
 		  private:
 

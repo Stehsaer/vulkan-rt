@@ -188,8 +188,10 @@ namespace render
 	{
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
 
-		for (const auto [descriptor_set, buffer] :
-			 std::views::zip(resource_set.descriptor_sets.all(), resource_set.indirect_buffers.all()))
+		for (
+			const auto [descriptor_set, buffer] :
+			std::views::zip(resource_set.descriptor_sets.all(), resource_set.indirect_buffers.all())
+		)
 		{
 			if (buffer.count() == 0) continue;
 
@@ -235,13 +237,15 @@ namespace render
 		const IndirectResource& indirect_resource
 	) noexcept
 	{
-		for (const auto& [descriptor_set, self_indirect_buffer, indirect_buffer, drawcall_buffer] :
-			 std::views::zip(
-				 descriptor_sets.all(),
-				 this->indirect_buffers.all(),
-				 indirect_resource.ref().all(),
-				 drawcall_resource->primitive_drawcalls.all()
-			 ))
+		for (
+			const auto& [descriptor_set, self_indirect_buffer, indirect_buffer, drawcall_buffer] :
+			std::views::zip(
+				descriptor_sets.all(),
+				this->indirect_buffers.all(),
+				indirect_resource.ref().all(),
+				drawcall_resource->primitive_drawcalls.all()
+			)
+		)
 		{
 			const auto indirect_write_buffer_info = vk::DescriptorBufferInfo{
 				.buffer = indirect_buffer,
