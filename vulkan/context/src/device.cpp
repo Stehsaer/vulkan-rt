@@ -24,10 +24,8 @@ namespace vulkan
 	{
 		/* Enumerate physical devices */
 
-		auto phy_devices_result =
-			context->instance.enumeratePhysicalDevices().transform_error(Error::from<vk::Result>());
-		if (!phy_devices_result)
-			return phy_devices_result.error().forward("Enumerate physical devices failed");
+		auto phy_devices_result = context->instance.enumeratePhysicalDevices();
+		if (!phy_devices_result) return Error::from(phy_devices_result);
 		const auto phy_devices = std::move(*phy_devices_result);
 
 		/* Check each physical device */
@@ -90,10 +88,8 @@ namespace vulkan
 	{
 		/* Enumerate physical devices */
 
-		auto phy_devices_result =
-			context->instance.enumeratePhysicalDevices().transform_error(Error::from<vk::Result>());
-		if (!phy_devices_result)
-			return phy_devices_result.error().forward("Enumerate physical devices failed");
+		auto phy_devices_result = context->instance.enumeratePhysicalDevices();
+		if (!phy_devices_result) return Error::from(phy_devices_result);
 		const auto phy_devices = std::move(*phy_devices_result);
 
 		/* Check each physical device */

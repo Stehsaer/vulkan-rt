@@ -215,10 +215,8 @@ namespace vulkan::impl
 		extensions.insert_range(mandatory_device_extensions);
 		if (support_present) extensions.insert_range(present_mandatory_device_extensions);
 
-		const auto available_extensions_result =
-			phy_device.enumerateDeviceExtensionProperties().transform_error(Error::from<vk::Result>());
-		if (!available_extensions_result)
-			return available_extensions_result.error().forward("Enumerate device extensions failed");
+		const auto available_extensions_result = phy_device.enumerateDeviceExtensionProperties();
+		if (!available_extensions_result) return Error::from(available_extensions_result);
 
 		const auto available_extensions = *available_extensions_result
 			| std::views::transform([](const vk::ExtensionProperties& properties) {
@@ -357,9 +355,8 @@ namespace vulkan::impl
 				.setQueueCreateInfos(render_queue_create_info)
 				.setPEnabledExtensionNames(extensions_cstr);
 
-		auto device_result =
-			phy_device.createDevice(device_create_info).transform_error(Error::from<vk::Result>());
-		if (!device_result) return device_result.error().forward("Create device failed");
+		auto device_result = phy_device.createDevice(device_create_info);
+		if (!device_result) return Error::from(device_result);
 		auto device = std::move(*device_result);
 
 		auto queue = std::make_shared<vk::raii::Queue>(device.getQueue(render_family_index, 0));
@@ -397,9 +394,8 @@ namespace vulkan::impl
 				.setQueueCreateInfos(queue_create_infos)
 				.setPEnabledExtensionNames(extensions_cstr);
 
-		auto device_result =
-			phy_device.createDevice(device_create_info).transform_error(Error::from<vk::Result>());
-		if (!device_result) return device_result.error().forward("Create device failed");
+		auto device_result = phy_device.createDevice(device_create_info);
+		if (!device_result) return Error::from(device_result);
 		auto device = std::move(*device_result);
 
 		std::map<uint32_t, std::shared_ptr<const vk::raii::Queue>> queue_map;

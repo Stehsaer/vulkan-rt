@@ -62,10 +62,8 @@ namespace render
 
 		const auto layout_create_info =
 			vk::DescriptorSetLayoutCreateInfo().setPNext(&binding_flags_create_info).setBindings(bindings);
-		auto descriptor_set_layout_result =
-			device.createDescriptorSetLayout(layout_create_info).transform_error(Error::from<vk::Result>());
-		if (!descriptor_set_layout_result)
-			return descriptor_set_layout_result.error().forward("Create descriptor set layout failed");
+		auto descriptor_set_layout_result = device.createDescriptorSetLayout(layout_create_info);
+		if (!descriptor_set_layout_result) return Error::from(descriptor_set_layout_result);
 
 		return MaterialLayout{.layout = std::move(*descriptor_set_layout_result)};
 	}
@@ -175,11 +173,8 @@ namespace render
 					.setPoolSizes(pool_sizes)
 					.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
 
-			auto descriptor_pool_result =
-				device.createDescriptorPool(descriptor_pool_create_info)
-					.transform_error(Error::from<vk::Result>());
-			if (!descriptor_pool_result)
-				return descriptor_pool_result.error().forward("Create descriptor pool failed");
+			auto descriptor_pool_result = device.createDescriptorPool(descriptor_pool_create_info);
+			if (!descriptor_pool_result) return Error::from(descriptor_pool_result);
 
 			return std::move(*descriptor_pool_result);
 		}
@@ -201,11 +196,8 @@ namespace render
 					.setPNext(&variable_count_allocate_info)
 					.setSetLayouts(*layout.layout);
 
-			auto descriptor_set_result =
-				device.allocateDescriptorSets(descriptor_set_allocate_info)
-					.transform_error(Error::from<vk::Result>());
-			if (!descriptor_set_result)
-				return descriptor_set_result.error().forward("Allocate descriptor set failed");
+			auto descriptor_set_result = device.allocateDescriptorSets(descriptor_set_allocate_info);
+			if (!descriptor_set_result) return Error::from(descriptor_set_result);
 
 			return std::move(descriptor_set_result->front());
 		}

@@ -30,9 +30,8 @@ namespace vulkan
 			.pCode = shader_data.data(),
 		};
 
-		auto shader_module_result =
-			device.createShaderModule(create_info).transform_error(Error::from<vk::Result>());
-		if (!shader_module_result) return shader_module_result.error().forward("Create shader module failed");
+		auto shader_module_result = device.createShaderModule(create_info);
+		if (!shader_module_result) return Error::from(shader_module_result);
 		auto shader_module = std::move(*shader_module_result);
 
 		return shader_module;

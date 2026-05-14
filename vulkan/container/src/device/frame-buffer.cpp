@@ -49,9 +49,8 @@ namespace vulkan
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 
-		auto view_result =
-			device.createImageView(image_view_create_info).transform_error(Error::from<vk::Result>());
-		if (!view_result) return view_result.error().forward("Create color buffer view failed");
+		auto view_result = device.createImageView(image_view_create_info);
+		if (!view_result) return Error::from(view_result);
 		auto view = std::move(view_result.value());
 
 		return FrameBuffer(format, std::move(image), std::move(view));
@@ -87,9 +86,8 @@ namespace vulkan
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eDepth)
 		};
 
-		auto view_result =
-			device.createImageView(image_view_create_info).transform_error(Error::from<vk::Result>());
-		if (!view_result) return view_result.error().forward("Create depth buffer view failed");
+		auto view_result = device.createImageView(image_view_create_info);
+		if (!view_result) return Error::from(view_result);
 		auto view = std::move(view_result.value());
 
 		return FrameBuffer(format, std::move(image), std::move(view));
@@ -129,9 +127,8 @@ namespace vulkan
 			)
 		};
 
-		auto view_result =
-			device.createImageView(image_view_create_info).transform_error(Error::from<vk::Result>());
-		if (!view_result) return view_result.error().forward("Create depth-stencil buffer view failed");
+		auto view_result = device.createImageView(image_view_create_info);
+		if (!view_result) return Error::from(view_result);
 		auto view = std::move(view_result.value());
 
 		return FrameBuffer(format, std::move(image), std::move(view));
@@ -202,9 +199,8 @@ namespace vulkan
 			.subresourceRange = vulkan::base_level_image_range(get_image_aspects(depth_stencil_flags))
 		};
 
-		auto view_result =
-			device.createImageView(image_view_create_info).transform_error(Error::from<vk::Result>());
-		if (!view_result) return view_result.error().forward("Create depth-stencil buffer view failed");
+		auto view_result = device.createImageView(image_view_create_info);
+		if (!view_result) return Error::from(view_result);
 		auto view = std::move(view_result.value());
 
 		return FrameBuffer(format, std::move(image), std::move(view));

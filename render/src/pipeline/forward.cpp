@@ -86,11 +86,10 @@ namespace render
 	{
 		constexpr auto bindings = get_descriptor_set_bindings();
 
-		auto layout_result =
-			context.device
-				.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setBindings(bindings))
-				.transform_error(Error::from<vk::Result>());
-		if (!layout_result) return layout_result.error().forward("Create descriptor set layout failed");
+		auto layout_result = context.device.createDescriptorSetLayout(
+			vk::DescriptorSetLayoutCreateInfo().setBindings(bindings)
+		);
+		if (!layout_result) return Error::from(layout_result);
 		return std::move(*layout_result);
 	}
 
@@ -106,9 +105,8 @@ namespace render
 		});
 		const auto create_info = vk::PipelineLayoutCreateInfo().setSetLayouts(set_layouts);
 
-		auto layout_result =
-			context.device.createPipelineLayout(create_info).transform_error(Error::from<vk::Result>());
-		if (!layout_result) return layout_result.error().forward("Create pipeline layout failed");
+		auto layout_result = context.device.createPipelineLayout(create_info);
+		if (!layout_result) return Error::from(layout_result);
 		return std::move(*layout_result);
 	}
 
@@ -293,15 +291,14 @@ namespace render
 				.setLayout(pipeline_layout);
 		pipeline_create_info.push(pipeline_rendering_create_info);
 
-		auto pipeline_result =
-			context.device.createGraphicsPipeline(nullptr, pipeline_create_info.get())
-				.transform_error(Error::from<vk::Result>());
+		auto pipeline_result = context.device.createGraphicsPipeline(nullptr, pipeline_create_info.get());
 		if (!pipeline_result)
 		{
-			return pipeline_result.error().forward(
-				"Create graphics pipeline failed",
-				std::format("alpha_mask_enabled={}, double_sided={}", alpha_mask_enabled, double_sided)
-			);
+			return Error::from(pipeline_result)
+				.forward(
+					"Create graphics pipeline failed",
+					std::format("alpha_mask_enabled={}, double_sided={}", alpha_mask_enabled, double_sided)
+				);
 		}
 
 		return std::move(*pipeline_result);
@@ -374,17 +371,13 @@ namespace render
 		const auto descriptor_pool_sizes =
 			vulkan::calc_pool_sizes(descriptor_bindings, count * SETS_PER_RESOURCE_SET);
 
-		auto descriptor_pool_result =
-			context.device
-				.createDescriptorPool(
-					vk::DescriptorPoolCreateInfo()
-						.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-						.setMaxSets(count * SETS_PER_RESOURCE_SET)
-						.setPoolSizes(descriptor_pool_sizes)
-				)
-				.transform_error(Error::from<vk::Result>());
-		if (!descriptor_pool_result)
-			return descriptor_pool_result.error().forward("Create descriptor pool failed");
+		auto descriptor_pool_result = context.device.createDescriptorPool(
+			vk::DescriptorPoolCreateInfo()
+				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
+				.setMaxSets(count * SETS_PER_RESOURCE_SET)
+				.setPoolSizes(descriptor_pool_sizes)
+		);
+		if (!descriptor_pool_result) return Error::from(descriptor_pool_result);
 		auto descriptor_pool = std::make_shared<vk::raii::DescriptorPool>(std::move(*descriptor_pool_result));
 
 		const auto layouts = std::vector(SETS_PER_RESOURCE_SET, *data_descriptor_set_layout);
@@ -393,10 +386,8 @@ namespace render
 
 		const auto create_resource_set_fn =
 			[&set_alloc_info, &context, &descriptor_pool] -> std::expected<ResourceSet, Error> {
-			auto sets_result =
-				context.device.allocateDescriptorSets(set_alloc_info)
-					.transform_error(Error::from<vk::Result>());
-			if (!sets_result) return sets_result.error().forward("Allocate descriptor sets failed");
+			auto sets_result = context.device.allocateDescriptorSets(set_alloc_info);
+			if (!sets_result) return Error::from(sets_result);
 			auto sets = std::move(*sets_result);
 
 			return ResourceSet(

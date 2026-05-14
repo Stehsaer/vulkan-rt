@@ -137,17 +137,11 @@ namespace page
 
 			case helper::ImGuiPage::ResultState::Quit:
 				std::ignore = std::move(state_data).get<State::Loading>().model_future.get();
-				if (const auto result =
-						context->device->waitIdle().transform_error(Error::from<vk::Result>());
-					!result)
-					return result.error().forward("Wait for device idle failed");
+				if (const auto result = context->device->waitIdle(); !result) return Error::from(result);
 				return ResultType::from<Result::Quit>();
 
 			case helper::ImGuiPage::ResultState::Error:
-				if (const auto result =
-						context->device->waitIdle().transform_error(Error::from<vk::Result>());
-					!result)
-					return result.error().forward("Wait for device idle failed");
+				if (const auto result = context->device->waitIdle(); !result) return Error::from(result);
 				return std::move(new_state_result).get<helper::ImGuiPage::ResultState::Error>();
 
 			default:
@@ -156,9 +150,7 @@ namespace page
 		}
 		case State::Error:
 		{
-			if (const auto result = context->device->waitIdle().transform_error(Error::from<vk::Result>());
-				!result)
-				return result.error().forward("Wait for device idle failed");
+			if (const auto result = context->device->waitIdle(); !result) return Error::from(result);
 			auto error_page_result = ErrorPage::from(
 				std::move(*context),
 				state_data.get<State::Error>(),
@@ -173,17 +165,13 @@ namespace page
 		}
 
 		case State::Quiting:
-			if (const auto result = context->device->waitIdle().transform_error(Error::from<vk::Result>());
-				!result)
-				return result.error().forward("Wait for device idle failed");
+			if (const auto result = context->device->waitIdle(); !result) return Error::from(result);
 			return state_data.get<State::Quiting>();
 
 		case State::Success:
 		{
 			auto& success_data = state_data.get<State::Success>();
-			if (const auto result = context->device->waitIdle().transform_error(Error::from<vk::Result>());
-				!result)
-				return result.error().forward("Wait for device idle failed");
+			if (const auto result = context->device->waitIdle(); !result) return Error::from(result);
 
 			auto render_page_result = RenderPage::create(
 				context,

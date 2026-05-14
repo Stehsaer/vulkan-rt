@@ -33,9 +33,8 @@ namespace render::impl
 			.maxAnisotropy = 4.0f,
 			.maxLod = sample_mode.max_mipmap_level,
 		};
-		auto sampler_result =
-			device.createSampler(sampler_create_info).transform_error(Error::from<vk::Result>());
-		if (!sampler_result) return sampler_result.error().forward("Create sampler failed");
+		auto sampler_result = device.createSampler(sampler_create_info);
+		if (!sampler_result) return Error::from(sampler_result);
 		return std::move(*sampler_result);
 	}
 
@@ -63,9 +62,8 @@ namespace render::impl
 			.subresourceRange = subresource_range
 		};
 
-		auto image_view_result =
-			device.createImageView(image_view_create_info).transform_error(Error::from<vk::Result>());
-		if (!image_view_result) return image_view_result.error().forward("Create image view failed");
+		auto image_view_result = device.createImageView(image_view_create_info);
+		if (!image_view_result) return Error::from(image_view_result);
 
 		return std::move(*image_view_result);
 	}

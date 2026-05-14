@@ -55,22 +55,18 @@ namespace render
 	{
 		/*===== Descriptor Set Layout =====*/
 
-		auto descriptor_set_layout_result =
-			context.device
-				.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setBindings(RESOURCE_BINDINGS))
-				.transform_error(Error::from<vk::Result>());
-		if (!descriptor_set_layout_result)
-			return descriptor_set_layout_result.error().forward("Create descriptor set layout failed");
+		auto descriptor_set_layout_result = context.device.createDescriptorSetLayout(
+			vk::DescriptorSetLayoutCreateInfo().setBindings(RESOURCE_BINDINGS)
+		);
+		if (!descriptor_set_layout_result) return Error::from(descriptor_set_layout_result);
 		auto descriptor_set_layout = std::move(*descriptor_set_layout_result);
 
 		/*===== Pipeline Layout =====*/
 
 		const auto layouts = std::to_array<vk::DescriptorSetLayout>({descriptor_set_layout});
 		auto pipeline_layout_result =
-			context.device.createPipelineLayout(vk::PipelineLayoutCreateInfo().setSetLayouts(layouts))
-				.transform_error(Error::from<vk::Result>());
-		if (!pipeline_layout_result)
-			return pipeline_layout_result.error().forward("Create pipeline layout failed");
+			context.device.createPipelineLayout(vk::PipelineLayoutCreateInfo().setSetLayouts(layouts));
+		if (!pipeline_layout_result) return Error::from(pipeline_layout_result);
 		auto pipeline_layout = std::move(*pipeline_layout_result);
 
 		/*===== Shader Modules =====*/
@@ -124,10 +120,8 @@ namespace render
 				.setLayout(pipeline_layout);
 		pipeline_create_info.push(pipeline_rendering_create_info);
 
-		auto pipeline_result =
-			context.device.createGraphicsPipeline(nullptr, pipeline_create_info.get())
-				.transform_error(Error::from<vk::Result>());
-		if (!pipeline_result) return pipeline_result.error().forward("Create graphics pipeline failed");
+		auto pipeline_result = context.device.createGraphicsPipeline(nullptr, pipeline_create_info.get());
+		if (!pipeline_result) return Error::from(pipeline_result);
 		auto pipeline = std::move(*pipeline_result);
 
 		/*===== Sampler =====*/
@@ -146,9 +140,8 @@ namespace render
 			.maxLod = 0.0f,
 		};
 
-		auto sampler_result =
-			context.device.createSampler(sampler_create_info).transform_error(Error::from<vk::Result>());
-		if (!sampler_result) return sampler_result.error().forward("Create sampler");
+		auto sampler_result = context.device.createSampler(sampler_create_info);
+		if (!sampler_result) return Error::from(sampler_result);
 		auto sampler = std::move(*sampler_result);
 
 		return CompositePipeline(
@@ -166,24 +159,20 @@ namespace render
 	{
 		const auto pool_sizes = vulkan::calc_pool_sizes(RESOURCE_BINDINGS, count);
 
-		auto descriptor_pool_result =
-			context.device
-				.createDescriptorPool(
-					vk::DescriptorPoolCreateInfo()
-						.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-						.setMaxSets(count)
-						.setPoolSizes(pool_sizes)
-				)
-				.transform_error(Error::from<vk::Result>());
-		if (!descriptor_pool_result) return descriptor_pool_result.error().forward("Create descriptor pool");
+		auto descriptor_pool_result = context.device.createDescriptorPool(
+			vk::DescriptorPoolCreateInfo()
+				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
+				.setMaxSets(count)
+				.setPoolSizes(pool_sizes)
+		);
+		if (!descriptor_pool_result) return Error::from(descriptor_pool_result);
 		auto descriptor_pool = std::make_shared<vk::raii::DescriptorPool>(std::move(*descriptor_pool_result));
 
 		const auto layouts = std::vector(count, *resource_layout);
 		const auto set_alloc_info =
 			vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor_pool).setSetLayouts(layouts);
-		auto sets_result =
-			context.device.allocateDescriptorSets(set_alloc_info).transform_error(Error::from<vk::Result>());
-		if (!sets_result) return sets_result.error().forward("Allocate descriptor sets");
+		auto sets_result = context.device.allocateDescriptorSets(set_alloc_info);
+		if (!sets_result) return Error::from(sets_result);
 		auto sets = std::move(*sets_result);
 
 		return std::views::zip_transform(

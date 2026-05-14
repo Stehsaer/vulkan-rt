@@ -57,10 +57,8 @@ namespace vulkan
 			const SwapchainContext::Config& config
 		) noexcept
 		{
-			const auto available_formats_result =
-				phy_device.getSurfaceFormatsKHR(surface).transform_error(Error::from<vk::Result>());
-			if (!available_formats_result)
-				return available_formats_result.error().forward("Get surface formats failed");
+			const auto available_formats_result = phy_device.getSurfaceFormatsKHR(surface);
+			if (!available_formats_result) return Error::from(available_formats_result);
 			const auto& available_formats = *available_formats_result;
 
 			for (const auto& preferred_format : get_preferred_surface_formats(config))
@@ -102,10 +100,8 @@ namespace vulkan
 			const SwapchainContext::Config& config
 		) noexcept
 		{
-			const auto available_present_modes_result =
-				phy_device.getSurfacePresentModesKHR(surface).transform_error(Error::from<vk::Result>());
-			if (!available_present_modes_result)
-				return available_present_modes_result.error().forward("Get surface present modes failed");
+			const auto available_present_modes_result = phy_device.getSurfacePresentModesKHR(surface);
+			if (!available_present_modes_result) return Error::from(available_present_modes_result);
 			const auto& available_present_modes = *available_present_modes_result;
 
 			const auto preferred_present_modes = get_preferred_present_modes(config.vsync);
@@ -145,10 +141,8 @@ namespace vulkan
 				.subresourceRange = subresource_range
 			};
 
-			auto image_view_result =
-				device.createImageView(image_view_create_info).transform_error(Error::from<vk::Result>());
-			if (!image_view_result)
-				return image_view_result.error().forward("Create image view for swapchain image failed");
+			auto image_view_result = device.createImageView(image_view_create_info);
+			if (!image_view_result) return Error::from(image_view_result);
 			auto image_view = std::move(*image_view_result);
 
 			return image_view;
@@ -231,9 +225,7 @@ namespace vulkan
 			auto& runtime_state = std::get<RuntimeState>(state);
 			if (runtime_state.extent != window_size)
 			{
-				if (const auto result = device_context->waitIdle().transform_error(Error::from<vk::Result>());
-					!result)
-					return result.error().forward("Wait for device idle failed");
+				if (const auto result = device_context->waitIdle(); !result) return Error::from(result);
 				state = InvalidatedState{.old_swapchain = std::move(std::get<RuntimeState>(state).swapchain)};
 				return std::nullopt;
 			}
@@ -270,9 +262,7 @@ namespace vulkan
 
 		case vk::Result::eErrorOutOfDateKHR:
 		case vk::Result::eSuboptimalKHR:
-			if (const auto result = device_context->waitIdle().transform_error(Error::from<vk::Result>());
-				!result)
-				return result.error().forward("Wait for device idle failed");
+			if (const auto result = device_context->waitIdle(); !result) return Error::from(result);
 			state = InvalidatedState{.old_swapchain = std::move(runtime_state.swapchain)};
 			return std::nullopt;
 
@@ -312,9 +302,7 @@ namespace vulkan
 
 		case vk::Result::eErrorOutOfDateKHR:
 		case vk::Result::eSuboptimalKHR:
-			if (const auto result = device_context->waitIdle().transform_error(Error::from<vk::Result>());
-				!result)
-				return result.error().forward("Wait for device idle failed");
+			if (const auto result = device_context->waitIdle(); !result) return Error::from(result);
 			state = InvalidatedState{.old_swapchain = std::move(runtime_state.swapchain)};
 			return {};
 
@@ -335,11 +323,8 @@ namespace vulkan
 				.value_or(nullptr);
 
 		const auto surface_capability_result =
-			device_context.get()
-				.phy_device.getSurfaceCapabilitiesKHR(instance_context->surface)
-				.transform_error(Error::from<vk::Result>());
-		if (!surface_capability_result)
-			return surface_capability_result.error().forward("Get surface capabilities failed");
+			device_context.get().phy_device.getSurfaceCapabilitiesKHR(instance_context->surface);
+		if (!surface_capability_result) return Error::from(surface_capability_result);
 		const auto surface_capability = *surface_capability_result;
 
 		const auto image_count =
@@ -368,15 +353,12 @@ namespace vulkan
 		};
 		swapchain_create_info.setQueueFamilyIndices(*queue_family_indices);
 
-		auto swapchain_result =
-			device_context.get()
-				.device.createSwapchainKHR(swapchain_create_info)
-				.transform_error(Error::from<vk::Result>());
-		if (!swapchain_result) return swapchain_result.error().forward("Create swapchain failed");
+		auto swapchain_result = device_context.get().device.createSwapchainKHR(swapchain_create_info);
+		if (!swapchain_result) return Error::from(swapchain_result);
 		auto swapchain = std::move(*swapchain_result);
 
-		const auto images_result = swapchain.getImages().transform_error(Error::from<vk::Result>());
-		if (!images_result) return images_result.error().forward("Get images from swapchain failed");
+		const auto images_result = swapchain.getImages();
+		if (!images_result) return Error::from(images_result);
 		const auto& images = *images_result;
 
 		std::vector<vk::raii::ImageView> image_views;

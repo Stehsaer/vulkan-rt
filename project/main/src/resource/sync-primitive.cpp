@@ -10,23 +10,13 @@ namespace resource
 {
 	std::expected<SyncPrimitive, Error> SyncPrimitive::create(const vulkan::Context& context) noexcept
 	{
-		auto fence_result =
-			context.device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled})
-				.transform_error(Error::from<vk::Result>());
-		auto render_finished_semaphore_result =
-			context.device.createSemaphore({}).transform_error(Error::from<vk::Result>());
-		auto present_complete_semaphore_result =
-			context.device.createSemaphore({}).transform_error(Error::from<vk::Result>());
+		auto fence_result = context.device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
+		auto render_finished_semaphore_result = context.device.createSemaphore({});
+		auto present_complete_semaphore_result = context.device.createSemaphore({});
 
-		if (!fence_result) return fence_result.error().forward("Create draw fence failed");
-		if (!render_finished_semaphore_result)
-			return render_finished_semaphore_result.error().forward(
-				"Create render finished semaphore failed"
-			);
-		if (!present_complete_semaphore_result)
-			return present_complete_semaphore_result.error().forward(
-				"Create image available semaphore failed"
-			);
+		if (!fence_result) return Error::from(fence_result);
+		if (!render_finished_semaphore_result) return Error::from(render_finished_semaphore_result);
+		if (!present_complete_semaphore_result) return Error::from(present_complete_semaphore_result);
 
 		return SyncPrimitive{
 			.draw_fence = std::move(*fence_result),

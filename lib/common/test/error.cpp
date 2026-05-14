@@ -45,7 +45,7 @@ struct FooStruct
 {};
 
 template <>
-Error Error::FromFunctor<FooStruct>::operator()(const FooStruct& foo [[maybe_unused]]) const noexcept
+Error Error::FromFunctor::operator()(const FooStruct& e [[maybe_unused]]) const noexcept
 {
 	return Error("FooStruct error");
 }
@@ -55,13 +55,12 @@ TEST_CASE("Error::from")
 	SUBCASE("vk::Result")
 	{
 		const vk::Result vk_res = vk::Result::eSuccess;
-		const auto err = Error::from<vk::Result>(vk_res);
+		const auto err = Error::from(vk_res);
 		CHECK_EQ(err.message, "Vulkan operation failed");
 		CHECK_EQ(err.detail, vk::to_string(vk_res));
 
 		const auto monaded =
-			std::expected<int, vk::Result>(std::unexpected(vk_res))
-				.transform_error(Error::from<vk::Result>());
+			std::expected<int, vk::Result>(std::unexpected(vk_res)).transform_error(Error::from_fn());
 		REQUIRE(!monaded);
 		CHECK_EQ(monaded.error().message, "Vulkan operation failed");
 		CHECK_EQ(monaded.error().detail, vk::to_string(vk_res));
@@ -70,7 +69,7 @@ TEST_CASE("Error::from")
 	SUBCASE("Custom type specialization")
 	{
 		const FooStruct foo;
-		const auto err = Error::from<FooStruct>(foo);
+		const auto err = Error::from(foo);
 
 		CHECK_EQ(err.message, "FooStruct error");
 	}

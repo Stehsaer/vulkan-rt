@@ -45,19 +45,15 @@ namespace resource
 		if (const auto result = resource_creator.execute_uploads(); !result)
 			return result.error().forward("Upload exposure mask texture failed");
 
-		auto exposure_mask_view_result =
-			context.device
-				.createImageView(
-					vk::ImageViewCreateInfo{
-						.image = exposure_mask_texture,
-						.viewType = vk::ImageViewType::e2D,
-						.format = vk::Format::eR8Unorm,
-						.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
-					}
-				)
-				.transform_error(Error::from<vk::Result>());
-		if (!exposure_mask_view_result)
-			return exposure_mask_view_result.error().forward("Create exposure mask image view failed");
+		auto exposure_mask_view_result = context.device.createImageView(
+			vk::ImageViewCreateInfo{
+				.image = exposure_mask_texture,
+				.viewType = vk::ImageViewType::e2D,
+				.format = vk::Format::eR8Unorm,
+				.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
+			}
+		);
+		if (!exposure_mask_view_result) return Error::from(exposure_mask_view_result);
 		auto exposure_mask_view = std::move(*exposure_mask_view_result);
 
 		return AuxResource{

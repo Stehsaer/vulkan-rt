@@ -78,10 +78,8 @@ namespace vulkan::impl
 	{
 		/* Check layers */
 
-		const auto available_layers_result =
-			context.enumerateInstanceLayerProperties().transform_error(Error::from<vk::Result>());
-		if (!available_layers_result)
-			return available_layers_result.error().forward("Enumerate instance layers failed");
+		const auto available_layers_result = context.enumerateInstanceLayerProperties();
+		if (!available_layers_result) return Error::from(available_layers_result);
 
 		const auto available_layers = *available_layers_result
 			| std::views::transform([](const vk::LayerProperties& layer_properties) {
@@ -95,10 +93,8 @@ namespace vulkan::impl
 
 		/* Check extensions */
 
-		const auto available_extensions_result =
-			context.enumerateInstanceExtensionProperties().transform_error(Error::from<vk::Result>());
-		if (!available_extensions_result)
-			return available_extensions_result.error().forward("Enumerate instance extensions failed");
+		const auto available_extensions_result = context.enumerateInstanceExtensionProperties();
+		if (!available_extensions_result) return Error::from(available_extensions_result);
 
 		const auto available_extensions = *available_extensions_result
 			| std::views::transform([](const vk::ExtensionProperties& properties) {
@@ -132,7 +128,7 @@ namespace vulkan::impl
 				.setPEnabledLayerNames(requested_layers_vec)
 				.setPEnabledExtensionNames(requested_extensions_vec);
 
-		return context.createInstance(instance_create_info).transform_error(Error::from<vk::Result>());
+		return context.createInstance(instance_create_info).transform_error(Error::from_fn());
 	}
 
 	std::expected<vk::raii::Context, Error> init_sdl() noexcept

@@ -380,34 +380,25 @@ namespace vulkan
 
 		/* Create command pool */
 
-		auto command_pool_result =
-			device.get()
-				.createCommandPool(
-					{.flags = vk::CommandPoolCreateFlagBits::eTransient, .queueFamilyIndex = queue_family}
-				)
-				.transform_error(Error::from<vk::Result>());
-		if (!command_pool_result) return command_pool_result.error().forward("Create command pool failed");
+		auto command_pool_result = device.get().createCommandPool(
+			{.flags = vk::CommandPoolCreateFlagBits::eTransient, .queueFamilyIndex = queue_family}
+		);
+		if (!command_pool_result) return Error::from(command_pool_result);
 		auto command_pool = std::move(*command_pool_result);
 
 		/* Create command buffer */
 
-		auto allocated_command_buffers_result =
-			device.get()
-				.allocateCommandBuffers(
-					{.commandPool = command_pool,
-					 .level = vk::CommandBufferLevel::ePrimary,
-					 .commandBufferCount = 1}
-				)
-				.transform_error(Error::from<vk::Result>());
-		if (!allocated_command_buffers_result)
-			return allocated_command_buffers_result.error().forward("Allocate command buffer failed");
+		auto allocated_command_buffers_result = device.get().allocateCommandBuffers(
+			{.commandPool = command_pool, .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1}
+		);
+		if (!allocated_command_buffers_result) return Error::from(allocated_command_buffers_result);
 		auto allocated_command_buffers = std::move(*allocated_command_buffers_result);
 		auto command_buffer = std::move(allocated_command_buffers[0]);
 
 		/* Create fence */
 
-		auto fence_result = device.get().createFence({}).transform_error(Error::from<vk::Result>());
-		if (!fence_result) return fence_result.error().forward("Create fence failed");
+		auto fence_result = device.get().createFence({});
+		if (!fence_result) return Error::from(fence_result);
 		auto fence = std::move(*fence_result);
 
 		/* Synchronization infos */
@@ -430,10 +421,9 @@ namespace vulkan
 		/* Record commands */
 
 		if (const auto result =
-				command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit})
-					.transform_error(Error::from<vk::Result>());
+				command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 			!result)
-			return result.error().forward("Begin command buffer failed");
+			return Error::from(result);
 		{
 			// Copy buffers
 			for (const auto& task : buffer_tasks)
@@ -479,8 +469,7 @@ namespace vulkan
 					vk::DependencyInfo{}.setImageMemoryBarriers(image_barriers_post)
 				);
 		}
-		if (const auto result = command_buffer.end().transform_error(Error::from<vk::Result>()); !result)
-			return result.error().forward("End command buffer failed");
+		if (const auto result = command_buffer.end(); !result) return Error::from(result);
 
 		/* Submit and wait for results */
 
@@ -489,12 +478,8 @@ namespace vulkan
 
 		{
 			const std::scoped_lock lock(submit_mutex.get());
-			if (const auto result =
-					transfer_queue.get()
-						.submit(submit_info, fence)
-						.transform_error(Error::from<vk::Result>());
-				!result)
-				return result.error().forward("Submit commands failed");
+			if (const auto result = transfer_queue.get().submit(submit_info, fence); !result)
+				return Error::from(result);
 		}
 
 		if (const auto wait_fence_result =

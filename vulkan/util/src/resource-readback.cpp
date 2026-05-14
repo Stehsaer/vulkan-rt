@@ -34,40 +34,31 @@ namespace vulkan::impl
 				uint32_t queue_family
 			) noexcept
 			{
-				auto command_pool_result =
-					device
-						.createCommandPool(
-							vk::CommandPoolCreateInfo{
-								.flags = vk::CommandPoolCreateFlagBits::eTransient,
-								.queueFamilyIndex = queue_family,
-							}
-						)
-						.transform_error(Error::from<vk::Result>());
-				if (!command_pool_result)
-					return command_pool_result.error().forward("Create command pool failed");
+				auto command_pool_result = device.createCommandPool(
+					vk::CommandPoolCreateInfo{
+						.flags = vk::CommandPoolCreateFlagBits::eTransient,
+						.queueFamilyIndex = queue_family,
+					}
+				);
+				if (!command_pool_result) return Error::from(command_pool_result);
 				auto command_pool = std::move(*command_pool_result);
 
 				auto command_buffer_result =
 					device
-						.allocateCommandBuffers(
-							vk::CommandBufferAllocateInfo{
-								.commandPool = command_pool,
-								.level = vk::CommandBufferLevel::ePrimary,
-								.commandBufferCount = 1
-							}
-						)
-						.transform_error(Error::from<vk::Result>())
+						.allocateCommandBuffers({
+							.commandPool = command_pool,
+							.level = vk::CommandBufferLevel::ePrimary,
+							.commandBufferCount = 1,
+						})
 						.transform([](std::vector<vk::raii::CommandBuffer> list) {
 							return std::move(list.front());
 						});
 
-				if (!command_buffer_result)
-					return command_buffer_result.error().forward("Allocate command buffer failed");
+				if (!command_buffer_result) return Error::from(command_buffer_result);
 				auto command_buffer = std::move(*command_buffer_result);
 
-				auto fence_result =
-					device.createFence(vk::FenceCreateInfo{}).transform_error(Error::from<vk::Result>());
-				if (!fence_result) return fence_result.error().forward("Create fence failed");
+				auto fence_result = device.createFence(vk::FenceCreateInfo{});
+				if (!fence_result) return Error::from(fence_result);
 				auto fence = std::move(*fence_result);
 
 				return CommitResource{
@@ -129,8 +120,7 @@ namespace vulkan::impl
 		std::span<std::byte> output_data
 	) noexcept
 	{
-		if (const auto result = context.device.waitIdle().transform_error(Error::from<vk::Result>()); !result)
-			return result.error().forward("Wait for device idle failed");
+		if (const auto result = context.device.waitIdle(); !result) return Error::from(result);
 
 		/* Create resources */
 
@@ -147,11 +137,8 @@ namespace vulkan::impl
 
 		/* Record commands */
 
-		if (const auto result =
-				commit_resource.command_buffer.begin(vk::CommandBufferBeginInfo{})
-					.transform_error(Error::from<vk::Result>());
-			!result)
-			return result.error().forward("Begin command buffer failed");
+		if (const auto result = commit_resource.command_buffer.begin(vk::CommandBufferBeginInfo{}); !result)
+			return Error::from(result);
 		{
 			const auto subresource_range = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor);
 			const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
@@ -253,10 +240,7 @@ namespace vulkan::impl
 				);
 			}
 		}
-		if (const auto result =
-				commit_resource.command_buffer.end().transform_error(Error::from<vk::Result>());
-			!result)
-			return result.error().forward("Begin comand buffer failed");
+		if (const auto result = commit_resource.command_buffer.end(); !result) return Error::from(result);
 
 		/* Submit */
 
@@ -266,10 +250,9 @@ namespace vulkan::impl
 			const std::scoped_lock lock(context.submit_mutex);
 			if (const auto result =
 					context.queue
-						.submit(vk::SubmitInfo().setCommandBuffers(command_buffers), *commit_resource.fence)
-						.transform_error(Error::from<vk::Result>());
+						.submit(vk::SubmitInfo().setCommandBuffers(command_buffers), *commit_resource.fence);
 				!result)
-				return result.error().forward("Submit commands failed");
+				return Error::from(result);
 		}
 
 		/* Wait for fences */
@@ -291,8 +274,7 @@ namespace vulkan::impl
 		const auto download_result = transfer_resource.readback_buffer.download(output_data);
 		if (!download_result) return download_result.error().forward("Download readback buffer failed");
 
-		if (const auto result = context.device.waitIdle().transform_error(Error::from<vk::Result>()); !result)
-			return result.error().forward("Wait for device idle failed");
+		if (const auto result = context.device.waitIdle(); !result) return Error::from(result);
 
 		return {};
 	}

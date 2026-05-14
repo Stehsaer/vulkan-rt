@@ -7,6 +7,7 @@
 #include <format>
 #include <functional>
 #include <iterator>
+#include <libassert/assert.hpp>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -35,15 +36,15 @@
 /// - Create from another error type:
 ///   ```cpp
 ///   T other_error = ...;
-///   auto error = Error::from<T>(other_error);
+///   auto error = Error::from(other_error);
 ///   ```
 ///
 /// - Convert from another error type:
 ///   ```cpp
 ///   std::expected<T, E> result = ...;
-///   std::expected<T, Error> new_result = result.transform_error(Error::from<E>());
+///   std::expected<T, Error> new_result = result.transform_error(Error::from_fn());
 ///   ```
-///   > Note: for custom type support, specialize `Error::from<T>::operator()`
+///   > Note: for custom type support, specialize `Error::from::operator<T>()`
 ///   > By default, types supported by `std::to_string`, and `vk::Result` are supported.
 ///
 /// #### Propagating
@@ -204,12 +205,7 @@ class Error
 
 	///
 	/// @brief Conversion functor to create Error from another error type
-	/// @note
-	/// To support custom types, implement a specialization of the `operator()` for the type T.
 	///
-	/// @tparam T The other error type
-	///
-	template <typename T>
 	class FromFunctor
 	{
 		std::source_location location;
@@ -220,6 +216,7 @@ class Error
 			location(location)
 		{}
 
+		template <typename T>
 		Error operator()(const T& error) const noexcept;
 	};
 
@@ -229,18 +226,17 @@ class Error
 	/// Example of usage:
 	/// ```cpp
 	/// std::expected<T, E> result = ...;
-	/// std::expected<T, Error> new_result = result.transform_error(Error::from<E>());
+	/// std::expected<T, Error> new_result = result.transform_error(Error::from_fn());
 	/// ```
 	///
 	/// @tparam T The other error type
 	/// @param location Source location where the error is created (default: current location)
 	/// @return Functor to convert T to Error
 	///
-	template <typename T>
 	[[nodiscard]]
-	static FromFunctor<T> from(std::source_location location = std::source_location::current()) noexcept
+	static FromFunctor from_fn(std::source_location location = std::source_location::current()) noexcept
 	{
-		return FromFunctor<T>(location);
+		return FromFunctor(location);
 	}
 
 	///
@@ -252,13 +248,26 @@ class Error
 	/// @return Converted Error instance
 	///
 	template <typename T>
+		requires(!std::same_as<T, Error>)
 	[[nodiscard]]
 	static Error from(
 		const T& error,
 		std::source_location location = std::source_location::current()
 	) noexcept
 	{
-		return FromFunctor<T>(location)(error);
+		return FromFunctor(location)(error);
+	}
+
+	template <typename T, typename E>
+		requires(!std::same_as<E, Error>)
+	[[nodiscard]]
+	static Error from(
+		const std::expected<T, E>& error,
+		std::source_location location = std::source_location::current()
+	) noexcept
+	{
+		ASSUME(!error.has_value());
+		return from(error.error(), location);
 	}
 
 #pragma endregion

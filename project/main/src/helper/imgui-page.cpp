@@ -25,30 +25,21 @@ namespace helper
 {
 	std::expected<ImGuiPage, Error> ImGuiPage::create(const vulkan::Context& context) noexcept
 	{
-		auto command_pool_result =
-			context.device
-				.createCommandPool(
-					vk::CommandPoolCreateInfo{
-						.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-						.queueFamilyIndex = context.family,
-					}
-				)
-				.transform_error(Error::from<vk::Result>());
-		if (!command_pool_result) return command_pool_result.error().forward("Create command pool failed");
+		auto command_pool_result = context.device.createCommandPool(
+			vk::CommandPoolCreateInfo{
+				.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+				.queueFamilyIndex = context.family,
+			}
+		);
+		if (!command_pool_result) return Error::from(command_pool_result);
 		auto command_pool = std::move(*command_pool_result);
 
-		auto command_buffer_result =
-			context.device
-				.allocateCommandBuffers(
-					vk::CommandBufferAllocateInfo{
-						.commandPool = command_pool,
-						.level = vk::CommandBufferLevel::ePrimary,
-						.commandBufferCount = config::INFLIGHT_FRAMES,
-					}
-				)
-				.transform_error(Error::from<vk::Result>());
-		if (!command_buffer_result)
-			return command_buffer_result.error().forward("Allocate command buffers failed");
+		auto command_buffer_result = context.device.allocateCommandBuffers({
+			.commandPool = command_pool,
+			.level = vk::CommandBufferLevel::ePrimary,
+			.commandBufferCount = config::INFLIGHT_FRAMES,
+		});
+		if (!command_buffer_result) return Error::from(command_buffer_result);
 		auto command_buffers =
 			std::move(*command_buffer_result) | vulkan::Cycle<vk::raii::CommandBuffer>::into;
 
@@ -95,7 +86,7 @@ namespace helper
 				std::numeric_limits<uint64_t>::max()
 			);
 			wait_result != vk::Result::eSuccess)
-			return Error::from<vk::Result>(wait_result).forward("Wait for fence failed");
+			return Error::from(wait_result);
 
 		const auto swapchain_result = context.swapchain.acquire_next(
 			context.instance,
@@ -117,11 +108,11 @@ namespace helper
 		const FrameContext& frame_context
 	) noexcept
 	{
-		if (const auto result =
-				frame_context.command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit})
-					.transform_error(Error::from<vk::Result>());
+		if (const auto result = frame_context.command_buffer.begin({
+				.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+			});
 			!result)
-			return result.error().forward("Begin command buffer failed");
+			return Error::from(result);
 
 		const auto swapchain_acquire_image_barrier = vk::ImageMemoryBarrier2{
 			.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
@@ -175,9 +166,7 @@ namespace helper
 			vk::DependencyInfo{}.setImageMemoryBarriers(swapchain_image_present_barrier)
 		);
 
-		if (const auto result = frame_context.command_buffer.end().transform_error(Error::from<vk::Result>());
-			!result)
-			return result.error().forward("End command buffer failed");
+		if (const auto result = frame_context.command_buffer.end(); !result) return Error::from(result);
 
 		{
 			const auto wait_semaphores =
@@ -194,20 +183,15 @@ namespace helper
 					.setSignalSemaphores(signal_semaphores)
 					.setWaitDstStageMask(wait_stages);
 
-			if (const auto result =
-					context.device->resetFences({frame_context.sync.draw_fence})
-						.transform_error(Error::from<vk::Result>());
-				!result)
-				return result.error().forward("Reset fences failed");
+			if (const auto result = context.device->resetFences({frame_context.sync.draw_fence}); !result)
+				return Error::from(result);
 
 			const std::scoped_lock lock(context.device.get().submit_mutex);
 
 			if (const auto result =
-					context.device.get()
-						.queue.submit(graphic_submit_info, frame_context.sync.draw_fence)
-						.transform_error(Error::from<vk::Result>());
+					context.device.get().queue.submit(graphic_submit_info, frame_context.sync.draw_fence);
 				!result)
-				return result.error().forward("Submit commands failed");
+				return Error::from(result);
 
 			if (const auto present_result = context.swapchain.present(
 					context.device,

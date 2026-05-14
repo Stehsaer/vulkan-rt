@@ -216,43 +216,19 @@ namespace render
 	{
 		/*===== Descriptor set layout =====*/
 
-		auto clear_resource_layout_result =
-			context.device
-				.createDescriptorSetLayout(
-					vk::DescriptorSetLayoutCreateInfo().setBindings(CLEAR_RESOURCE_BINDINGS)
-				)
-				.transform_error(Error::from<vk::Result>());
-		auto histogram_resource_layout_result =
-			context.device
-				.createDescriptorSetLayout(
-					vk::DescriptorSetLayoutCreateInfo().setBindings(HISTOGRAM_RESOURCE_BINDINGS)
-				)
-				.transform_error(Error::from<vk::Result>());
-		auto reduce_resource_layout_result =
-			context.device
-				.createDescriptorSetLayout(
-					vk::DescriptorSetLayoutCreateInfo().setBindings(REDUCE_RESOURCE_BINDINGS)
-				)
-				.transform_error(Error::from<vk::Result>());
+		auto clear_resource_layout_result = context.device.createDescriptorSetLayout(
+			vk::DescriptorSetLayoutCreateInfo().setBindings(CLEAR_RESOURCE_BINDINGS)
+		);
+		auto histogram_resource_layout_result = context.device.createDescriptorSetLayout(
+			vk::DescriptorSetLayoutCreateInfo().setBindings(HISTOGRAM_RESOURCE_BINDINGS)
+		);
+		auto reduce_resource_layout_result = context.device.createDescriptorSetLayout(
+			vk::DescriptorSetLayoutCreateInfo().setBindings(REDUCE_RESOURCE_BINDINGS)
+		);
 
-		if (!clear_resource_layout_result)
-		{
-			return clear_resource_layout_result.error().forward(
-				"Create resource layout for 'clear' program failed"
-			);
-		}
-		if (!histogram_resource_layout_result)
-		{
-			return histogram_resource_layout_result.error().forward(
-				"Create resource layout for 'histogram' program failed"
-			);
-		}
-		if (!reduce_resource_layout_result)
-		{
-			return reduce_resource_layout_result.error().forward(
-				"Create resource layout for 'reduce' program failed"
-			);
-		}
+		if (!clear_resource_layout_result) return Error::from(clear_resource_layout_result);
+		if (!histogram_resource_layout_result) return Error::from(histogram_resource_layout_result);
+		if (!reduce_resource_layout_result) return Error::from(reduce_resource_layout_result);
 
 		auto clear_resource_layout = std::move(*clear_resource_layout_result);
 		auto histogram_resource_layout = std::move(*histogram_resource_layout_result);
@@ -267,43 +243,18 @@ namespace render
 		const auto reduce_resource_layout_list =
 			std::to_array<vk::DescriptorSetLayout>({reduce_resource_layout});
 
-		auto clear_pipeline_layout_result =
-			context.device
-				.createPipelineLayout(
-					vk::PipelineLayoutCreateInfo().setSetLayouts(clear_resource_layout_list)
-				)
-				.transform_error(Error::from<vk::Result>());
-		auto histogram_pipeline_layout_result =
-			context.device
-				.createPipelineLayout(
-					vk::PipelineLayoutCreateInfo().setSetLayouts(histogram_resource_layout_list)
-				)
-				.transform_error(Error::from<vk::Result>());
-		auto reduce_pipeline_layout_result =
-			context.device
-				.createPipelineLayout(
-					vk::PipelineLayoutCreateInfo().setSetLayouts(reduce_resource_layout_list)
-				)
-				.transform_error(Error::from<vk::Result>());
-
-		if (!clear_pipeline_layout_result)
-		{
-			return clear_pipeline_layout_result.error().forward(
-				"Create pipeline layout for 'clear' program failed"
-			);
-		}
-		if (!histogram_pipeline_layout_result)
-		{
-			return histogram_pipeline_layout_result.error().forward(
-				"Create pipeline layout for 'histogram' program failed"
-			);
-		}
-		if (!reduce_pipeline_layout_result)
-		{
-			return reduce_pipeline_layout_result.error().forward(
-				"Create pipeline layout for 'reduce' program failed"
-			);
-		}
+		auto clear_pipeline_layout_result = context.device.createPipelineLayout(
+			vk::PipelineLayoutCreateInfo().setSetLayouts(clear_resource_layout_list)
+		);
+		auto histogram_pipeline_layout_result = context.device.createPipelineLayout(
+			vk::PipelineLayoutCreateInfo().setSetLayouts(histogram_resource_layout_list)
+		);
+		auto reduce_pipeline_layout_result = context.device.createPipelineLayout(
+			vk::PipelineLayoutCreateInfo().setSetLayouts(reduce_resource_layout_list)
+		);
+		if (!clear_pipeline_layout_result) return Error::from(clear_pipeline_layout_result);
+		if (!histogram_pipeline_layout_result) return Error::from(histogram_pipeline_layout_result);
+		if (!reduce_pipeline_layout_result) return Error::from(reduce_pipeline_layout_result);
 
 		auto clear_pipeline_layout = std::move(*clear_pipeline_layout_result);
 		auto histogram_pipeline_layout = std::move(*histogram_pipeline_layout_result);
@@ -317,17 +268,11 @@ namespace render
 		auto reduce_shader_result = vulkan::create_shader(context.device, shader::auto_exposure::reduce);
 
 		if (!clear_shader_result)
-		{
 			return clear_shader_result.error().forward("Create shader for 'clear' program failed");
-		}
 		if (!histogram_shader_result)
-		{
 			return histogram_shader_result.error().forward("Create shader for 'histogram' program failed");
-		}
 		if (!reduce_shader_result)
-		{
 			return reduce_shader_result.error().forward("Create shader for 'reduce' program failed");
-		}
 
 		auto clear_shader = std::move(*clear_shader_result);
 		auto histogram_shader = std::move(*histogram_shader_result);
@@ -367,33 +312,15 @@ namespace render
 		};
 
 		auto clear_pipeline_result =
-			context.device.createComputePipeline(nullptr, clear_pipeline_create_info)
-				.transform_error(Error::from<vk::Result>());
+			context.device.createComputePipeline(nullptr, clear_pipeline_create_info);
 		auto histogram_pipeline_result =
-			context.device.createComputePipeline(nullptr, histogram_pipeline_create_info)
-				.transform_error(Error::from<vk::Result>());
+			context.device.createComputePipeline(nullptr, histogram_pipeline_create_info);
 		auto reduce_pipeline_result =
-			context.device.createComputePipeline(nullptr, reduce_pipeline_create_info)
-				.transform_error(Error::from<vk::Result>());
+			context.device.createComputePipeline(nullptr, reduce_pipeline_create_info);
 
-		if (!clear_pipeline_result)
-		{
-			return clear_pipeline_result.error().forward(
-				"Create compute pipeline for 'clear' program failed"
-			);
-		}
-		if (!histogram_pipeline_result)
-		{
-			return histogram_pipeline_result.error().forward(
-				"Create compute pipeline for 'histogram' program failed"
-			);
-		}
-		if (!reduce_pipeline_result)
-		{
-			return reduce_pipeline_result.error().forward(
-				"Create compute pipeline for 'reduce' program failed"
-			);
-		}
+		if (!clear_pipeline_result) return Error::from(clear_pipeline_result);
+		if (!histogram_pipeline_result) return Error::from(histogram_pipeline_result);
+		if (!reduce_pipeline_result) return Error::from(reduce_pipeline_result);
 
 		auto clear_pipeline = std::move(*clear_pipeline_result);
 		auto histogram_pipeline = std::move(*histogram_pipeline_result);
@@ -413,10 +340,8 @@ namespace render
 			.maxLod = 0.0f,
 		};
 
-		auto input_sampler_result =
-			context.device.createSampler(input_sampler_create_info)
-				.transform_error(Error::from<vk::Result>());
-		if (!input_sampler_result) return input_sampler_result.error().forward("Create input sampler failed");
+		auto input_sampler_result = context.device.createSampler(input_sampler_create_info);
+		if (!input_sampler_result) return Error::from(input_sampler_result);
 		auto input_sampler = std::move(*input_sampler_result);
 
 		constexpr auto mask_sampler_create_info = vk::SamplerCreateInfo{
@@ -431,9 +356,8 @@ namespace render
 			.maxLod = 0.0f,
 		};
 
-		auto mask_sampler_result =
-			context.device.createSampler(mask_sampler_create_info).transform_error(Error::from<vk::Result>());
-		if (!mask_sampler_result) return mask_sampler_result.error().forward("Create mask sampler failed");
+		auto mask_sampler_result = context.device.createSampler(mask_sampler_create_info);
+		if (!mask_sampler_result) return Error::from(mask_sampler_result);
 		auto mask_sampler = std::move(*mask_sampler_result);
 
 		return AutoExposurePipeline(
@@ -461,21 +385,13 @@ namespace render
 		);
 		const auto pool_sizes = vulkan::calc_pool_sizes(bindings, count);
 
-		auto descriptor_pool_result =
-			context.device
-				.createDescriptorPool(
-					vk::DescriptorPoolCreateInfo()
-						.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-						.setMaxSets(count * 3)
-						.setPoolSizes(pool_sizes)
-				)
-				.transform_error(Error::from<vk::Result>());
-		if (!descriptor_pool_result)
-		{
-			return descriptor_pool_result.error().forward(
-				"Create descriptor pool for auto exposure resource sets failed"
-			);
-		}
+		auto descriptor_pool_result = context.device.createDescriptorPool(
+			vk::DescriptorPoolCreateInfo()
+				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
+				.setMaxSets(count * 3)
+				.setPoolSizes(pool_sizes)
+		);
+		if (!descriptor_pool_result) return Error::from(descriptor_pool_result);
 		auto descriptor_pool = std::make_shared<vk::raii::DescriptorPool>(std::move(*descriptor_pool_result));
 
 		const auto clear_layouts = std::vector(count, *clear_resource_layout);
@@ -491,34 +407,13 @@ namespace render
 		const auto reduce_set_alloc_info =
 			vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor_pool).setSetLayouts(reduce_layouts);
 
-		auto clear_sets_result =
-			context.device.allocateDescriptorSets(clear_set_alloc_info)
-				.transform_error(Error::from<vk::Result>());
-		auto histogram_sets_result =
-			context.device.allocateDescriptorSets(histogram_set_alloc_info)
-				.transform_error(Error::from<vk::Result>());
-		auto reduce_sets_result =
-			context.device.allocateDescriptorSets(reduce_set_alloc_info)
-				.transform_error(Error::from<vk::Result>());
+		auto clear_sets_result = context.device.allocateDescriptorSets(clear_set_alloc_info);
+		auto histogram_sets_result = context.device.allocateDescriptorSets(histogram_set_alloc_info);
+		auto reduce_sets_result = context.device.allocateDescriptorSets(reduce_set_alloc_info);
 
-		if (!clear_sets_result)
-		{
-			return clear_sets_result.error().forward(
-				"Allocate descriptor sets for 'clear' program resource sets failed"
-			);
-		}
-		if (!histogram_sets_result)
-		{
-			return histogram_sets_result.error().forward(
-				"Allocate descriptor sets for 'histogram' program resource sets failed"
-			);
-		}
-		if (!reduce_sets_result)
-		{
-			return reduce_sets_result.error().forward(
-				"Allocate descriptor sets for 'reduce' program resource sets failed"
-			);
-		}
+		if (!clear_sets_result) return Error::from(clear_sets_result);
+		if (!histogram_sets_result) return Error::from(histogram_sets_result);
+		if (!reduce_sets_result) return Error::from(reduce_sets_result);
 
 		auto clear_sets = std::move(*clear_sets_result);
 		auto histogram_sets = std::move(*histogram_sets_result);
