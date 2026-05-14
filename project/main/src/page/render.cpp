@@ -24,6 +24,7 @@
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
+#include <memory>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -35,23 +36,23 @@
 namespace page
 {
 	std::expected<RenderPage, Error> RenderPage::create(
-		resource::Context context,
+		std::shared_ptr<resource::Context> context,
 		render::Model model,
 		render::MaterialLayout material_layout
 	) noexcept
 	{
 		auto command_pool_result =
-			context.device
+			context->device
 				->createCommandPool({
 					.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-					.queueFamilyIndex = context.device.get().family,
+					.queueFamilyIndex = context->device.get().family,
 				})
 				.transform_error(Error::from<vk::Result>());
 		if (!command_pool_result) return command_pool_result.error().forward("Create command pool failed");
 		auto command_pool = std::move(*command_pool_result);
 
 		auto command_buffers_result =
-			context.device
+			context->device
 				->allocateCommandBuffers({
 					.commandPool = command_pool,
 					.commandBufferCount = config::INFLIGHT_FRAMES,
@@ -63,7 +64,7 @@ namespace page
 
 		auto render_buffers_result =
 			std::views::repeat(resource::RenderResource::create, config::INFLIGHT_FRAMES)
-			| std::views::transform([&context](auto f) { return f(context.device.get()); })
+			| std::views::transform([&context](auto f) { return f(context->device.get()); })
 			| Error::collect();
 		if (!render_buffers_result)
 			return render_buffers_result.error().forward("Create render buffers failed");
@@ -71,22 +72,22 @@ namespace page
 
 		auto sync_primitives_result =
 			std::views::repeat(resource::SyncPrimitive::create, config::INFLIGHT_FRAMES)
-			| std::views::transform([&context](auto f) { return f(context.device.get()); })
+			| std::views::transform([&context](auto f) { return f(context->device.get()); })
 			| Error::collect();
 		if (!sync_primitives_result)
 			return sync_primitives_result.error().forward("Create sync primitives failed");
 		auto sync_primitives = std::move(*sync_primitives_result);
 
 		auto pipeline_result = resource::Pipeline::create(
-			context.device.get(),
+			context->device.get(),
 			material_layout,
-			context.swapchain->surface_format.format
+			context->swapchain->surface_format.format
 		);
 		if (!pipeline_result) return pipeline_result.error().forward("Create pipelines failed");
 		auto pipeline = std::move(*pipeline_result);
 
 		auto resource_sets_result =
-			pipeline.create_resource_sets(context.device.get(), config::INFLIGHT_FRAMES);
+			pipeline.create_resource_sets(context->device.get(), config::INFLIGHT_FRAMES);
 		if (!resource_sets_result) return resource_sets_result.error().forward("Create resource sets failed");
 		auto resource_sets = std::move(*resource_sets_result);
 
@@ -100,7 +101,7 @@ namespace page
 			)
 			| vulkan::Cycle<FrameResource>::into;
 
-		auto aux_resource_result = resource::AuxResource::create(context.device.get());
+		auto aux_resource_result = resource::AuxResource::create(context->device.get());
 		if (!aux_resource_result)
 			return aux_resource_result.error().forward("Create auxiliary resources failed");
 		auto aux_resource = std::move(*aux_resource_result);
@@ -121,7 +122,7 @@ namespace page
 		const auto event = handle_events();
 		if (event == Event::Quit)
 		{
-			if (const auto result = context.device->waitIdle().transform_error(Error::from<vk::Result>());
+			if (const auto result = context->device->waitIdle().transform_error(Error::from<vk::Result>());
 				!result)
 				return result.error().forward("Wait for device idle failed");
 			return ResultType::from<Result::Quit>();
@@ -130,7 +131,7 @@ namespace page
 		auto prepare_frame_result = prepare_frame();
 		if (!prepare_frame_result)
 		{
-			if (const auto result = context.device->waitIdle().transform_error(Error::from<vk::Result>());
+			if (const auto result = context->device->waitIdle().transform_error(Error::from<vk::Result>());
 				!result)
 				return result.error().forward("Wait for device idle failed");
 			return prepare_frame_result.error().forward("Prepare frame failed");
@@ -140,7 +141,7 @@ namespace page
 
 		if (const auto draw_result = draw_frame(frame); !draw_result)
 		{
-			if (const auto result = context.device->waitIdle().transform_error(Error::from<vk::Result>());
+			if (const auto result = context->device->waitIdle().transform_error(Error::from<vk::Result>());
 				!result)
 				return result.error().forward("Wait for device idle failed");
 			return draw_result.error().forward("Draw frame failed");
@@ -148,7 +149,7 @@ namespace page
 
 		if (const auto present_result = present_frame(frame); !present_result)
 		{
-			if (const auto result = context.device->waitIdle().transform_error(Error::from<vk::Result>());
+			if (const auto result = context->device->waitIdle().transform_error(Error::from<vk::Result>());
 				!result)
 				return result.error().forward("Wait for device idle failed");
 			return present_result.error().forward("Present frame failed");
@@ -164,7 +165,7 @@ namespace page
 		frame_resources.cycle();
 
 		const auto wait_result =
-			context.device
+			context->device
 				->waitForFences(*frame_resources.current().sync_primitive.draw_fence, vk::True, UINT64_MAX);
 		if (wait_result != vk::Result::eSuccess)
 			return Error::from(wait_result).forward("Wait for fence failed");
@@ -174,9 +175,9 @@ namespace page
 
 		/* Acquire Swapchain */
 
-		const auto swapchain_result = context.swapchain.acquire_next(
-			context.instance,
-			context.device,
+		const auto swapchain_result = context->swapchain.acquire_next(
+			context->instance,
+			context->device,
 			curr_resource.sync_primitive.image_available_semaphore
 		);
 		if (!swapchain_result) return swapchain_result.error().forward("Acquire next swapchain image failed");
@@ -187,14 +188,14 @@ namespace page
 
 		if (swapchain_frame.extent_changed || !curr_resource.render_resource.is_complete())
 		{
-			if (const auto result = context.device->waitIdle().transform_error(Error::from<vk::Result>());
+			if (const auto result = context->device->waitIdle().transform_error(Error::from<vk::Result>());
 				!result)
 				return result.error().forward("Wait for device idle failed");
 
 			for (auto& resource : frame_resources.iterate())
 			{
 				auto render_target_result =
-					resource.render_resource.resize(context.device.get(), swapchain_frame.extent);
+					resource.render_resource.resize(context->device.get(), swapchain_frame.extent);
 				if (!render_target_result)
 					return render_target_result.error().forward("Create render target failed");
 			}
@@ -253,7 +254,7 @@ namespace page
 
 		while (SDL_PollEvent(&event))
 		{
-			context.imgui.process_event(event);
+			context->imgui.process_event(event);
 
 			switch (event.type)
 			{
@@ -276,12 +277,12 @@ namespace page
 
 		/* UI & Scene */
 
-		if (const auto new_frame_result = context.imgui.new_frame(); !new_frame_result)
+		if (const auto new_frame_result = context->imgui.new_frame(); !new_frame_result)
 			return new_frame_result.error().forward("Start new ImGui frame failed");
 
 		ui(frame.swapchain_frame.extent);
 
-		if (const auto render_result = context.imgui.render(); !render_result)
+		if (const auto render_result = context->imgui.render(); !render_result)
 			return render_result.error().forward("Render ImGui frame failed");
 
 		auto scene_data = prepare_scene(frame.swapchain_frame.extent);
@@ -289,12 +290,12 @@ namespace page
 		/* Update & Bind */
 
 		if (const auto buffer_update_result =
-				frame.curr_resource.render_resource.update(context.device.get(), scene_data);
+				frame.curr_resource.render_resource.update(context->device.get(), scene_data);
 			!buffer_update_result)
 			return buffer_update_result.error().forward("Update render buffer failed");
 
 		frame.curr_resource.resource_set.update(
-			context.device.get(),
+			context->device.get(),
 			model,
 			frame.curr_resource.render_resource,
 			frame.prev_resource.render_resource,
@@ -350,7 +351,7 @@ namespace page
 
 		pipeline.composite_pipeline.render(frame.command_buffer, frame.resource_set.composite_resource_set);
 
-		if (const auto draw_result = context.imgui.draw(frame.command_buffer); !draw_result)
+		if (const auto draw_result = context->imgui.draw(frame.command_buffer); !draw_result)
 		{
 			frame.command_buffer.endRendering();
 			return draw_result.error().forward("Draw ImGui failed");
@@ -421,21 +422,21 @@ namespace page
 				.setSignalSemaphoreInfos(signal_semaphore_info);
 
 		if (const auto result =
-				context.device->resetFences(*frame.sync_primitive.draw_fence)
+				context->device->resetFences(*frame.sync_primitive.draw_fence)
 					.transform_error(Error::from<vk::Result>());
 			!result)
 			return result.error().forward("Reset fences failed");
 
 		if (const auto result =
-				context.device.get()
+				context->device.get()
 					.queue.submit2(submit_info, frame.sync_primitive.draw_fence)
 					.transform_error(Error::from<vk::Result>());
 			!result)
 			return result.error().forward("Submit failed");
 
 		const auto present_result =
-			context.swapchain
-				.present(context.device, frame.swapchain, frame.sync_primitive.render_finished_semaphore);
+			context->swapchain
+				.present(context->device, frame.swapchain, frame.sync_primitive.render_finished_semaphore);
 		if (!present_result) return present_result.error().forward("Present frame failed");
 
 		return {};

@@ -1,12 +1,14 @@
 #include "vulkan/util/shader.hpp"
 #include "common/util/error.hpp"
+#include "common/util/span.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
-#include <memory>
 #include <span>
 #include <utility>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -19,12 +21,13 @@ namespace vulkan
 	{
 		if (span.size() % sizeof(uint32_t) != 0)
 			return Error("Shader bytecode size is not a multiple of 4 bytes");
-		if (reinterpret_cast<uintptr_t>(span.data()) % alignof(uint32_t) != 0)
-			return Error("Shader bytecode data is not properly aligned for uint32_t");
+
+		std::vector<uint32_t> shader_data(span.size() / sizeof(uint32_t));
+		std::ranges::copy(span, util::as_writable_bytes(shader_data).begin());
 
 		const vk::ShaderModuleCreateInfo create_info{
-			.codeSize = span.size(),
-			.pCode = reinterpret_cast<const uint32_t*>(std::assume_aligned<alignof(uint32_t)>(span.data())),
+			.codeSize = shader_data.size() * sizeof(uint32_t),
+			.pCode = shader_data.data(),
 		};
 
 		auto shader_module_result =

@@ -23,6 +23,7 @@
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/vector_uint2_sized.hpp>
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -51,7 +52,7 @@ namespace page
 		///
 		[[nodiscard]]
 		static std::expected<RenderPage, Error> create(
-			resource::Context context,
+			std::shared_ptr<resource::Context> context,
 			render::Model model,
 			render::MaterialLayout material_layout
 		) noexcept;
@@ -114,7 +115,7 @@ namespace page
 
 		/* Graphic */
 
-		resource::Context context;
+		std::shared_ptr<resource::Context> context;
 		vk::raii::CommandPool command_pool;
 
 		render::MaterialLayout material_layout;
@@ -165,7 +166,7 @@ namespace page
 		/* Constructor */
 
 		explicit RenderPage(
-			resource::Context context,
+			std::shared_ptr<resource::Context> context,
 			vk::raii::CommandPool command_pool,
 			render::MaterialLayout material_layout,
 			render::Model model,

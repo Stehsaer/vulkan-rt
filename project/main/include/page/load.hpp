@@ -82,12 +82,12 @@ namespace page
 			util::Tag<State::Quiting, Error>
 		>;
 
-		std::unique_ptr<resource::Context> context;
+		std::shared_ptr<resource::Context> context;
 		helper::ImGuiPage imgui_page;
 		StateData state_data;
 
 		static std::expected<render::Model, Error> load_model_task(
-			const resource::Context& context,
+			std::shared_ptr<const resource::Context> context,
 			const render::MaterialLayout& material_layout,
 			Argument argument,
 			TaskProgress& progress
@@ -98,7 +98,7 @@ namespace page
 		/*===== Construct =====*/
 
 		explicit LoadPage(
-			std::unique_ptr<resource::Context> context,
+			std::shared_ptr<resource::Context> context,
 			helper::ImGuiPage imgui_page,
 			Task task
 		) :

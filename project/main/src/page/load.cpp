@@ -33,7 +33,7 @@
 namespace page
 {
 	std::expected<render::Model, Error> LoadPage::load_model_task(
-		const resource::Context& context,
+		std::shared_ptr<const resource::Context> context,  // NOLINT: intended to own
 		const render::MaterialLayout& material_layout,
 		Argument argument,
 		TaskProgress& progress
@@ -63,7 +63,7 @@ namespace page
 
 		auto [model_task, model_progress] = render::Model::create(
 			*thread_pool,
-			context.device.get(),
+			context->device.get(),
 			material_layout,
 			gltf_model,
 			{.texture_load_option = texture_load_opt}
@@ -93,12 +93,12 @@ namespace page
 		auto imgui_page = std::move(*imgui_page_result);
 
 		auto progress = std::make_unique<TaskProgress>(TaskProgress::from<TaskProgressState::Preparing>());
-		auto context_res = std::make_unique<resource::Context>(std::move(context));
+		auto context_res = std::make_shared<resource::Context>(std::move(context));
 
 		auto model_future = std::async(
 			std::launch::async,
 			load_model_task,
-			std::cref(*context_res),
+			context_res,
 			std::cref(*material_layout),
 			std::move(argument),
 			std::ref(*progress)
@@ -186,7 +186,7 @@ namespace page
 				return result.error().forward("Wait for device idle failed");
 
 			auto render_page_result = RenderPage::create(
-				std::move(*context),
+				context,
 				std::move(success_data.model),
 				std::move(*success_data.material_layout)
 			);

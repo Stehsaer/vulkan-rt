@@ -44,17 +44,6 @@ namespace scene
 		virtual ~Page() noexcept = default;
 
 		///
-		/// @brief Run page loops, with a designated initial page. It keeps running until the page loop quits
-		/// or an error occurs.
-		///
-		/// @param initial_page The initial page to start running. Must not be empty.
-		/// @retval void Success, quitting the page runner
-		/// @retval Error An error occurred during page execution, with details provided in the error
-		///
-		[[nodiscard]]
-		static std::expected<void, Error> run(std::unique_ptr<Page> initial_page) noexcept;
-
-		///
 		/// @brief Convert the page to a unique pointer.
 		///
 		/// @return A unique pointer to the page instance.
