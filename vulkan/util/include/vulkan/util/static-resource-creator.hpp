@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "common/util/span.hpp"
 #include "image/bc-image.hpp"
@@ -476,7 +477,7 @@ namespace vulkan
 		/* Append task */
 
 		const std::vector<vk::ImageSubresourceLayers> subresource_layers =
-			std::views::iota(0u, mipmap_levels)
+			std::views::iota(0_u32, mipmap_levels)
 			| std::views::transform([](uint32_t mip_level) {
 				  return vk::ImageSubresourceLayers{
 					  .aspectMask = vk::ImageAspectFlagBits::eColor,

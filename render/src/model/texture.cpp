@@ -1,4 +1,5 @@
 #include "render/model/texture.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "common/util/overload.hpp"
 #include "image/bc-image.hpp"
@@ -220,7 +221,7 @@ namespace render
 		auto image = std::move(*image_result);
 
 		const auto unorm16_to_unorm8 = [](const glm::u16vec4& pixel) {
-			return glm::u8vec4(pixel >> static_cast<uint16_t>(8));
+			return glm::u8vec4(pixel >> 8_u16);
 		};
 
 		const auto convert_to_unorm8 = util::Overload(

@@ -1,4 +1,5 @@
 #include "vulkan/container/device/frame-buffer.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "vulkan/alloc/allocator.hpp"
 #include "vulkan/numeric/base-level.hpp"
@@ -142,7 +143,7 @@ namespace vulkan
 		std::pair<bool, bool> has_depth_stencil(vk::Format format) noexcept
 		{
 			const auto component_names =
-				std::views::iota(0u, vk::componentCount(format))
+				std::views::iota(0_u32, vk::componentCount(format))
 				| std::views::transform([format](uint32_t comp) {
 					  return std::string(vk::componentName(format, comp));
 				  });

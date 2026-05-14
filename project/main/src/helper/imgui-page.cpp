@@ -1,4 +1,5 @@
 #include "helper/imgui-page.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "config.hpp"
 #include "resource/context.hpp"
@@ -51,7 +52,7 @@ namespace helper
 		auto command_buffers =
 			std::move(*command_buffer_result) | vulkan::Cycle<vk::raii::CommandBuffer>::into;
 
-		auto sync_primitives_result = std::views::iota(0u, config::INFLIGHT_FRAMES)
+		auto sync_primitives_result = std::views::iota(0_u32, config::INFLIGHT_FRAMES)
 			| std::views::transform([&](auto) { return resource::SyncPrimitive::create(context); })
 			| Error::collect();
 		if (!sync_primitives_result)

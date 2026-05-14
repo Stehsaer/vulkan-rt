@@ -1,5 +1,6 @@
 #include "vulkan/util/static-resource-creator.hpp"
 #include "common/formatter.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "common/util/span.hpp"
 #include "image/bc-image.hpp"
@@ -53,7 +54,7 @@ namespace vulkan
 		for (const auto [idx, pair] : sizes | std::views::adjacent<2> | std::views::enumerate)
 		{
 			const auto [upper_size, lower_size] = pair;
-			if (!glm::all(glm::equal(upper_size / 2u, lower_size)))
+			if (!glm::all(glm::equal(upper_size / 2_u32, lower_size)))
 			{
 				return Error(
 					"Invalid mipmap chain sizes",
@@ -279,7 +280,7 @@ namespace vulkan
 		/* Append tasks */
 
 		const std::vector<vk::ImageSubresourceLayers> subresource_layers =
-			std::views::iota(0u, mipmap_levels)
+			std::views::iota(0_u32, mipmap_levels)
 			| std::views::transform([](auto mip_level) {
 				  return vk::ImageSubresourceLayers{
 					  .aspectMask = vk::ImageAspectFlagBits::eColor,

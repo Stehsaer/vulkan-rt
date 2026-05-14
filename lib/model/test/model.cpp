@@ -1,4 +1,5 @@
 #include "model/model.hpp"
+#include "common/number-literals.hpp"
 #include "common/test-macro.hpp"
 #include "common/util/error.hpp"
 #include "image/common.hpp"
@@ -38,7 +39,7 @@ static model::Geometry get_valid_geometry() noexcept
 		{.position = {1.0f, 0.0f, 0.0f}, .texcoord = {}, .normal = {}, .tangent = {}},
 		{.position = {0.0f, 1.0f, 0.0f}, .texcoord = {}, .normal = {}, .tangent = {}}
 	};
-	const auto indices = std::vector<uint32_t>(std::from_range, std::views::iota(0u, 3u));
+	const auto indices = std::vector<uint32_t>(std::from_range, std::views::iota(0_u32, 3_u32));
 
 	return model::Geometry::create(vertices, indices) | Error::unwrap();
 }

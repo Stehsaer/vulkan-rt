@@ -1,5 +1,6 @@
 #include "image/bc-image.hpp"
 #include "common/formatter.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "image/common.hpp"
 #include "image/image.hpp"
@@ -58,7 +59,7 @@ namespace image
 	{
 		for (
 			const auto [y, x] :
-			std::views::cartesian_product(std::views::iota(0u, size.y), std::views::iota(0u, size.x))
+			std::views::cartesian_product(std::views::iota(0_u32, size.y), std::views::iota(0_u32, size.x))
 		)
 		{
 			const glm::u32vec2 coord{x, y};
@@ -97,7 +98,7 @@ namespace image
 	{
 		std::call_once(rgbcx_init_flag, [] { rgbcx::init(); });
 
-		BCnImage bc3_image(BCnFormat::BC3, raw_image.size / 4u);
+		BCnImage bc3_image(BCnFormat::BC3, raw_image.size / 4_u32);
 		bc3_image.iterate_blocks(raw_image, encode_bc3_block);
 		return bc3_image;
 	}
@@ -108,7 +109,7 @@ namespace image
 	{
 		std::call_once(rgbcx_init_flag, [] { rgbcx::init(); });
 
-		BCnImage bc5_image(BCnFormat::BC5, raw_image.size / 4u);
+		BCnImage bc5_image(BCnFormat::BC5, raw_image.size / 4_u32);
 		bc5_image.iterate_blocks(raw_image, encode_bc5_block);
 		return bc5_image;
 	}
@@ -119,7 +120,7 @@ namespace image
 	{
 		static std::once_flag bc7_init_flag;
 
-		BCnImage bc7_image(BCnFormat::BC7, raw_image.size / 4u);
+		BCnImage bc7_image(BCnFormat::BC7, raw_image.size / 4_u32);
 
 		std::call_once(bc7_init_flag, [] { bc7enc_compress_block_init(); });
 

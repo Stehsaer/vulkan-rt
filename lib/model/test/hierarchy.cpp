@@ -1,4 +1,5 @@
 #include "model/hierarchy.hpp"
+#include "common/number-literals.hpp"
 #include "common/test-macro.hpp"
 
 #include <cstddef>
@@ -336,7 +337,7 @@ TEST_SUITE("Abnormal Hierarchy Creation")
 
 			CHECK_EQ(hierarchy.get_nodes().size(), 10);
 
-			for (const auto i : std::views::iota(0u, 10u))
+			for (const auto i : std::views::iota(0_u32, 10_u32))
 			{
 				if (i == 0)
 					CHECK_FALSE(hierarchy.get_nodes()[i].parent_index.has_value());
@@ -348,7 +349,7 @@ TEST_SUITE("Abnormal Hierarchy Creation")
 		SUBCASE("Child only")
 		{
 			const auto nodes =
-				std::views::iota(0u, 10u)
+				std::views::iota(0_u32, 10_u32)
 				| std::views::transform([](unsigned i) {
 					  return model::ChildOnlyNode{
 						  .child_indices = i < 9 ? std::vector<uint32_t>{i + 1} : std::vector<uint32_t>{}
@@ -390,11 +391,11 @@ TEST_SUITE("Abnormal Hierarchy Creation")
 			std::vector<model::ChildOnlyNode> nodes;
 			nodes.reserve(21);
 
-			const auto child_indices = std::views::iota(1u, 21u) | std::ranges::to<std::vector>();
+			const auto child_indices = std::views::iota(1_u32, 21_u32) | std::ranges::to<std::vector>();
 			nodes.push_back({.child_indices = child_indices});
 
 			nodes.append_range(
-				std::views::iota(0u, 20u)
+				std::views::iota(0_u32, 20_u32)
 				| std::views::transform([](uint32_t) { return model::ChildOnlyNode{.child_indices = {}}; })
 			);
 

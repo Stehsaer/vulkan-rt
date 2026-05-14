@@ -15,6 +15,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/number-literals.hpp"
 #include "common/test-macro.hpp"
 #include "common/util/span.hpp"
 #include "image/common.hpp"
@@ -419,8 +420,8 @@ TEST_CASE("Flip X")
 	auto img = std::move(*img_result);
 	auto flipped_img = img.flip_x();
 
-	for (const auto y : std::views::iota(0u, img.size.y))
-		for (const auto x : std::views::iota(0u, img.size.x))
+	for (const auto y : std::views::iota(0_u32, img.size.y))
+		for (const auto x : std::views::iota(0_u32, img.size.x))
 			if (img[x, y] != flipped_img[img.size.x - 1 - x, y]) FAIL("Pixel mismatched");
 }
 
@@ -431,7 +432,7 @@ TEST_CASE("Flip Y")
 	auto img = std::move(*img_result);
 	auto flipped_img = img.flip_y();
 
-	for (const auto y : std::views::iota(0u, img.size.y))
-		for (const auto x : std::views::iota(0u, img.size.x))
+	for (const auto y : std::views::iota(0_u32, img.size.y))
+		for (const auto x : std::views::iota(0_u32, img.size.x))
 			if (img[x, y] != flipped_img[x, img.size.y - 1 - y]) FAIL("Pixel mismatched");
 }

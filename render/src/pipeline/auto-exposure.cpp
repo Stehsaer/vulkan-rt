@@ -1,4 +1,5 @@
 #include "render/pipeline/auto-exposure.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/array.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
@@ -163,7 +164,7 @@ namespace render
 		/*===== Histogram =====*/
 
 		const auto histogram_group_count =
-			(glm::u32vec3(resource_set.image_size, 1) + HISTOGRAM_WORKGROUP_SIZE - 1u)
+			(glm::u32vec3(resource_set.image_size, 1) + HISTOGRAM_WORKGROUP_SIZE - 1_u32)
 			/ HISTOGRAM_WORKGROUP_SIZE;
 
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, histogram_pipeline);

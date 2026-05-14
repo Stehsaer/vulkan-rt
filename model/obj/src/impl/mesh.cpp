@@ -1,4 +1,5 @@
 #include "mesh.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/async.hpp"
 #include "common/util/error.hpp"
 #include "common/util/unpack.hpp"
@@ -155,7 +156,7 @@ namespace model::obj::impl
 			full_vertices.append_range(full);
 		}
 
-		const auto full_indices = std::views::iota(0u, static_cast<uint32_t>(full_vertices.size()))
+		const auto full_indices = std::views::iota(0_u32, static_cast<uint32_t>(full_vertices.size()))
 			| std::ranges::to<std::vector>();
 
 		auto geometry_result = Geometry::create(full_vertices, full_indices);

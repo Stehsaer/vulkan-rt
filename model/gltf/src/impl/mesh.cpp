@@ -1,5 +1,6 @@
 #include "mesh.hpp"
 #include "asset.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/async.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
@@ -70,7 +71,7 @@ namespace model::gltf::impl
 		std::vector<uint32_t> indices;
 		if (!primitive.indicesAccessor.has_value())
 		{
-			indices = std::vector(std::from_range, std::views::iota(0u, position_accessor.count));
+			indices = std::vector(std::from_range, std::views::iota(0_u32, position_accessor.count));
 		}
 		else
 		{
@@ -109,7 +110,7 @@ namespace model::gltf::impl
 		}
 
 		auto expanded_indices =
-			std::vector(std::from_range, std::views::iota(0u, static_cast<uint32_t>(indices.size())));
+			std::vector(std::from_range, std::views::iota(0_u32, static_cast<uint32_t>(indices.size())));
 
 		/* Expand POSITION */
 

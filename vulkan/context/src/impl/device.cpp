@@ -1,5 +1,6 @@
 #include "impl/device.hpp"
 #include "common/formatter.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "impl/common.hpp"
 #include "vulkan/container/host/linked-struct.hpp"
@@ -280,7 +281,7 @@ namespace vulkan::impl
 		{
 			const auto queue_families = phy_device.getQueueFamilyProperties();
 			auto find = std::ranges::find_if(
-				std::views::iota(0u, static_cast<uint32_t>(queue_families.size())),
+				std::views::iota(0_u32, static_cast<uint32_t>(queue_families.size())),
 				[&](uint32_t idx) { return phy_device.getSurfaceSupportKHR(idx, surface) == vk::True; }
 			);
 			if (*find == static_cast<uint32_t>(queue_families.size()))

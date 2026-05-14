@@ -1,4 +1,5 @@
 #include "test-common.hpp"
+#include "common/number-literals.hpp"
 #include "common/test-macro.hpp"
 #include "image/common.hpp"
 #include "image/noise.hpp"
@@ -94,7 +95,7 @@ namespace test
 
 	void check_texture_list(const render::TextureList& texture_list)  // NOLINT
 	{
-		for (const auto idx : std::views::iota(0u, 16u))
+		for (const auto idx : std::views::iota(0_u32, 16_u32))
 		{
 			const auto base_index = idx * 4;
 

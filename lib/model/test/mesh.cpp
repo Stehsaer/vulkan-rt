@@ -1,4 +1,5 @@
 #include "model/mesh.hpp"
+#include "common/number-literals.hpp"
 #include "common/test-macro.hpp"
 
 #include <array>
@@ -162,7 +163,7 @@ TEST_CASE("Geometry Validation")
 			{.position = {1.0f, 0.0f, 0.0f}, .texcoord = {}, .normal = {}, .tangent = {}},
 			{.position = {0.0f, 1.0f, 0.0f}, .texcoord = {}, .normal = {}, .tangent = {}}
 		};
-		const auto indices = std::vector<uint32_t>(std::from_range, std::views::iota(0u, 3u));
+		const auto indices = std::vector<uint32_t>(std::from_range, std::views::iota(0_u32, 3_u32));
 
 		auto geometry_result = model::Geometry::create(vertices, indices);
 		EXPECT_SUCCESS(geometry_result);

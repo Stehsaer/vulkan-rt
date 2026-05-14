@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "common/util/span.hpp"
 #include "image/common.hpp"
@@ -224,9 +225,9 @@ namespace image
 		Image resize_to_pot(bool larger_size, stbir_filter filter = STBIR_FILTER_MITCHELL) const noexcept
 		{
 			const uint32_t new_size_x =
-				this->size.x == 1 ? 1 : glm::exp2(log2(this->size.x - 1u) + (larger_size ? 1u : 0u));
+				this->size.x == 1 ? 1 : glm::exp2(log2(this->size.x - 1_u32) + (larger_size ? 1_u32 : 0_u32));
 			const uint32_t new_size_y =
-				this->size.y == 1 ? 1 : glm::exp2(log2(this->size.y - 1u) + (larger_size ? 1u : 0u));
+				this->size.y == 1 ? 1 : glm::exp2(log2(this->size.y - 1_u32) + (larger_size ? 1_u32 : 0_u32));
 
 			return this->resize({new_size_x, new_size_y}, filter);
 		}
@@ -253,8 +254,10 @@ namespace image
 			const auto min_dim = glm::min(this->size.x, this->size.y);
 			const auto clamped_min_log2_size = std::min(log2(min_dim), min_size_log);
 
-			for (const auto _ : std::views::iota(0u, log2(min_dim) - clamped_min_log2_size))
-				results.emplace_back(results.back().resize(results.back().size / 2u, STBIR_FILTER_MITCHELL));
+			for (const auto _ : std::views::iota(0_u32, log2(min_dim) - clamped_min_log2_size))
+				results.emplace_back(
+					results.back().resize(results.back().size / 2_u32, STBIR_FILTER_MITCHELL)
+				);
 
 			return results;
 		}
@@ -285,7 +288,7 @@ namespace image
 		{
 			Image flipped(this->size);
 
-			for (const auto y : std::views::iota(0u, this->size.y))
+			for (const auto y : std::views::iota(0_u32, this->size.y))
 				std::ranges::copy(this->row(y) | std::views::reverse, flipped.row(y).begin());
 
 			return flipped;
@@ -301,7 +304,7 @@ namespace image
 		{
 			Image flipped(this->size);
 
-			for (const auto y : std::views::iota(0u, this->size.y))
+			for (const auto y : std::views::iota(0_u32, this->size.y))
 				std::ranges::copy(this->row(y), flipped.row(this->size.y - 1 - y).begin());
 
 			return flipped;

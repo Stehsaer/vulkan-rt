@@ -1,4 +1,5 @@
 #include "render/model/texture-list.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/async.hpp"
 #include "common/util/error.hpp"
 #include "image/common.hpp"
@@ -29,7 +30,7 @@ namespace render
 
 		for (
 			const auto [y, x] :
-			std::views::cartesian_product(std::views::iota(0u, 16u), std::views::iota(0u, 16u))
+			std::views::cartesian_product(std::views::iota(0_u32, 16_u32), std::views::iota(0_u32, 16_u32))
 		)
 		{
 			const bool is_purple = (x + y) % 2 == 0;
