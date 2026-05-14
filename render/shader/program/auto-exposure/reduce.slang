@@ -2,12 +2,13 @@ import inter_stage.auto_exposure;
 import interop.auto_exposure;
 import internal.auto_exposure;
 import sv.compute;
+import alias;
 
 layout(set = 0, binding = 0) ConstantBuffer<ExposureParam> exposure_param;
 layout(set = 0, binding = 1) RWStructuredBuffer<uint> histogram_buffer;
-layout(set = 0, binding = 2) RWStructuredBuffer<ExposureResult> exposure_result;
-layout(set = 0, binding = 3) StructuredBuffer<ExposureFrame> last_frame;
-layout(set = 0, binding = 4) RWStructuredBuffer<ExposureFrame> current_frame;
+layout(set = 0, binding = 2) RWStorageBuffer<ExposureResult> exposure_result;
+layout(set = 0, binding = 3) RWStorageBuffer<ExposureFrame> last_frame;
+layout(set = 0, binding = 4) RWStorageBuffer<ExposureFrame> current_frame;
 
 static groupshared uint bin_cumsum[BINS];
 
@@ -72,12 +73,12 @@ func main(sv: compute::ShaderVar)
 	if (WaveIsFirstLane())
 	{
 		let curr_mid_luminance = global_value_sum / global_weight_sum;
-		let last_mid_luminance = last_frame[0].mid_luminance;
+		let last_mid_luminance = last_frame.mid_luminance;
 		let mix_ratio = exp(-exposure_param.adaptation_rate * exposure_param.delta_time);
 		let lerp_mid_luminance = lerp(curr_mid_luminance, last_mid_luminance, mix_ratio);
 
-		current_frame[0].mid_luminance = lerp_mid_luminance;
-		exposure_result[0].luminance_mult = 0.18 / lerp_mid_luminance * exposure_param.exposure_mult;
+		current_frame.mid_luminance = lerp_mid_luminance;
+		exposure_result.luminance_mult = 0.18 / lerp_mid_luminance * exposure_param.exposure_mult;
 	}
 }
 
