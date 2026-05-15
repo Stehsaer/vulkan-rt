@@ -33,12 +33,7 @@ namespace resource
 			return indirect_pipeline_result.error().forward("Create indirect pipeline failed");
 		auto indirect_pipeline = std::move(*indirect_pipeline_result);
 
-		auto forward_pipeline_result = render::ForwardPipeline::create(
-			context,
-			material_layout,
-			render::ForwardRenderResource::HDR_FORMAT,
-			render::ForwardRenderResource::DEPTH_FORMAT
-		);
+		auto forward_pipeline_result = render::ForwardPipeline::create(context, material_layout);
 		if (!forward_pipeline_result)
 			return forward_pipeline_result.error().forward("Create graphic pipeline failed");
 		auto forward_pipeline = std::move(*forward_pipeline_result);
@@ -118,25 +113,29 @@ namespace resource
 		forward_resource_set.update(
 			context,
 			model,
-			curr_resource.param->camera,
-			curr_resource.param->primary_light,
 			curr_resource.drawcall,
 			curr_resource.indirect,
 			curr_resource.forward,
+			curr_resource.param->camera,
+			curr_resource.param->primary_light,
 			swapchain_frame.extent
 		);
 
 		auto_exposure_resource_set.update(
 			context,
-			curr_resource.param->exposure_param,
 			curr_resource.auto_exposure,
 			prev_resource.auto_exposure,
+			curr_resource.param->exposure_param,
 			aux_resource.exposure_mask_view,
 			curr_resource.forward->hdr.view,
 			swapchain_frame.extent
 		);
 
-		composite_resource_set
-			.update(context, curr_resource.auto_exposure, curr_resource.forward, swapchain_frame.extent);
+		composite_resource_set.update(
+			context,
+			curr_resource.auto_exposure->exposure_result_buffer,
+			curr_resource.forward->hdr.view,
+			swapchain_frame.extent
+		);
 	}
 }

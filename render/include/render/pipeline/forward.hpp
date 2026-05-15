@@ -50,9 +50,7 @@ namespace render
 		[[nodiscard]]
 		static std::expected<ForwardPipeline, Error> create(
 			const vulkan::Context& context,
-			const render::MaterialLayout& material_layout,
-			vk::Format color_format,
-			vk::Format depth_format
+			const render::MaterialLayout& material_layout
 		) noexcept;
 
 		///
@@ -141,11 +139,11 @@ namespace render
 		void update(
 			const vulkan::Context& context,
 			const Model& model,
-			const vulkan::ElementBufferRef<Camera>& camera_param,
-			const vulkan::ElementBufferRef<DirectLight>& primary_light_param,
 			const HostDrawcallResource& host_drawcall,
 			const IndirectResource& indirect_resource,
 			const ForwardRenderResource& forward_resource,
+			vulkan::ElementBufferRef<Camera> camera_param,
+			vulkan::ElementBufferRef<DirectLight> primary_light_param,
 			glm::u32vec2 extent
 		) noexcept;
 

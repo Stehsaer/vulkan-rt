@@ -189,7 +189,7 @@ namespace vulkan
 		};
 
 		auto image_result = allocator.create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
-		if (!image_result) return image_result.error().forward("Create depth-stencil buffer failed");
+		if (!image_result) return image_result.error().forward("Create image failed");
 		auto image = std::move(image_result.value());
 
 		const auto image_view_create_info = vk::ImageViewCreateInfo{

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/util/error.hpp"
-#include "render/resource/auto-exposure.hpp"
-#include "render/resource/forward-rendering.hpp"
+#include "render/interface/auto-exposure.hpp"
+#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 
 #include <cstdint>
@@ -108,8 +108,8 @@ namespace render
 		///
 		void update(
 			const vulkan::Context& context,
-			const AutoExposureResource& exposure_resource,
-			const ForwardRenderResource& forward_resource,
+			vulkan::ElementBufferRef<ExposureResult> exposure_result,
+			vk::ImageView hdr_input,
 			glm::u32vec2 image_size
 		) noexcept;
 

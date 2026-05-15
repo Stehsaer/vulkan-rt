@@ -126,9 +126,9 @@ namespace render
 		///
 		void update(
 			const vulkan::Context& context,
-			const vulkan::ElementBufferRef<ExposureParam>& exposure_param,
 			const AutoExposureResource& resource,
 			const AutoExposureResource& prev_resource,
+			vulkan::ElementBufferRef<ExposureParam> exposure_param,
 			vk::ImageView mask_image_view,
 			vk::ImageView input_image_view,
 			glm::u32vec2 image_size

@@ -306,9 +306,7 @@ namespace render
 
 	std::expected<ForwardPipeline, Error> ForwardPipeline::create(
 		const vulkan::Context& context,
-		const render::MaterialLayout& material_layout,
-		vk::Format color_format,
-		vk::Format depth_format
+		const render::MaterialLayout& material_layout
 	) noexcept
 	{
 		auto shader_module_result = vulkan::create_shader(context.device, shader::forward);
@@ -336,8 +334,8 @@ namespace render
 					context,
 					pipeline_layout,
 					shader_module,
-					color_format,
-					depth_format,
+					ForwardRenderResource::HDR_FORMAT,
+					ForwardRenderResource::DEPTH_FORMAT,
 					alpha_mode == model::AlphaMode::Mask,
 					double_sided
 				);
@@ -543,11 +541,11 @@ namespace render
 	void ForwardPipeline::ResourceSet::update(
 		const vulkan::Context& context,
 		const Model& model,
-		const vulkan::ElementBufferRef<Camera>& camera_param,
-		const vulkan::ElementBufferRef<DirectLight>& primary_light_param,
 		const HostDrawcallResource& host_drawcall,
 		const IndirectResource& indirect_resource,
 		const ForwardRenderResource& forward_resource,
+		vulkan::ElementBufferRef<Camera> camera_param,
+		vulkan::ElementBufferRef<DirectLight> primary_light_param,
 		glm::u32vec2 extent
 	) noexcept
 	{

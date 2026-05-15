@@ -1,10 +1,10 @@
 #include "render/pipeline/composite.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
+#include "render/interface/auto-exposure.hpp"
 #include "render/pipeline/util/fullscreen-pipeline.hpp"
-#include "render/resource/auto-exposure.hpp"
-#include "render/resource/forward-rendering.hpp"
 #include "shader/composite.hpp"
+#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/container/host/linked-struct.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/glm.hpp"
@@ -221,21 +221,21 @@ namespace render
 
 	void CompositePipeline::ResourceSet::update(
 		const vulkan::Context& context,
-		const AutoExposureResource& exposure_resource,
-		const ForwardRenderResource& forward_resource,
+		vulkan::ElementBufferRef<ExposureResult> exposure_result,
+		vk::ImageView hdr_input,
 		glm::u32vec2 image_size
 	) noexcept
 	{
 		this->image_size = image_size;
 
 		const auto exposure_result_buffer_info = vk::DescriptorBufferInfo{
-			.buffer = exposure_resource->exposure_result_buffer,
+			.buffer = exposure_result,
 			.offset = 0,
-			.range = vk::WholeSize
+			.range = vk::WholeSize,
 		};
 		const auto hdr_image_info = vk::DescriptorImageInfo{
 			.sampler = sampler,
-			.imageView = forward_resource->hdr.view,
+			.imageView = hdr_input,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
 		};
 
