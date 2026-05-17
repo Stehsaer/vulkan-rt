@@ -7,7 +7,6 @@
 #include <span>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
-#include <vulkan/vulkan_to_string.hpp>
 
 namespace vulkan
 {
@@ -23,8 +22,7 @@ namespace vulkan
 			dst_offset,
 			data.size()
 		);
-		if (result != VK_SUCCESS)
-			return Error("Upload data to buffer failed", vk::to_string(vk::Result(result)));
+		if (result != VK_SUCCESS) return Error::from(static_cast<vk::Result>(result));
 		return {};
 	}
 
@@ -37,8 +35,7 @@ namespace vulkan
 			data.data(),
 			data.size()
 		);
-		if (result != VK_SUCCESS)
-			return Error("Download data from buffer failed", vk::to_string(vk::Result(result)));
+		if (result != VK_SUCCESS) return Error::from(static_cast<vk::Result>(result));
 		return {};
 	}
 }

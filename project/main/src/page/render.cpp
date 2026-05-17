@@ -149,11 +149,13 @@ namespace page
 
 		frame_resources.cycle();
 
-		const auto wait_result =
-			context->device
-				->waitForFences(*frame_resources.current().sync_primitive.draw_fence, vk::True, UINT64_MAX);
-		if (wait_result != vk::Result::eSuccess)
-			return Error::from(wait_result).forward("Wait for fence failed");
+		if (const auto wait_result = context->device->waitForFences(
+				*frame_resources.current().sync_primitive.draw_fence,
+				vk::True,
+				UINT64_MAX
+			);
+			wait_result != vk::Result::eSuccess)
+			return Error::from(wait_result);
 
 		auto& curr_resource = frame_resources.current();
 		auto& prev_resource = frame_resources.prev();

@@ -199,10 +199,7 @@ namespace render
 			);
 
 		default:
-			return Error(
-				"Invalid load_strategy argument",
-				std::format("Got load_strategy={}", std::to_underlying(load_strategy))
-			);
+			UNREACHABLE("Invalid enum input");
 		}
 	}
 

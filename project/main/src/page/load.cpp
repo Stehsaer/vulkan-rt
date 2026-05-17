@@ -145,7 +145,7 @@ namespace page
 				return std::move(new_state_result).get<helper::ImGuiPage::ResultState::Error>();
 
 			default:
-				return Error("Invalid state");
+				UNREACHABLE("Invalid state");
 			}
 		}
 		case State::Error:
@@ -185,7 +185,7 @@ namespace page
 			);
 		}
 		default:
-			return Error("Invalid state");
+			UNREACHABLE("Invalid state");
 		}
 	}
 
@@ -236,7 +236,7 @@ namespace page
 		case model::gltf::ProgressState::Hierarchy:
 			return "Building hierarchy...";
 		default:
-			return "Unknown progress state";
+			UNREACHABLE("Invalid state");
 		}
 	}
 
@@ -251,7 +251,7 @@ namespace page
 		case render::Model::ProgressState::Material:
 			return "Processing materials...";
 		default:
-			UNREACHABLE("Invalid progress state", state);
+			UNREACHABLE("Invalid state", state);
 		}
 	}
 

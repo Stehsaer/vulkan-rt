@@ -62,7 +62,7 @@ int main(int argc, const char* argv[]) noexcept
 		case scene::Page::Result::Quit:
 			return 0;
 		default:
-			UNREACHABLE();
+			UNREACHABLE("Invalid result");
 		}
 	}
 }

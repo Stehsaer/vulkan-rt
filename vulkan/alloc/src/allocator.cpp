@@ -8,9 +8,7 @@
 #include <memory>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
-#include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>
-#include <vulkan/vulkan_to_string.hpp>
 
 namespace vulkan
 {
@@ -26,13 +24,13 @@ namespace vulkan
 			break;
 
 		case MemoryUsage::CpuToGpu:
-			create_info.usage = VMA_MEMORY_USAGE_AUTO;
+			create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
 			create_info.flags =
 				VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 			break;
 
 		case MemoryUsage::GpuToCpu:
-			create_info.usage = VMA_MEMORY_USAGE_AUTO;
+			create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
 			create_info.flags =
 				VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 			break;
@@ -63,8 +61,7 @@ namespace vulkan
 
 		VmaAllocator allocator;
 		const auto result = vmaCreateAllocator(&create_info, &allocator);
-		if (result != VK_SUCCESS)
-			return Error("Create VMA allocator failed", vk::to_string(vk::Result(result)));
+		if (result != VK_SUCCESS) return Error::from(static_cast<vk::Result>(result));
 
 		return Allocator(std::make_unique<impl::AllocatorWrapper>(allocator));
 	}
@@ -88,8 +85,7 @@ namespace vulkan
 			&allocation,
 			nullptr
 		);
-		if (result != VK_SUCCESS)
-			return Error("Allocate image using VMA failed", vk::to_string(vk::Result(result)));
+		if (result != VK_SUCCESS) return Error::from(static_cast<vk::Result>(result));
 
 		return Image(std::make_unique<impl::ImageWrapper>(image, allocation, wrapper->allocator));
 	}
@@ -113,8 +109,7 @@ namespace vulkan
 			&allocation,
 			nullptr
 		);
-		if (result != VK_SUCCESS)
-			return Error("Allocate buffer using VMA failed", vk::to_string(vk::Result(result)));
+		if (result != VK_SUCCESS) return Error::from(static_cast<vk::Result>(result));
 
 		return Buffer(std::make_unique<impl::BufferWrapper>(buffer, allocation, wrapper->allocator));
 	}

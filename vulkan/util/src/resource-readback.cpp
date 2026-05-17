@@ -257,17 +257,10 @@ namespace vulkan::impl
 
 		/* Wait for fences */
 
-		const auto wait_result =
-			context.device.waitForFences(*commit_resource.fence, vk::True, 1'000'000'000);
-		switch (wait_result)
-		{
-		case vk::Result::eSuccess:
-			break;
-		case vk::Result::eTimeout:
-			return Error("Wait for fence timed out");
-		default:
-			return Error("Wait for fence failed", std::format("vkWaitForFences returned {}", wait_result));
-		}
+		if (const auto wait_result =
+				context.device.waitForFences(*commit_resource.fence, vk::True, 1'000'000'000);
+			wait_result != vk::Result::eSuccess)
+			return Error::from(wait_result);
 
 		/* Download data */
 

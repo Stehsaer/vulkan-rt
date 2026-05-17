@@ -22,6 +22,7 @@ namespace image
 {
 	static std::once_flag rgbcx_init_flag;
 
+	[[nodiscard]]
 	static std::array<Pixel<Format::Unorm8, Layout::RGBA>, 16> slice_block(
 		const Image<Format::Unorm8, Layout::RGBA>& raw_image,
 		glm::u32vec2 block
@@ -152,10 +153,7 @@ namespace image
 		if (raw_image.size.x % 4 != 0 || raw_image.size.y % 4 != 0)
 			return Error(
 				"Unsupported image dimensions for BCn compression",
-				std::format(
-					"Raw image dimensions must be multiples of 4 for BCn compression, got {}",
-					raw_image.size
-				)
+				std::format("Must be multiples of 4, got {}", raw_image.size)
 			);
 
 		switch (format)

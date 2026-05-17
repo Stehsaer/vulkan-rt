@@ -54,66 +54,6 @@ namespace vulkan
 			vk::ImageUsageFlags additional_usage = {}
 		) noexcept;
 
-		///
-		/// @brief Create a color framebuffer
-		///
-		/// @param device Vulkan device
-		/// @param allocator Vulkan memory allocator
-		/// @param extent Extent of the frame buffer
-		/// @param format Vulkan format of the frame buffer image
-		/// @param additional_usage Additional usage flags for the frame buffer image (No need to include
-		/// `ColorAttachment` bit)
-		/// @return Created frame buffer, or error
-		///
-		[[deprecated("Use create() instead")]]
-		static std::expected<FrameBuffer, Error> create_color(
-			const vk::raii::Device& device,
-			const vulkan::Allocator& allocator,
-			glm::u32vec2 extent,
-			vk::Format format,
-			vk::ImageUsageFlags additional_usage = {}
-		) noexcept;
-
-		///
-		/// @brief Create a depth framebuffer
-		///
-		/// @param device Vulkan device
-		/// @param allocator Vulkan memory allocator
-		/// @param extent Extent of the frame buffer
-		/// @param format Vulkan format of the frame buffer image
-		/// @param additional_usage Additional usage flags for the frame buffer image (No need to include
-		/// `DepthStencilAttachment` bit)
-		/// @return Created frame buffer, or error
-		///
-		[[deprecated("Use create() instead")]]
-		static std::expected<FrameBuffer, Error> create_depth(
-			const vk::raii::Device& device,
-			const vulkan::Allocator& allocator,
-			glm::u32vec2 extent,
-			vk::Format format,
-			vk::ImageUsageFlags additional_usage = {}
-		) noexcept;
-
-		///
-		/// @brief Create a depth stencil framebuffer
-		///
-		/// @param device Vulkan device
-		/// @param allocator Vulkan memory allocator
-		/// @param extent Extent of the frame buffer
-		/// @param format Vulkan format of the frame buffer image, must be a depth stencil format
-		/// @param additional_usage Additional usage flags for the frame buffer image (No need to include
-		/// `DepthStencilAttachment` bit)
-		/// @return Created frame buffer, or error
-		///
-		[[deprecated("Use create() instead")]]
-		static std::expected<FrameBuffer, Error> create_depth_stencil(
-			const vk::raii::Device& device,
-			const vulkan::Allocator& allocator,
-			glm::u32vec2 extent,
-			vk::Format format,
-			vk::ImageUsageFlags additional_usage = {}
-		) noexcept;
-
 	  private:
 
 		explicit FrameBuffer(vk::Format format, vulkan::Image image, vk::raii::ImageView view) :

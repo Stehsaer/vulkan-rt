@@ -482,10 +482,10 @@ namespace vulkan
 				return Error::from(result);
 		}
 
-		if (const auto wait_fence_result =
+		if (const auto result =
 				device.get().waitForFences({fence}, vk::True, std::numeric_limits<uint64_t>::max());
-			wait_fence_result != vk::Result::eSuccess)
-			return Error("Wait for upload fence failed", vk::to_string(wait_fence_result));
+			result != vk::Result::eSuccess)
+			return Error::from(result);
 
 		return {};
 	}
