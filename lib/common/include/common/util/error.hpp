@@ -181,13 +181,7 @@ class Error
 			Json diagnostics,
 			std::source_location location,
 			std::shared_ptr<const Record> cause
-		) :
-			message(std::move(message)),
-			detail(std::move(detail)),
-			diagnostics(std::move(diagnostics)),
-			location(location),
-			cause(std::move(cause))
-		{}
+		);
 
 	  public:
 
@@ -207,23 +201,9 @@ class Error
 		Json diagnostics,
 		std::shared_ptr<const Record> cause,
 		std::source_location location
-	) noexcept :
-		storage(
-			std::make_shared<Record>(Record(
-				std::move(message),
-				std::move(detail),
-				std::move(diagnostics),
-				location,
-				std::move(cause)
-			))
-		)
-	{}
+	) noexcept;
 
-	explicit Error(std::shared_ptr<const Record> storage) :
-		storage(std::move(storage))
-	{
-		DEBUG_ASSERT(this->storage != nullptr);
-	}
+	explicit Error(std::shared_ptr<const Record> storage);
 
   public:
 
@@ -245,9 +225,7 @@ class Error
 		std::optional<std::string> detail = std::nullopt,
 		Json diagnostics = {},
 		std::source_location location = std::source_location::current()
-	) noexcept :
-		Error(std::move(message), std::move(detail), std::move(diagnostics), nullptr, location)
-	{}
+	) noexcept;
 
 	Error(const Error&) = default;
 	Error(Error&&) = default;
@@ -414,13 +392,7 @@ class Error
 	/// @return Next error if exists, or empty if not exists
 	///
 	[[nodiscard]]
-	std::optional<Error> next() const noexcept
-	{
-		if (storage->cause)
-			return Error(storage->cause);
-		else
-			return std::nullopt;
-	}
+	std::optional<Error> next() const noexcept;
 
 	///
 	/// @brief Get the root cause
@@ -487,6 +459,9 @@ class Error
 	{
 		return CollectFunctor(location);
 	}
+
+	[[nodiscard]]
+	Json to_json() const noexcept;
 };
 
 class Error::Iterator
@@ -520,38 +495,11 @@ class Error::Iterator
 
 	/* Operators */
 
-	reference operator*() const noexcept
-	{
-		ASSUME(current.has_value());
-		return *current;
-	}
-
-	pointer operator->() const noexcept
-	{
-		ASSUME(current.has_value());
-		return &(*current);
-	}
-
-	Iterator& operator++() noexcept
-	{
-		ASSUME(current.has_value());
-		current = current->next();
-		return *this;
-	}
-
-	Iterator operator++(int) noexcept
-	{
-		Iterator tmp = *this;
-		++*this;
-		return tmp;
-	}
-
-	bool operator==(const Iterator& other) const noexcept
-	{
-		if (!current) return !other.current.has_value();
-		if (!other.current) return false;
-		return current->storage.get() == other.current->storage.get();
-	}
+	reference operator*() const noexcept;
+	pointer operator->() const noexcept;
+	Iterator& operator++() noexcept;
+	Iterator operator++(int) noexcept;
+	bool operator==(const Iterator& other) const noexcept;
 };
 
 class Error::ErrorChain
@@ -581,11 +529,6 @@ class Error::ErrorChain
 		return {};
 	}
 };
-
-inline Error::ErrorChain Error::chain() const noexcept
-{
-	return ErrorChain(*this);
-}
 
 template <>
 class std::formatter<Error, char>

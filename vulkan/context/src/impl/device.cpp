@@ -1,5 +1,6 @@
 #include "impl/device.hpp"
 #include "common/formatter.hpp"
+#include "common/json.hpp"
 #include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "impl/common.hpp"
@@ -24,11 +25,26 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan_to_string.hpp>
 
 namespace vulkan::impl
 {
+	Json FailInfo::to_json() const noexcept
+	{
+		const auto properties = phy_device.getProperties();
+
+		return Json{
+			{"id",          properties.deviceID                 },
+			{"device_name", properties.deviceName.data()        },
+			{"type",        vk::to_string(properties.deviceType)},
+			{"driver_ver",  properties.driverVersion            },
+			{"error",       error.to_json()                     }
+		};
+	}
+
 #define CHECK_FIELD(available, result, field)                                                                \
-	if ((available).field == vk::False) return Error("Required feature '" #field "' is not supported");      \
+	if ((available).field == vk::False)                                                                      \
+		return Error("Missing feature", "Required feature '" #field "' is not supported by the device");     \
 	(result).field = vk::True;
 
 	[[nodiscard]]
@@ -201,8 +217,8 @@ namespace vulkan::impl
 		);
 	}
 
-	constexpr auto mandatory_device_extensions = std::to_array({vk::KHRShaderNonSemanticInfoExtensionName});
-	constexpr auto present_mandatory_device_extensions = std::to_array({vk::KHRSwapchainExtensionName});
+	constexpr auto MANDATORY_EXT = std::to_array({vk::KHRShaderNonSemanticInfoExtensionName});
+	constexpr auto PRESENT_MANDATORY_EXT = std::to_array({vk::KHRSwapchainExtensionName});
 
 	[[nodiscard]]
 	static std::expected<std::vector<std::string>, Error> find_device_extensions(
@@ -212,8 +228,8 @@ namespace vulkan::impl
 	) noexcept
 	{
 		std::set<std::string> extensions;
-		extensions.insert_range(mandatory_device_extensions);
-		if (support_present) extensions.insert_range(present_mandatory_device_extensions);
+		extensions.insert_range(MANDATORY_EXT);
+		if (support_present) extensions.insert_range(PRESENT_MANDATORY_EXT);
 
 		const auto available_extensions_result = phy_device.enumerateDeviceExtensionProperties();
 		if (!available_extensions_result) return Error::from(available_extensions_result);
@@ -227,6 +243,9 @@ namespace vulkan::impl
 		const auto unsupported_extensions = extensions - available_extensions;
 		if (!unsupported_extensions.empty())
 			return Error("Missing required device extensions", std::format("{}", unsupported_extensions));
+
+		if (available_extensions.contains(vk::EXTDeviceFaultExtensionName))
+			extensions.insert(vk::EXTDeviceFaultExtensionName);
 
 		return extensions | std::ranges::to<std::vector>();
 	}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/json.hpp"
 #include "common/util/error.hpp"
 #include "vulkan/container/host/linked-struct.hpp"
 #include "vulkan/context/device.hpp"
@@ -70,6 +71,9 @@ namespace vulkan::impl
 	{
 		vk::raii::PhysicalDevice phy_device;
 		Error error;
+
+		[[nodiscard]]
+		Json to_json() const noexcept;
 	};
 
 	///

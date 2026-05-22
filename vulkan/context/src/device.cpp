@@ -1,4 +1,5 @@
 #include "vulkan/context/device.hpp"
+#include "common/json.hpp"
 #include "common/util/error.hpp"
 #include "impl/device.hpp"
 #include "vulkan/alloc/allocator.hpp"
@@ -6,9 +7,9 @@
 
 #include <algorithm>
 #include <expected>
-#include <format>
 #include <libassert/assert.hpp>
-#include <ranges>
+#include <optional>
+#include <span>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -17,6 +18,14 @@
 
 namespace vulkan
 {
+	[[nodiscard]]
+	static Json fail_info_list_to_json(std::span<const impl::FailInfo> list) noexcept
+	{
+		auto json = Json::array({});
+		for (const auto& fail_info : list) json.push_back(fail_info.to_json());
+		return json;
+	}
+
 	std::expected<HeadlessDeviceContext, Error> HeadlessDeviceContext::create(
 		const HeadlessInstanceContext& context,
 		const DeviceOption& option
@@ -43,18 +52,7 @@ namespace vulkan
 		}
 
 		if (pass_devices.empty())
-		{
-			const auto error_msgs =
-				fail_devices | std::views::transform([](const impl::FailInfo& fail_info) {
-					const auto device_properties = fail_info.phy_device.getProperties();
-					return std::make_pair(
-						std::format("{:s}", device_properties.deviceName),
-						std::format("{0:msg} - {0:detail}", fail_info.error.root())
-					);
-				});
-
-			return Error("No suitable device found", std::format("Diagnostics: {}", error_msgs));
-		}
+			return Error("No suitable device found", std::nullopt, fail_info_list_to_json(fail_devices));
 
 		/* Find best device and create */
 
@@ -107,18 +105,7 @@ namespace vulkan
 		}
 
 		if (pass_devices.empty())
-		{
-			const auto error_msgs =
-				fail_devices | std::views::transform([](const impl::FailInfo& fail_info) {
-					const auto device_properties = fail_info.phy_device.getProperties();
-					return std::make_pair(
-						std::format("{:s}", device_properties.deviceName),
-						std::format("{0:msg} - {0:detail}", fail_info.error.root())
-					);
-				});
-
-			return Error("No suitable device found", std::format("Diagnostics: {}", error_msgs));
-		}
+			return Error("No suitable device found", std::nullopt, fail_info_list_to_json(fail_devices));
 
 		/* Find best device and create */
 
