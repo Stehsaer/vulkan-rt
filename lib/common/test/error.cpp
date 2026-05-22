@@ -1,4 +1,5 @@
 #include "common/util/error.hpp"
+#include "common/json.hpp"
 
 #include <cstddef>
 #include <doctest.h>
@@ -49,11 +50,7 @@ namespace
 }
 
 template <>
-Error Error::from(
-	const FooStruct&,
-	std::vector<std::byte> diagnostics,
-	std::source_location location
-) noexcept
+Error Error::from(const FooStruct&, Json diagnostics, std::source_location location) noexcept
 {
 	return Error("FooStruct error", std::nullopt, std::move(diagnostics), location);
 }
@@ -68,8 +65,13 @@ TEST_CASE("Error::from")
 
 	SUBCASE("Custom type specialization")
 	{
+		Json diagnostics = {
+			std::pair{"test", 123},
+			std::pair{"bar",  123},
+		};
+
 		const FooStruct foo;
-		const auto err = Error::from(foo);
+		const auto err = Error::from(foo, std::move(diagnostics));
 
 		CHECK_EQ(err->message, "FooStruct error");
 	}
