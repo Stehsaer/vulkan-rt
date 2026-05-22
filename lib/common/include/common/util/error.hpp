@@ -1,14 +1,15 @@
 #pragma once
 
+#include "common/json.hpp"
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <expected>
 #include <format>
-#include <functional>
 #include <iterator>
 #include <libassert/assert.hpp>
 #include <memory>
+#include <nlohmann/json_fwd.hpp>
 #include <optional>
 #include <ranges>
 #include <source_location>
@@ -46,6 +47,15 @@
 ///   ```
 ///   > Note: for custom type support, specialize `Error::from::operator<T>()`
 ///   > By default, types supported by `std::to_string`, and `vk::Result` are supported.
+///
+/// #### Visiting
+///
+/// Visit detailed information through `->` operator:
+///
+/// ```cpp
+///	error->message;
+/// error->detail;
+/// ```
 ///
 /// #### Propagating
 ///
@@ -146,28 +156,83 @@ class Error
 {
   public:
 
-	std::string message;                 // Main message describing the error
-	std::optional<std::string> detail;   // Optional detailed message providing additional context
-	std::source_location location;       // Source location where the error was created or forwarded
-	std::shared_ptr<const Error> cause;  // Pointer to the cause of the error, for chaining errors
+	///
+	/// @brief Information block for an error
+	///
+	///
+	class Record
+	{
+	  public:
+
+		std::string message;                // Primary message
+		std::optional<std::string> detail;  // Secondary / explanatory message
+		Json diagnostics;                   // Binary diagnostics
+		std::source_location location;      // Location of the error
+
+	  private:
+
+		friend class Error;
+
+		std::shared_ptr<const Record> cause;  // Chain to next error information block
+
+		Record(
+			std::string message,
+			std::optional<std::string> detail,
+			Json diagnostics,
+			std::source_location location,
+			std::shared_ptr<const Record> cause
+		) :
+			message(std::move(message)),
+			detail(std::move(detail)),
+			diagnostics(std::move(diagnostics)),
+			location(location),
+			cause(std::move(cause))
+		{}
+
+	  public:
+
+		Record(const Record&) = default;
+		Record(Record&&) = default;
+		Record& operator=(const Record&) = default;
+		Record& operator=(Record&&) = default;
+	};
 
   private:
+
+	std::shared_ptr<const Record> storage;
 
 	explicit Error(
 		std::string message,
 		std::optional<std::string> detail,
-		std::source_location location,
-		std::shared_ptr<const Error> cause
+		Json diagnostics,
+		std::shared_ptr<const Record> cause,
+		std::source_location location
 	) noexcept :
-		message(std::move(message)),
-		detail(std::move(detail)),
-		location(location),
-		cause(std::move(cause))
+		storage(
+			std::make_shared<Record>(Record(
+				std::move(message),
+				std::move(detail),
+				std::move(diagnostics),
+				location,
+				std::move(cause)
+			))
+		)
 	{}
 
-#pragma region Constructors
+	explicit Error(std::shared_ptr<const Record> storage) :
+		storage(std::move(storage))
+	{
+		DEBUG_ASSERT(this->storage != nullptr);
+	}
 
   public:
+
+	[[nodiscard]]
+	const Record* operator->() const noexcept
+	{
+		ASSUME(storage != nullptr);
+		return storage.get();
+	}
 
 	///
 	/// @brief Create an error with message
@@ -177,67 +242,17 @@ class Error
 	///
 	explicit Error(
 		std::string message,
+		std::optional<std::string> detail = std::nullopt,
+		Json diagnostics = {},
 		std::source_location location = std::source_location::current()
 	) noexcept :
-		message(std::move(message)),
-		detail(std::nullopt),
-		location(location),
-		cause(nullptr)
+		Error(std::move(message), std::move(detail), std::move(diagnostics), nullptr, location)
 	{}
 
-	///
-	/// @brief Create an error with message and extra detail
-	///
-	/// @param message Brief message describing the error
-	/// @param detail Detailed message providing additional context
-	/// @param location Source location where the error is created (default: current location)
-	///
-	explicit Error(
-		std::string message,
-		std::string detail,
-		std::source_location location = std::source_location::current()
-	) noexcept :
-		message(std::move(message)),
-		detail(std::move(detail)),
-		location(location),
-		cause(nullptr)
-	{}
-
-	///
-	/// @brief Conversion functor to create Error from another error type
-	///
-	class FromFunctor
-	{
-		std::source_location location;
-
-	  public:
-
-		explicit FromFunctor(std::source_location location) noexcept :
-			location(location)
-		{}
-
-		template <typename T>
-		Error operator()(const T& error) const noexcept;
-	};
-
-	///
-	/// @brief Get the conversion functor to create Error from another error type
-	/// @details
-	/// Example of usage:
-	/// ```cpp
-	/// std::expected<T, E> result = ...;
-	/// std::expected<T, Error> new_result = result.transform_error(Error::from_fn());
-	/// ```
-	///
-	/// @tparam T The other error type
-	/// @param location Source location where the error is created (default: current location)
-	/// @return Functor to convert T to Error
-	///
-	[[nodiscard]]
-	static FromFunctor from_fn(std::source_location location = std::source_location::current()) noexcept
-	{
-		return FromFunctor(location);
-	}
+	Error(const Error&) = default;
+	Error(Error&&) = default;
+	Error& operator=(const Error&) = default;
+	Error& operator=(Error&&) = default;
 
 	///
 	/// @brief Convert another error type to Error
@@ -252,27 +267,22 @@ class Error
 	[[nodiscard]]
 	static Error from(
 		const T& error,
+		Json diagnostics = {},
 		std::source_location location = std::source_location::current()
-	) noexcept
-	{
-		return FromFunctor(location)(error);
-	}
+	) noexcept;
 
 	template <typename T, typename E>
 		requires(!std::same_as<E, Error>)
 	[[nodiscard]]
 	static Error from(
 		const std::expected<T, E>& error,
+		Json diagnostics = {},
 		std::source_location location = std::source_location::current()
 	) noexcept
 	{
 		ASSUME(!error.has_value());
-		return from(error.error(), location);
+		return from(error.error(), std::move(diagnostics), location);
 	}
-
-#pragma endregion
-
-#pragma region Forwarding
 
 	///
 	/// @brief Forward the error with additional context
@@ -285,111 +295,13 @@ class Error
 	Error forward(
 		this auto&& self,
 		std::string message,
+		std::optional<std::string> details = std::nullopt,
+		Json diagnostics = {},
 		std::source_location location = std::source_location::current()
 	) noexcept
 	{
-		return Error(
-			std::move(message),
-			std::nullopt,
-			location,
-			std::make_shared<const Error>(std::forward<decltype(self)>(self))
-		);
+		return Error(std::move(message), std::move(details), std::move(diagnostics), self.storage, location);
 	}
-
-	///
-	/// @brief Forward the error with additional context and detail
-	///
-	/// @param message Additional message describing the context
-	/// @param detail Detailed message providing additional context
-	/// @param location Source location where the error is forwarded (default: current location)
-	/// @return New Error instance with forwarded context and detail
-	///
-	[[nodiscard]]
-	Error forward(
-		this auto&& self,
-		std::string message,
-		std::string detail,
-		std::source_location location = std::source_location::current()
-	) noexcept
-	{
-		return Error(
-			std::move(message),
-			std::move(detail),
-			location,
-			std::make_shared<const Error>(std::forward<decltype(self)>(self))
-		);
-	}
-
-	class ForwardFunctor
-	{
-		std::string message;
-		std::optional<std::string> detail;
-		std::source_location location;
-
-	  public:
-
-		explicit ForwardFunctor(std::string message, std::source_location location) noexcept :
-			message(std::move(message)),
-			detail(std::nullopt),
-			location(location)
-		{}
-
-		explicit ForwardFunctor(
-			std::string message,
-			std::string detail,
-			std::source_location location
-		) noexcept :
-			message(std::move(message)),
-			detail(std::move(detail)),
-			location(location)
-		{}
-
-		Error operator()(const Error& error) const noexcept
-		{
-			if (detail)
-				return error.forward(message, *detail, location);
-			else
-				return error.forward(message, location);
-		}
-	};
-
-	///
-	/// @brief Get a functor to forward the error with additional context
-	///
-	/// @param message Additional message describing the context
-	/// @param location Source location where the error is forwarded (default: current location)
-	/// @return Functor to forward the error with additional context
-	///
-	[[nodiscard]]
-	static ForwardFunctor forward_func(
-		std::string message,
-		std::source_location location = std::source_location::current()
-	) noexcept
-	{
-		return ForwardFunctor(std::move(message), location);
-	}
-
-	///
-	/// @brief Get a functor to forward the error with additional context and detail
-	///
-	/// @param message Additional message describing the context
-	/// @param detail Detailed message providing additional context
-	/// @param location Source location where the error is forwarded (default: current location)
-	/// @return Functor to forward the error with additional context and detail
-	///
-	[[nodiscard]]
-	static ForwardFunctor forward_func(
-		std::string message,
-		std::string detail,
-		std::source_location location = std::source_location::current()
-	) noexcept
-	{
-		return ForwardFunctor(std::move(message), std::move(detail), location);
-	}
-
-#pragma endregion
-
-#pragma region Conversion
 
 	operator std::unexpected<Error>() const noexcept { return std::unexpected(*this); }
 
@@ -398,10 +310,6 @@ class Error
 	{
 		return std::unexpected(*this);
 	}
-
-#pragma endregion
-
-#pragma region Unwrapping
 
   private:
 
@@ -434,13 +342,7 @@ class Error
 		friend T operator|(std::expected<T, Error> expected, const UnwrapFunctor& unwrap)
 		{
 			if (!expected)
-			{
-				if (unwrap.detail)
-					throw std::move(expected.error())
-						.forward(unwrap.message, *unwrap.detail, unwrap.location);
-				else
-					throw std::move(expected.error()).forward(unwrap.message, unwrap.location);
-			}
+				throw std::move(expected.error()).forward(unwrap.message, unwrap.detail, {}, unwrap.location);
 
 			return std::move(*expected);
 		}
@@ -448,13 +350,7 @@ class Error
 		friend void operator|(std::expected<void, Error> expected, const UnwrapFunctor& unwrap)
 		{
 			if (!expected)
-			{
-				if (unwrap.detail)
-					throw std::move(expected.error())
-						.forward(unwrap.message, *unwrap.detail, unwrap.location);
-				else
-					throw std::move(expected.error()).forward(unwrap.message, unwrap.location);
-			}
+				throw std::move(expected.error()).forward(unwrap.message, unwrap.detail, {}, unwrap.location);
 		}
 	};
 
@@ -494,92 +390,12 @@ class Error
 		return UnwrapFunctor(std::move(message), std::move(detail), location);
 	}
 
-#pragma endregion
-
-#pragma region Iterating over error chain
-
   private:
 
-	class Iterator
-	{
-		const Error* current;
+	friend class Iterator;
 
-	  public:
-
-		/* Iterator Traits */
-
-		using iterator_concept = std::forward_iterator_tag;
-		using value_type = Error;
-		using difference_type = std::ptrdiff_t;
-		using reference = const Error&;
-		using pointer = const Error*;
-
-		/* Ctors */
-
-		Iterator(const Iterator&) noexcept = default;
-		Iterator& operator=(const Iterator&) noexcept = default;
-		Iterator(Iterator&&) noexcept = default;
-		Iterator& operator=(Iterator&&) noexcept = default;
-
-		Iterator() noexcept :
-			current(nullptr)
-		{}
-
-		explicit Iterator(const Error& error) noexcept :
-			current(&error)
-		{}
-
-		/* Operators */
-
-		reference operator*() const noexcept { return *current; }
-		pointer operator->() const noexcept { return current; }
-
-		Iterator& operator++() noexcept
-		{
-			current = current->cause.get();
-			return *this;
-		}
-
-		Iterator operator++(int) noexcept
-		{
-			Iterator tmp = *this;
-			++*this;
-			return tmp;
-		}
-
-		bool operator==(const Iterator& other) const noexcept { return current == other.current; }
-	};
-
-	class ErrorChain
-	{
-		std::reference_wrapper<const Error> head;
-
-	  public:
-
-		ErrorChain(const ErrorChain&) = default;
-		ErrorChain(ErrorChain&&) = default;
-		ErrorChain& operator=(const ErrorChain&) = default;
-		ErrorChain& operator=(ErrorChain&&) = default;
-
-		explicit ErrorChain(const Error& error) noexcept :
-			head(error)
-		{}
-
-		[[nodiscard]]
-		Iterator begin() const noexcept
-		{
-			return Iterator(head.get());
-		}
-
-		[[nodiscard]]
-		Iterator end() const noexcept
-		{
-			return {};
-		}
-	};
-
-	static_assert(std::forward_iterator<Iterator>);
-	static_assert(std::ranges::forward_range<ErrorChain>);
+	class Iterator;
+	class ErrorChain;
 
   public:
 
@@ -590,9 +406,20 @@ class Error
 	/// @return Error chain for iterating over the error and its causes
 	///
 	[[nodiscard]]
-	ErrorChain chain() const noexcept
+	ErrorChain chain() const noexcept;
+
+	///
+	/// @brief Gets the next error from the chain
+	///
+	/// @return Next error if exists, or empty if not exists
+	///
+	[[nodiscard]]
+	std::optional<Error> next() const noexcept
 	{
-		return ErrorChain(*this);
+		if (storage->cause)
+			return Error(storage->cause);
+		else
+			return std::nullopt;
 	}
 
 	///
@@ -601,11 +428,7 @@ class Error
 	/// @return Last element of the error chain, which represents the root cause
 	///
 	[[nodiscard]]
-	const Error& root() const noexcept;
-
-#pragma endregion
-
-#pragma region Collecting Ranges
+	Error root() const noexcept;
 
   private:
 
@@ -636,6 +459,7 @@ class Error
 					return item.error().forward(
 						"Error in range element",
 						std::format("Error found in index {}", index),
+						{},
 						collect.location
 					);
 				result.emplace_back(std::move(*item));
@@ -663,9 +487,105 @@ class Error
 	{
 		return CollectFunctor(location);
 	}
-
-#pragma endregion
 };
+
+class Error::Iterator
+{
+	std::optional<Error> current;
+
+  public:
+
+	/* Iterator Traits */
+
+	using iterator_concept = std::forward_iterator_tag;
+	using value_type = Error;
+	using difference_type = std::ptrdiff_t;
+	using reference = const Error&;
+	using pointer = const Error*;
+
+	/* Ctors */
+
+	Iterator(const Iterator&) noexcept = default;
+	Iterator& operator=(const Iterator&) noexcept = default;
+	Iterator(Iterator&&) noexcept = default;
+	Iterator& operator=(Iterator&&) noexcept = default;
+
+	Iterator() noexcept :
+		current(std::nullopt)
+	{}
+
+	explicit Iterator(Error err) noexcept :
+		current(std::move(err))
+	{}
+
+	/* Operators */
+
+	reference operator*() const noexcept
+	{
+		ASSUME(current.has_value());
+		return *current;
+	}
+
+	pointer operator->() const noexcept
+	{
+		ASSUME(current.has_value());
+		return &(*current);
+	}
+
+	Iterator& operator++() noexcept
+	{
+		ASSUME(current.has_value());
+		current = current->next();
+		return *this;
+	}
+
+	Iterator operator++(int) noexcept
+	{
+		Iterator tmp = *this;
+		++*this;
+		return tmp;
+	}
+
+	bool operator==(const Iterator& other) const noexcept
+	{
+		if (!current) return !other.current.has_value();
+		if (!other.current) return false;
+		return current->storage.get() == other.current->storage.get();
+	}
+};
+
+class Error::ErrorChain
+{
+	Error head;
+
+  public:
+
+	ErrorChain(const ErrorChain&) = default;
+	ErrorChain(ErrorChain&&) = default;
+	ErrorChain& operator=(const ErrorChain&) = default;
+	ErrorChain& operator=(ErrorChain&&) = default;
+
+	explicit ErrorChain(Error error) noexcept :
+		head(std::move(error))
+	{}
+
+	[[nodiscard]]
+	Iterator begin() const noexcept
+	{
+		return Iterator(head);
+	}
+
+	[[nodiscard]]
+	Iterator end() const noexcept
+	{
+		return {};
+	}
+};
+
+inline Error::ErrorChain Error::chain() const noexcept
+{
+	return ErrorChain(*this);
+}
 
 template <>
 class std::formatter<Error, char>
@@ -720,33 +640,39 @@ class std::formatter<Error, char>
 		switch (kind)
 		{
 		case Kind::Message:
-			return std::format_to(ctx.out(), "{}", err.message);
+			return std::format_to(ctx.out(), "{}", err->message);
 
 		case Kind::Detail:
-			return std::format_to(ctx.out(), "{}", err.detail.value_or("<no detail>"));
+			return std::format_to(ctx.out(), "{}", err->detail.value_or("<no detail>"));
 
 		case Kind::Line:
-			return std::format_to(ctx.out(), "{}", err.location.line());
+			return std::format_to(ctx.out(), "{}", err->location.line());
 
 		case Kind::Col:
-			return std::format_to(ctx.out(), "{}", err.location.column());
+			return std::format_to(ctx.out(), "{}", err->location.column());
 
 		case Kind::File:
-			return std::format_to(ctx.out(), "{}", err.location.file_name());
+			return std::format_to(ctx.out(), "{}", err->location.file_name());
 
 		case Kind::Func:
-			return std::format_to(ctx.out(), "{}", err.location.function_name());
+			return std::format_to(ctx.out(), "{}", err->location.function_name());
 
 		case Kind::Location:
-			return std::format_to(ctx.out(), "{}:{}", err.location.file_name(), err.location.line());
+			return std::format_to(ctx.out(), "{}:{}", err->location.file_name(), err->location.line());
 
 		case Kind::Default:
 		default:
 		{
 			auto it = ctx.out();
 
-			it = std::format_to(it, "{} ({}:{})", err.message, err.location.file_name(), err.location.line());
-			if (err.detail) it = std::format_to(it, ": {}", *err.detail);
+			it = std::format_to(
+				it,
+				"{} ({}:{})",
+				err->message,
+				err->location.file_name(),
+				err->location.line()
+			);
+			if (err->detail) it = std::format_to(it, ": {}", *err->detail);
 
 			return it;
 		}

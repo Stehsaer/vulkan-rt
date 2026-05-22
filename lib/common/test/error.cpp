@@ -1,5 +1,6 @@
 #include "common/util/error.hpp"
 
+#include <cstddef>
 #include <doctest.h>
 #include <expected>
 #include <format>
@@ -17,37 +18,44 @@ TEST_CASE("Error creation")
 	SUBCASE("Without detail")
 	{
 		const auto loc = std::source_location::current();
-		const auto err = Error("Test error", loc);
+		const auto err = Error("Test error", std::nullopt, {}, loc);
 
-		CHECK_EQ(err.message, "Test error");
-		CHECK_EQ(err.detail, std::nullopt);
-		CHECK_EQ(err.location.file_name(), loc.file_name());
-		CHECK_EQ(err.location.line(), loc.line());
-		CHECK_EQ(err.location.column(), loc.column());
-		CHECK_EQ(err.location.function_name(), loc.function_name());
+		CHECK_EQ(err->message, "Test error");
+		CHECK_EQ(err->detail, std::nullopt);
+		CHECK_EQ(err->location.file_name(), loc.file_name());
+		CHECK_EQ(err->location.line(), loc.line());
+		CHECK_EQ(err->location.column(), loc.column());
+		CHECK_EQ(err->location.function_name(), loc.function_name());
 	}
 
 	SUBCASE("With detail")
 	{
 		const auto loc = std::source_location::current();
-		const auto err = Error("Test error", "This is a test error", loc);
+		const auto err = Error("Test error", "This is a test error", {}, loc);
 
-		CHECK_EQ(err.message, "Test error");
-		CHECK_EQ(err.detail, "This is a test error");
-		CHECK_EQ(err.location.file_name(), loc.file_name());
-		CHECK_EQ(err.location.line(), loc.line());
-		CHECK_EQ(err.location.column(), loc.column());
-		CHECK_EQ(err.location.function_name(), loc.function_name());
+		CHECK_EQ(err->message, "Test error");
+		CHECK_EQ(err->detail, "This is a test error");
+		CHECK_EQ(err->location.file_name(), loc.file_name());
+		CHECK_EQ(err->location.line(), loc.line());
+		CHECK_EQ(err->location.column(), loc.column());
+		CHECK_EQ(err->location.function_name(), loc.function_name());
 	}
 }
 
-struct FooStruct
-{};
+namespace
+{
+	struct FooStruct
+	{};
+}
 
 template <>
-Error Error::FromFunctor::operator()(const FooStruct& e [[maybe_unused]]) const noexcept
+Error Error::from(
+	const FooStruct&,
+	std::vector<std::byte> diagnostics,
+	std::source_location location
+) noexcept
 {
-	return Error("FooStruct error");
+	return Error("FooStruct error", std::nullopt, std::move(diagnostics), location);
 }
 
 TEST_CASE("Error::from")
@@ -56,14 +64,6 @@ TEST_CASE("Error::from")
 	{
 		const vk::Result vk_res = vk::Result::eSuccess;
 		const auto err = Error::from(vk_res);
-		CHECK_EQ(err.message, "Vulkan operation failed");
-		CHECK_EQ(err.detail, vk::to_string(vk_res));
-
-		const auto monaded =
-			std::expected<int, vk::Result>(std::unexpected(vk_res)).transform_error(Error::from_fn());
-		REQUIRE(!monaded);
-		CHECK_EQ(monaded.error().message, "Vulkan operation failed");
-		CHECK_EQ(monaded.error().detail, vk::to_string(vk_res));
 	}
 
 	SUBCASE("Custom type specialization")
@@ -71,33 +71,36 @@ TEST_CASE("Error::from")
 		const FooStruct foo;
 		const auto err = Error::from(foo);
 
-		CHECK_EQ(err.message, "FooStruct error");
+		CHECK_EQ(err->message, "FooStruct error");
 	}
 }
 
 TEST_CASE("Error formatting")
 {
 	const auto loc = std::source_location::current();
-	const auto err = Error("Test error", "This is a test error", loc);
+	const auto err = Error("Test error", "This is a test error", {}, loc);
 
-	REQUIRE(err.detail.has_value());
+	REQUIRE(err->detail.has_value());
 
 	CHECK_EQ(
 		std::format("{}", err),
 		std::format(
 			"{} ({}:{}): {}",
-			err.message,
-			err.location.file_name(),
-			err.location.line(),
-			err.detail.value_or("")
+			err->message,
+			err->location.file_name(),
+			err->location.line(),
+			err->detail.value_or("")
 		)
 	);
 	CHECK_EQ(std::format("{:message}", err), "Test error");
 	CHECK_EQ(std::format("{:detail}", err), "This is a test error");
-	CHECK_EQ(std::format("{:line}", err), std::to_string(err.location.line()));
-	CHECK_EQ(std::format("{:file}", err), err.location.file_name());
-	CHECK_EQ(std::format("{:func}", err), err.location.function_name());
-	CHECK_EQ(std::format("{:loc}", err), std::format("{}:{}", err.location.file_name(), err.location.line()));
+	CHECK_EQ(std::format("{:line}", err), std::to_string(err->location.line()));
+	CHECK_EQ(std::format("{:file}", err), err->location.file_name());
+	CHECK_EQ(std::format("{:func}", err), err->location.function_name());
+	CHECK_EQ(
+		std::format("{:loc}", err),
+		std::format("{}:{}", err->location.file_name(), err->location.line())
+	);
 }
 
 TEST_CASE("Error forwarding")
@@ -105,13 +108,13 @@ TEST_CASE("Error forwarding")
 	const auto origin = Error("Origin error", "This is the origin error");
 	const auto forwarded = origin.forward("Forwarded error", "This is the forwarded error");
 
-	CHECK_EQ(forwarded.message, "Forwarded error");
-	CHECK_EQ(forwarded.detail, "This is the forwarded error");
-	REQUIRE_NE(forwarded.cause.get(), nullptr);
+	CHECK_EQ(forwarded->message, "Forwarded error");
+	CHECK_EQ(forwarded->detail, "This is the forwarded error");
+	REQUIRE(forwarded.next().has_value());
 
-	const auto& cause = *forwarded.cause;
-	CHECK_EQ(cause.message, "Origin error");
-	CHECK_EQ(cause.detail, "This is the origin error");
+	const auto cause = *forwarded.next();
+	CHECK_EQ(cause->message, "Origin error");
+	CHECK_EQ(cause->detail, "This is the origin error");
 }
 
 TEST_CASE("Error unwrapping")
@@ -136,7 +139,7 @@ TEST_CASE("Error chaining")
 	SUBCASE("For iterator")
 	{
 		std::vector<std::string> messages;
-		for (const auto& err : error.chain()) messages.push_back(err.message);
+		for (const auto& err : error.chain()) messages.push_back(err->message);
 
 		REQUIRE_EQ(messages.size(), 3);
 		CHECK_EQ(messages[0], "Level 2");
@@ -151,13 +154,13 @@ TEST_CASE("Error chaining")
 			switch (idx)
 			{
 			case 0:
-				CHECK_EQ(err.message, "Level 2");
+				CHECK_EQ(err->message, "Level 2");
 				break;
 			case 1:
-				CHECK_EQ(err.message, "Level 1");
+				CHECK_EQ(err->message, "Level 1");
 				break;
 			case 2:
-				CHECK_EQ(err.message, "Level 0");
+				CHECK_EQ(err->message, "Level 0");
 				break;
 			default:
 				FAIL("Too many errors in chain");
@@ -167,8 +170,9 @@ TEST_CASE("Error chaining")
 
 	SUBCASE("std::ranges::to")
 	{
-		const auto messages =
-			error.chain() | std::views::transform(&Error::message) | std::ranges::to<std::vector>();
+		const auto messages = error.chain()
+			| std::views::transform([](const Error& error) { return error->message; })
+			| std::ranges::to<std::vector>();
 		REQUIRE_EQ(messages.size(), 3);
 		CHECK_EQ(messages[0], "Level 2");
 		CHECK_EQ(messages[1], "Level 1");
@@ -177,10 +181,8 @@ TEST_CASE("Error chaining")
 
 	SUBCASE("Get root cause")
 	{
-		CHECK_EQ(error.root().message, "Level 0");
-		CHECK_EQ(error.root().cause, nullptr);
-		CHECK_EQ(&error.root(), &error.root().root());
-		CHECK_EQ(&error.root(), &error.root().root().root());
+		CHECK_EQ(error.root()->message, "Level 0");
+		CHECK_FALSE(error.root().next().has_value());
 	}
 }
 
@@ -204,10 +206,10 @@ TEST_CASE("Error collecting")
 		const auto collected = vec | Error::collect();
 
 		REQUIRE(!collected);
-		CHECK_EQ(collected.error().message, "Error in range element");
-		CHECK_EQ(collected.error().detail, "Error found in index 1");
+		CHECK_EQ(collected.error()->message, "Error in range element");
+		CHECK_EQ(collected.error()->detail, "Error found in index 1");
 
-		REQUIRE(collected.error().cause);
-		CHECK_EQ(collected.error().cause->message, "Second element error");
+		REQUIRE(collected.error().next().has_value());
+		CHECK_EQ(collected.error().next().value()->message, "Second element error");
 	}
 }

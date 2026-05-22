@@ -64,7 +64,8 @@ namespace model::gltf::impl
 		auto materials =
 			asset.materials | std::views::transform(parse_material) | std::ranges::to<std::vector>();
 
-		return MaterialList::create(std::move(textures), std::move(materials))
-			.transform_error(Error::forward_func("Create material list failed"));
+		auto result = MaterialList::create(std::move(textures), std::move(materials));
+		if (!result) return result.error().forward("Create material list failed");
+		return result;
 	}
 }

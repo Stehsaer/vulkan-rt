@@ -14,6 +14,7 @@
 #include <set>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
@@ -128,7 +129,9 @@ namespace vulkan::impl
 				.setPEnabledLayerNames(requested_layers_vec)
 				.setPEnabledExtensionNames(requested_extensions_vec);
 
-		return context.createInstance(instance_create_info).transform_error(Error::from_fn());
+		auto instance_result = context.createInstance(instance_create_info);
+		if (!instance_result) return Error::from(instance_result);
+		return std::move(*instance_result);
 	}
 
 	std::expected<vk::raii::Context, Error> init_sdl() noexcept

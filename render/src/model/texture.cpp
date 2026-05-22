@@ -10,7 +10,6 @@
 
 #include <cstdint>
 #include <expected>
-#include <format>
 #include <glm/common.hpp>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <glm/ext/vector_uint4_sized.hpp>
@@ -128,7 +127,7 @@ namespace render
 				vk::ImageLayout::eShaderReadOnlyOptimal,
 				vk::ImageCreateFlagBits::eMutableFormat
 			)
-			.transform_error(Error::forward_func("Create image failed"))
+			.transform_error([](Error&& error) { return std::move(error).forward("Create image failed"); })
 			.transform([&mipmap_chain](auto vk_image) {
 				return Texture{
 					.image = std::move(vk_image),
@@ -156,7 +155,7 @@ namespace render
 				vk::ImageLayout::eShaderReadOnlyOptimal,
 				vk::ImageCreateFlagBits::eMutableFormat
 			)
-			.transform_error(Error::forward_func("Create image failed"))
+			.transform_error([](Error&& error) { return std::move(error).forward("Create image failed"); })
 			.transform([&mipmap_chain](auto vk_image) {
 				return Texture{
 					.image = std::move(vk_image),

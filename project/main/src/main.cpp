@@ -42,7 +42,7 @@ int main(int argc, const char* argv[]) noexcept
 			for (const auto& [idx, entry] : std::views::enumerate(result.error().chain()))
 			{
 				std::println(std::cerr, "\x1b[96;1m[#{}]\x1b[0m: {:msg}", idx, entry);
-				if (entry.detail.has_value())
+				if (entry->detail.has_value())
 					std::println(std::cerr, "    - \x1b[1mDetail\x1b[0m: {:detail}", entry);
 				std::println(std::cerr, "    - \x1b[1;4mSource\x1b[0m: {:loc}", entry);
 			}
