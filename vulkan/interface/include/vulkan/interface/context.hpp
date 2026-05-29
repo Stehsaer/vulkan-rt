@@ -9,7 +9,57 @@
 namespace vulkan
 {
 	///
+	/// @brief Option for descriptor indexing features
+	///
+	///
+	struct DescriptorIndexingOption
+	{
+		bool sampled_image = true;
+		bool storage_image = false;
+		bool uniform_buffer = false;
+		bool storage_buffer = false;
+	};
+
+	///
+	/// @brief Device features
+	///
+	/// @details
+	/// ### Minimal Features
+	///
+	/// #### Vulkan 1.0
+	/// - Robust buffer access
+	/// - Sampler anisotropy
+	/// - BC textures
+	/// - Pipeline statistics
+	/// - Multi draw indirect
+	///
+	/// #### Vulkan 1.1
+	/// - Shader draw parameters (required by slang)
+	///
+	/// #### Vulkan 1.2
+	/// - Half-precision float in shader
+	/// - Scalar shader block layout
+	/// - Runtime descriptor array
+	/// - Descriptor indexing (basic supports)
+	///
+	/// #### Vulkan 1.3
+	/// - Dynamic rendering
+	/// - Synchronization version 2
+	///
+	struct DeviceFeature
+	{
+		/* Required Features */
+		// "Support or fail"
+
+		DescriptorIndexingOption descriptor_indexing = {};
+
+		/* On-demand Features */
+		// Runs on fallback policies if not present
+	};
+
+	///
 	/// @brief Common context for rendering and transferring
+	/// @warning It's not a good idea to store these references!
 	///
 	struct Context
 	{
@@ -25,5 +75,8 @@ namespace vulkan
 
 		// Queue family of the main queue
 		uint32_t family;
+
+		// Device Feature
+		DeviceFeature feature;
 	};
 }

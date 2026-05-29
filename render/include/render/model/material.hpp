@@ -37,12 +37,15 @@ namespace render
 
 		///
 		/// @brief Create descriptor set layout for materials
+		/// @note This requires context to have descriptor indexing feature. See
+		/// [Ref](https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_descriptor_indexing.html)
+		/// for details of this feature
 		///
-		/// @param device Vulkan device to create the layout with
+		/// @param context Vulkan context
 		/// @return Created `MaterialLayout` if successful, or an `Error` if creation fails
 		///
 		[[nodiscard]]
-		static std::expected<MaterialLayout, Error> create(const vk::raii::Device& device) noexcept;
+		static std::expected<MaterialLayout, Error> create(const vulkan::Context& context) noexcept;
 	};
 
 	///

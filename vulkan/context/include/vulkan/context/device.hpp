@@ -9,7 +9,6 @@
 #include <expected>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <utility>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -19,28 +18,6 @@ namespace vulkan
 	{
 		std::shared_ptr<const vk::raii::Queue> queue;
 		uint32_t family_index;
-	};
-
-	///
-	/// @brief Option for descriptor indexing features
-	///
-	///
-	struct DescriptorIndexingOption
-	{
-		bool sampled_image = true;
-		bool storage_image = false;
-		bool uniform_buffer = false;
-		bool storage_buffer = false;
-	};
-
-	///
-	/// @brief Device creation options
-	///
-	///
-	struct DeviceOption
-	{
-		bool dynamic_rendering = true;
-		std::optional<DescriptorIndexingOption> descriptor_indexing = DescriptorIndexingOption();
 	};
 
 	///
@@ -54,7 +31,7 @@ namespace vulkan
 		[[nodiscard]]
 		static std::expected<HeadlessDeviceContext, Error> create(
 			const HeadlessInstanceContext& context,
-			const DeviceOption& option
+			const DeviceFeature& feature
 		) noexcept;
 
 		///
@@ -72,6 +49,7 @@ namespace vulkan
 				.queue = *render_queue.queue,
 				.submit_mutex = *submit_mutex,
 				.family = render_queue.family_index,
+				.feature = device_feature,
 			};
 		}
 
@@ -84,17 +62,21 @@ namespace vulkan
 
 		DeviceQueue render_queue;
 
+		DeviceFeature device_feature;
+
 		HeadlessDeviceContext(
 			vk::raii::PhysicalDevice phy_device,
 			vk::raii::Device device,
 			vulkan::Allocator allocator,
-			DeviceQueue render_queue
+			DeviceQueue render_queue,
+			DeviceFeature device_option
 		) :
 			phy_device(std::make_unique<vk::raii::PhysicalDevice>(std::move(phy_device))),
 			device(std::make_unique<vk::raii::Device>(std::move(device))),
 			allocator(std::make_unique<vulkan::Allocator>(std::move(allocator))),
 			submit_mutex(std::make_unique<std::mutex>()),
-			render_queue(std::move(render_queue))
+			render_queue(std::move(render_queue)),
+			device_feature(device_option)
 		{}
 
 	  public:
@@ -123,7 +105,7 @@ namespace vulkan
 		[[nodiscard]]
 		static std::expected<SurfaceDeviceContext, Error> create(
 			const SurfaceInstanceContext& context,
-			const DeviceOption& option
+			const DeviceFeature& feature
 		) noexcept;
 
 		///
@@ -152,6 +134,7 @@ namespace vulkan
 				.queue = *render_queue.queue,
 				.submit_mutex = *submit_mutex,
 				.family = render_queue.family_index,
+				.feature = device_feature,
 			};
 		}
 
@@ -171,19 +154,23 @@ namespace vulkan
 		DeviceQueue render_queue;
 		DeviceQueue present_queue;
 
+		DeviceFeature device_feature;
+
 		explicit SurfaceDeviceContext(
 			vk::raii::PhysicalDevice phy_device,
 			vk::raii::Device device,
 			vulkan::Allocator allocator,
 			DeviceQueue render_queue,
-			DeviceQueue present_queue
+			DeviceQueue present_queue,
+			DeviceFeature device_feature
 		) :
 			phy_device(std::make_unique<vk::raii::PhysicalDevice>(std::move(phy_device))),
 			device(std::make_unique<vk::raii::Device>(std::move(device))),
 			allocator(std::make_unique<vulkan::Allocator>(std::move(allocator))),
 			submit_mutex(std::make_unique<std::mutex>()),
 			render_queue(std::move(render_queue)),
-			present_queue(std::move(present_queue))
+			present_queue(std::move(present_queue)),
+			device_feature(device_feature)
 		{}
 
 	  public:

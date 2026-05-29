@@ -28,7 +28,7 @@ namespace vulkan
 
 	std::expected<HeadlessDeviceContext, Error> HeadlessDeviceContext::create(
 		const HeadlessInstanceContext& context,
-		const DeviceOption& option
+		const DeviceFeature& feature
 	) noexcept
 	{
 		/* Enumerate physical devices */
@@ -44,7 +44,7 @@ namespace vulkan
 
 		for (const auto& phy_device : phy_devices)
 		{
-			auto check_result = impl::check_headless_device(phy_device, option);
+			auto check_result = impl::check_headless_device(phy_device, feature);
 			if (check_result)
 				pass_devices.emplace_back(std::move(check_result.value()));
 			else
@@ -75,13 +75,14 @@ namespace vulkan
 			phy_device,
 			std::move(device),
 			std::move(allocator),
-			std::move(render_queue)
+			std::move(render_queue),
+			feature
 		);
 	}
 
 	std::expected<SurfaceDeviceContext, Error> SurfaceDeviceContext::create(
 		const SurfaceInstanceContext& context,
-		const DeviceOption& option
+		const DeviceFeature& feature
 	) noexcept
 	{
 		/* Enumerate physical devices */
@@ -97,7 +98,7 @@ namespace vulkan
 
 		for (const auto& phy_device : phy_devices)
 		{
-			auto check_result = impl::check_surface_device(phy_device, context, option);
+			auto check_result = impl::check_surface_device(phy_device, context, feature);
 			if (check_result)
 				pass_devices.emplace_back(std::move(check_result.value()));
 			else
@@ -129,7 +130,8 @@ namespace vulkan
 			std::move(device),
 			std::move(allocator),
 			std::move(render_queue),
-			std::move(present_queue)
+			std::move(present_queue),
+			feature
 		);
 	}
 }

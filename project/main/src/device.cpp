@@ -24,7 +24,7 @@ namespace resource
 		if (!instance_result) return instance_result.error().forward("Create instance context failed");
 		auto instance = std::move(*instance_result);
 
-		const auto device_option = vulkan::DeviceOption{};
+		const auto device_option = vulkan::DeviceFeature{};
 		auto device_result = vulkan::SurfaceDeviceContext::create(instance, device_option);
 		if (!device_result) return device_result.error().forward("Create device context failed");
 		auto device = std::move(*device_result);

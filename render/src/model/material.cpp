@@ -31,8 +31,16 @@
 
 namespace render
 {
-	std::expected<MaterialLayout, Error> MaterialLayout::create(const vk::raii::Device& device) noexcept
+	std::expected<MaterialLayout, Error> MaterialLayout::create(const vulkan::Context& context) noexcept
 	{
+		if (!context.feature.descriptor_indexing.sampled_image)
+		{
+			return Error(
+				"Missing descriptor indexing feature",
+				"Material layout requires context to support descriptor indexing of sampled image"
+			);
+		}
+
 		constexpr auto binding0_param_array = vk::DescriptorSetLayoutBinding{
 			.binding = 0,
 			.descriptorType = vk::DescriptorType::eStorageBuffer,
@@ -62,7 +70,7 @@ namespace render
 
 		const auto layout_create_info =
 			vk::DescriptorSetLayoutCreateInfo().setPNext(&binding_flags_create_info).setBindings(bindings);
-		auto descriptor_set_layout_result = device.createDescriptorSetLayout(layout_create_info);
+		auto descriptor_set_layout_result = context.device.createDescriptorSetLayout(layout_create_info);
 		if (!descriptor_set_layout_result) return Error::from(descriptor_set_layout_result);
 
 		return MaterialLayout{.layout = std::move(*descriptor_set_layout_result)};

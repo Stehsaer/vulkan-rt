@@ -83,7 +83,7 @@ namespace page
 
 	std::expected<LoadPage, Error> LoadPage::from(resource::Context context, Argument argument) noexcept
 	{
-		auto material_layout_result = render::MaterialLayout::create(context.device.get().device);
+		auto material_layout_result = render::MaterialLayout::create(context.device.get());
 		if (!material_layout_result)
 			return material_layout_result.error().forward("Create material layout failed");
 		auto material_layout = std::make_unique<render::MaterialLayout>(std::move(*material_layout_result));

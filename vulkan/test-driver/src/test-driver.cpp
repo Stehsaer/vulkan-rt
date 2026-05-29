@@ -24,7 +24,7 @@ namespace vulkan
 int main(int argc, const char** argv) noexcept
 {
 	const vulkan::InstanceConfig instance_config = {.validation = true};
-	const vulkan::DeviceOption device_option = {};
+	const vulkan::DeviceFeature device_option = {};
 
 	auto instance_result = vulkan::HeadlessInstanceContext::create(instance_config);
 	if (!instance_result)

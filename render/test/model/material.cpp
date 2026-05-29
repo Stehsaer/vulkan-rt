@@ -14,7 +14,7 @@ TEST_CASE("Normal")
 {
 	const auto material = test::create_material_list();
 
-	auto material_layout_result = render::MaterialLayout::create(vulkan::get_test_context().get().device);
+	auto material_layout_result = render::MaterialLayout::create(vulkan::get_test_context().get());
 	EXPECT_SUCCESS(material_layout_result);
 	auto layout = std::move(*material_layout_result);
 
@@ -36,7 +36,7 @@ TEST_CASE("Erroneous material")
 
 	const auto material = test::create_erroneous_material_list();
 
-	auto material_layout_result = render::MaterialLayout::create(vulkan::get_test_context().get().device);
+	auto material_layout_result = render::MaterialLayout::create(vulkan::get_test_context().get());
 	EXPECT_SUCCESS(material_layout_result);
 	auto layout = std::move(*material_layout_result);
 

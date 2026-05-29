@@ -7,6 +7,7 @@
 #include "vulkan/container/host/linked-struct.hpp"
 #include "vulkan/context/device.hpp"
 #include "vulkan/context/instance.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <algorithm>
 #include <array>
@@ -50,7 +51,7 @@ namespace vulkan::impl
 	[[nodiscard]]
 	static std::expected<vk::PhysicalDeviceFeatures, Error> find_vulkan10_features(
 		vk::PhysicalDeviceFeatures available,
-		const DeviceOption& option [[maybe_unused]]
+		const DeviceFeature& feature [[maybe_unused]]
 	) noexcept
 	{
 		vk::PhysicalDeviceFeatures result{};
@@ -67,7 +68,7 @@ namespace vulkan::impl
 	[[nodiscard]]
 	static std::expected<vk::PhysicalDeviceVulkan11Features, Error> find_vulkan11_features(
 		vk::PhysicalDeviceVulkan11Features available,
-		const DeviceOption& option [[maybe_unused]]
+		const DeviceFeature& feature [[maybe_unused]]
 	) noexcept
 	{
 		vk::PhysicalDeviceVulkan11Features result = {};
@@ -79,7 +80,7 @@ namespace vulkan::impl
 	[[nodiscard]]
 	/*NOLINT*/ static std::expected<vk::PhysicalDeviceVulkan12Features, Error> find_vulkan12_features(
 		vk::PhysicalDeviceVulkan12Features available,
-		const DeviceOption& option
+		const DeviceFeature& feature
 	) noexcept
 	{
 		vk::PhysicalDeviceVulkan12Features result = {};
@@ -87,37 +88,32 @@ namespace vulkan::impl
 		CHECK_FIELD(available, result, scalarBlockLayout);
 		CHECK_FIELD(available, result, runtimeDescriptorArray);
 
-		if (option.descriptor_indexing)
+		CHECK_FIELD(available, result, descriptorIndexing);
+		CHECK_FIELD(available, result, descriptorBindingPartiallyBound);
+		CHECK_FIELD(available, result, descriptorBindingVariableDescriptorCount);
+
+		if (feature.descriptor_indexing.sampled_image)
 		{
-			CHECK_FIELD(available, result, descriptorIndexing);
-			CHECK_FIELD(available, result, descriptorBindingPartiallyBound);
-			CHECK_FIELD(available, result, descriptorBindingVariableDescriptorCount);
+			CHECK_FIELD(available, result, descriptorBindingSampledImageUpdateAfterBind);
+			CHECK_FIELD(available, result, shaderSampledImageArrayNonUniformIndexing);
+		}
 
-			const auto descriptor_indexing_option = *option.descriptor_indexing;
+		if (feature.descriptor_indexing.storage_image)
+		{
+			CHECK_FIELD(available, result, descriptorBindingStorageImageUpdateAfterBind);
+			CHECK_FIELD(available, result, shaderStorageImageArrayNonUniformIndexing);
+		}
 
-			if (descriptor_indexing_option.sampled_image)
-			{
-				CHECK_FIELD(available, result, descriptorBindingSampledImageUpdateAfterBind);
-				CHECK_FIELD(available, result, shaderSampledImageArrayNonUniformIndexing);
-			}
+		if (feature.descriptor_indexing.uniform_buffer)
+		{
+			CHECK_FIELD(available, result, descriptorBindingUniformBufferUpdateAfterBind);
+			CHECK_FIELD(available, result, shaderUniformBufferArrayNonUniformIndexing);
+		}
 
-			if (descriptor_indexing_option.storage_image)
-			{
-				CHECK_FIELD(available, result, descriptorBindingStorageImageUpdateAfterBind);
-				CHECK_FIELD(available, result, shaderStorageImageArrayNonUniformIndexing);
-			}
-
-			if (descriptor_indexing_option.uniform_buffer)
-			{
-				CHECK_FIELD(available, result, descriptorBindingUniformBufferUpdateAfterBind);
-				CHECK_FIELD(available, result, shaderUniformBufferArrayNonUniformIndexing);
-			}
-
-			if (descriptor_indexing_option.storage_buffer)
-			{
-				CHECK_FIELD(available, result, descriptorBindingStorageBufferUpdateAfterBind);
-				CHECK_FIELD(available, result, shaderStorageBufferArrayNonUniformIndexing);
-			}
+		if (feature.descriptor_indexing.storage_buffer)
+		{
+			CHECK_FIELD(available, result, descriptorBindingStorageBufferUpdateAfterBind);
+			CHECK_FIELD(available, result, shaderStorageBufferArrayNonUniformIndexing);
 		}
 
 		return result;
@@ -126,12 +122,12 @@ namespace vulkan::impl
 	[[nodiscard]]
 	static std::expected<vk::PhysicalDeviceVulkan13Features, Error> find_vulkan13_features(
 		vk::PhysicalDeviceVulkan13Features available,
-		const DeviceOption& option
+		const DeviceFeature& feature [[maybe_unused]]
 	) noexcept
 	{
 		vk::PhysicalDeviceVulkan13Features result = {};
 		CHECK_FIELD(available, result, synchronization2);
-		if (option.dynamic_rendering) CHECK_FIELD(available, result, dynamicRendering);
+		CHECK_FIELD(available, result, dynamicRendering);
 
 		return result;
 	}
@@ -139,7 +135,7 @@ namespace vulkan::impl
 	[[nodiscard]]
 	static std::expected<void, Error> check_device_constraints(
 		const vk::raii::PhysicalDevice& phy_device,
-		const DeviceOption& option [[maybe_unused]]
+		const DeviceFeature& feature [[maybe_unused]]
 	) noexcept
 	{
 		const auto properties = phy_device.getProperties();
@@ -180,7 +176,7 @@ namespace vulkan::impl
 	[[nodiscard]]
 	static std::expected<vulkan::LinkedStruct<vk::PhysicalDeviceFeatures2>, Error> find_device_features(
 		const vk::raii::PhysicalDevice& phy_device,
-		const DeviceOption& option
+		const DeviceFeature& feature
 	) noexcept
 	{
 		const auto available_features2 = phy_device.getFeatures2<
@@ -199,10 +195,10 @@ namespace vulkan::impl
 		const auto available_features_vulkan13 =
 			available_features2.get<vk::PhysicalDeviceVulkan13Features>();
 
-		const auto required_features_vulkan10 = find_vulkan10_features(available_features_vulkan10, option);
-		const auto required_features_vulkan11 = find_vulkan11_features(available_features_vulkan11, option);
-		const auto required_features_vulkan12 = find_vulkan12_features(available_features_vulkan12, option);
-		const auto required_features_vulkan13 = find_vulkan13_features(available_features_vulkan13, option);
+		const auto required_features_vulkan10 = find_vulkan10_features(available_features_vulkan10, feature);
+		const auto required_features_vulkan11 = find_vulkan11_features(available_features_vulkan11, feature);
+		const auto required_features_vulkan12 = find_vulkan12_features(available_features_vulkan12, feature);
+		const auto required_features_vulkan13 = find_vulkan13_features(available_features_vulkan13, feature);
 
 		if (!required_features_vulkan10.has_value()) return required_features_vulkan10.error();
 		if (!required_features_vulkan11.has_value()) return required_features_vulkan11.error();
@@ -223,7 +219,7 @@ namespace vulkan::impl
 	[[nodiscard]]
 	static std::expected<std::vector<std::string>, Error> find_device_extensions(
 		const vk::raii::PhysicalDevice& phy_device,
-		const DeviceOption& option [[maybe_unused]],
+		const DeviceFeature& feature [[maybe_unused]],
 		bool support_present
 	) noexcept
 	{
@@ -431,16 +427,16 @@ namespace vulkan::impl
 
 	std::expected<HeadlessDeviceInfo, FailInfo> check_headless_device(
 		const vk::raii::PhysicalDevice& phy_device,
-		const DeviceOption& option
+		const DeviceFeature& feature
 	) noexcept
 	{
-		if (const auto check_result = check_device_constraints(phy_device, option); !check_result)
+		if (const auto check_result = check_device_constraints(phy_device, feature); !check_result)
 			return std::unexpected<FailInfo>({
 				.phy_device = phy_device,
 				.error = check_result.error(),
 			});
 
-		auto extensions_result = find_device_extensions(phy_device, option, false);
+		auto extensions_result = find_device_extensions(phy_device, feature, false);
 		if (!extensions_result)
 			return std::unexpected<FailInfo>({
 				.phy_device = phy_device,
@@ -448,7 +444,7 @@ namespace vulkan::impl
 			});
 		auto extensions = std::move(*extensions_result);
 
-		auto features_result = find_device_features(phy_device, option);
+		auto features_result = find_device_features(phy_device, feature);
 		if (!features_result)
 			return std::unexpected<FailInfo>({
 				.phy_device = phy_device,
@@ -478,16 +474,16 @@ namespace vulkan::impl
 	std::expected<SurfaceDeviceInfo, FailInfo> check_surface_device(
 		const vk::raii::PhysicalDevice& phy_device,
 		const SurfaceInstanceContext& instance,
-		const DeviceOption& option
+		const DeviceFeature& feature
 	) noexcept
 	{
-		if (const auto check_result = check_device_constraints(phy_device, option); !check_result)
+		if (const auto check_result = check_device_constraints(phy_device, feature); !check_result)
 			return std::unexpected<FailInfo>({
 				.phy_device = phy_device,
 				.error = check_result.error(),
 			});
 
-		auto extensions_result = find_device_extensions(phy_device, option, true);
+		auto extensions_result = find_device_extensions(phy_device, feature, true);
 		if (!extensions_result)
 			return std::unexpected<FailInfo>({
 				.phy_device = phy_device,
@@ -495,7 +491,7 @@ namespace vulkan::impl
 			});
 		auto extensions = std::move(*extensions_result);
 
-		auto features_result = find_device_features(phy_device, option);
+		auto features_result = find_device_features(phy_device, feature);
 		if (!features_result)
 			return std::unexpected<FailInfo>({
 				.phy_device = phy_device,
