@@ -87,6 +87,7 @@ namespace vulkan::impl
 		CHECK_FIELD(available, result, shaderFloat16);
 		CHECK_FIELD(available, result, scalarBlockLayout);
 		CHECK_FIELD(available, result, runtimeDescriptorArray);
+		CHECK_FIELD(available, result, bufferDeviceAddress);
 
 		CHECK_FIELD(available, result, descriptorIndexing);
 		CHECK_FIELD(available, result, descriptorBindingPartiallyBound);
@@ -215,6 +216,10 @@ namespace vulkan::impl
 
 	constexpr auto MANDATORY_EXT = std::to_array({vk::KHRShaderNonSemanticInfoExtensionName});
 	constexpr auto PRESENT_MANDATORY_EXT = std::to_array({vk::KHRSwapchainExtensionName});
+	constexpr auto RAYTRACE_EXT = std::to_array({
+		vk::KHRDeferredHostOperationsExtensionName,
+		vk::KHRAccelerationStructureExtensionName,
+	});
 
 	[[nodiscard]]
 	static std::expected<std::vector<std::string>, Error> find_device_extensions(
@@ -226,6 +231,7 @@ namespace vulkan::impl
 		std::set<std::string> extensions;
 		extensions.insert_range(MANDATORY_EXT);
 		if (support_present) extensions.insert_range(PRESENT_MANDATORY_EXT);
+		if (feature.raytracing) extensions.insert_range(RAYTRACE_EXT);
 
 		const auto available_extensions_result = phy_device.enumerateDeviceExtensionProperties();
 		if (!available_extensions_result) return Error::from(available_extensions_result);

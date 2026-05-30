@@ -41,6 +41,7 @@ namespace vulkan
 	/// - Scalar shader block layout
 	/// - Runtime descriptor array
 	/// - Descriptor indexing (basic supports)
+	/// - Buffer device address
 	///
 	/// #### Vulkan 1.3
 	/// - Dynamic rendering
@@ -52,6 +53,15 @@ namespace vulkan
 		// "Support or fail"
 
 		DescriptorIndexingOption descriptor_indexing = {};
+
+		///
+		/// @brief Raytracing feature
+		/// @details Implies:
+		/// - Acceleration structure (BLAS/TLAS)
+		///
+		/// and also their dependencies
+		///
+		bool raytracing = false;
 
 		/* On-demand Features */
 		// Runs on fallback policies if not present
