@@ -134,6 +134,25 @@ namespace vulkan::impl
 	}
 
 	[[nodiscard]]
+	static std::expected<vk::PhysicalDeviceAccelerationStructureFeaturesKHR, Error> find_as_features(
+		const vk::raii::PhysicalDevice& phy_device
+	) noexcept
+	{
+		const auto available_features =
+			phy_device
+				.getFeatures2<
+					vk::PhysicalDeviceFeatures2,
+					vk::PhysicalDeviceAccelerationStructureFeaturesKHR
+				>()
+				.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
+
+		vk::PhysicalDeviceAccelerationStructureFeaturesKHR result = {};
+		CHECK_FIELD(available_features, result, accelerationStructure);
+
+		return result;
+	}
+
+	[[nodiscard]]
 	static std::expected<void, Error> check_device_constraints(
 		const vk::raii::PhysicalDevice& phy_device,
 		const DeviceFeature& feature [[maybe_unused]]
@@ -206,12 +225,22 @@ namespace vulkan::impl
 		if (!required_features_vulkan12.has_value()) return required_features_vulkan12.error();
 		if (!required_features_vulkan13.has_value()) return required_features_vulkan13.error();
 
-		return vulkan::LinkedStruct(
+		auto features = vulkan::LinkedStruct(
 			vk::PhysicalDeviceFeatures2{.features = *required_features_vulkan10},
 			*required_features_vulkan11,
 			*required_features_vulkan12,
 			*required_features_vulkan13
 		);
+
+		if (feature.raytracing)
+		{
+			const auto required_features_as = find_as_features(phy_device);
+			if (!required_features_as) return required_features_as.error();
+
+			features.push(*required_features_as);
+		}
+
+		return features;
 	}
 
 	constexpr auto MANDATORY_EXT = std::to_array({vk::KHRShaderNonSemanticInfoExtensionName});
