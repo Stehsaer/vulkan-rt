@@ -12,6 +12,7 @@
 #include "render/model/model.hpp"
 #include "render/model/texture-list.hpp"
 #include "render/model/texture.hpp"
+#include "render/model/tlas.hpp"
 #include "resource/context.hpp"
 
 #include <chrono>
@@ -21,6 +22,7 @@
 #include <filesystem>
 #include <functional>
 #include <future>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <imgui.h>
 #include <libassert/assert.hpp>
 #include <memory>
@@ -32,7 +34,7 @@
 
 namespace page
 {
-	std::expected<render::Model, Error> LoadPage::load_model_task(
+	std::expected<std::tuple<render::Model, render::Tlas>, Error> LoadPage::load_model_task(
 		std::shared_ptr<const resource::Context> context,  // NOLINT: intended to own
 		const render::MaterialLayout& material_layout,
 		Argument argument,
@@ -74,11 +76,16 @@ namespace page
 		if (!model_loading_result) return model_loading_result.error().forward("Load model failed");
 		auto model = std::move(*model_loading_result);
 
+		const auto transforms = model.hierarchy.compute_transforms(glm::mat4(1.0));
+		auto tlas_result = render::Tlas::build(context->device.get(), model, transforms);
+		if (!tlas_result) return tlas_result.error().forward("Create TLAS for scene failed");
+		auto tlas = std::move(*tlas_result);
+
 		const auto end_time = std::chrono::high_resolution_clock::now();
 		const std::chrono::duration<double> elapsed = end_time - start_time;
 		std::println("Model loaded in {:.3f} seconds", elapsed.count());
 
-		return model;
+		return std::make_tuple(std::move(model), std::move(tlas));
 	}
 
 	std::expected<LoadPage, Error> LoadPage::from(resource::Context context, Argument argument) noexcept
@@ -175,8 +182,9 @@ namespace page
 
 			auto render_page_result = RenderPage::create(
 				context,
+				std::move(*success_data.material_layout),
 				std::move(success_data.model),
-				std::move(*success_data.material_layout)
+				std::move(success_data.tlas)
 			);
 			if (!render_page_result) return render_page_result.error().forward("Create render page failed");
 
@@ -250,6 +258,8 @@ namespace page
 			return "Processing meshes...";
 		case render::Model::ProgressState::Material:
 			return "Processing materials...";
+		case render::Model::ProgressState::Blas:
+			return "Creating BLAS...";
 		default:
 			UNREACHABLE("Invalid state", state);
 		}
@@ -304,9 +314,13 @@ namespace page
 			auto result = std::move(task.model_future).get();
 			if (!result) return StateData::from<State::Error>(result.error());
 
-			return StateData::from<State::Success>(
-				{.model = std::move(*result), .material_layout = std::move(task.material_layout)}
-			);
+			auto [model, tlas] = std::move(*result);
+
+			return StateData::from<State::Success>({
+				.model = std::move(model),
+				.tlas = std::move(tlas),
+				.material_layout = std::move(task.material_layout),
+			});
 		}
 
 		return StateData::from<State::Loading>(std::move(task));

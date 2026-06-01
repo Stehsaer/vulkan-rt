@@ -4,6 +4,7 @@
 #include "common/util/tagged-type.hpp"
 #include "model/hierarchy.hpp"
 #include "model/model.hpp"
+#include "render/model/blas.hpp"
 #include "render/model/material.hpp"
 #include "render/model/mesh.hpp"
 #include "render/model/texture-list.hpp"
@@ -19,7 +20,7 @@ namespace render
 {
 	///
 	/// @brief All resources for a model, including hierarchy, meshes and materials.
-	/// @note Use `operator->` to access the hierarchy, meshes and materials.
+	/// @warning Never move away the public members, as it will break integrety of the model
 	///
 	class Model
 	{
@@ -33,7 +34,8 @@ namespace render
 		{
 			Preparing,
 			Material,
-			Mesh
+			Mesh,
+			Blas,
 		};
 
 		///
@@ -43,7 +45,8 @@ namespace render
 		using Progress = util::SyncedEnumVariant<
 			util::Tag<ProgressState::Preparing>,
 			util::Tag<ProgressState::Material, std::shared_ptr<const MaterialList::Progress>>,
-			util::Tag<ProgressState::Mesh>
+			util::Tag<ProgressState::Mesh>,
+			util::Tag<ProgressState::Blas>
 		>;
 
 		///
@@ -91,12 +94,24 @@ namespace render
 		///
 		MaterialList material_list;
 
+		///
+		/// @brief BLAS list of the model
+		/// @note For how the BLASes are arranged, see documentation of `BlasList`
+		///
+		BlasList blas_list;
+
 	  private:
 
-		explicit Model(model::Hierarchy hierarchy, MeshList mesh_list, MaterialList material_list) :
+		explicit Model(
+			model::Hierarchy hierarchy,
+			MeshList mesh_list,
+			MaterialList material_list,
+			BlasList blas_list
+		) :
 			hierarchy(std::move(hierarchy)),
 			mesh_list(std::move(mesh_list)),
-			material_list(std::move(material_list))
+			material_list(std::move(material_list)),
+			blas_list(std::move(blas_list))
 		{}
 
 		[[nodiscard]]
@@ -114,6 +129,14 @@ namespace render
 			coro::thread_pool& thread_pool,
 			const vulkan::Context& context,
 			const model::Model& model
+		) noexcept;
+
+		[[nodiscard]]
+		static coro::task<std::expected<BlasList, Error>> create_blas(
+			coro::thread_pool& thread_pool,
+			const vulkan::Context& context,
+			const MaterialList& material_list,
+			const MeshList& mesh_list
 		) noexcept;
 
 	  public:

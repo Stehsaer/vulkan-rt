@@ -1,6 +1,7 @@
 #include "render/model/model.hpp"
 #include "common/util/error.hpp"
 #include "model/model.hpp"
+#include "render/model/blas.hpp"
 #include "render/model/material.hpp"
 #include "render/model/mesh.hpp"
 #include "vulkan/interface/context.hpp"
@@ -22,6 +23,18 @@ namespace render
 		co_await thread_pool.schedule();
 		auto mesh_list = MeshList::create(context, model.meshes);
 		co_return mesh_list;
+	}
+
+	coro::task<std::expected<BlasList, Error>> Model::create_blas(
+		coro::thread_pool& thread_pool,
+		const vulkan::Context& context,
+		const MaterialList& material_list,
+		const MeshList& mesh_list
+	) noexcept
+	{
+		co_await thread_pool.schedule();
+		auto blas_list = BlasList::create(context, mesh_list, material_list);
+		co_return blas_list;
 	}
 
 	std::pair<coro::task<std::expected<Model, Error>>, std::shared_ptr<const Model::Progress>> Model::create(
@@ -62,6 +75,14 @@ namespace render
 		if (!material_result) co_return material_result.error().forward("Create material list failed");
 		if (!mesh_result) co_return mesh_result.error().forward("Create mesh list failed");
 
-		co_return Model(model.hierarchy, std::move(*mesh_result), std::move(*material_result));
+		auto material = std::move(*material_result);
+		auto mesh = std::move(*mesh_result);
+
+		progress->set<ProgressState::Blas>();
+		auto blas_result = co_await create_blas(thread_pool, context, material, mesh);
+		if (!blas_result) co_return blas_result.error().forward("Create BLAS failed");
+		auto blas = std::move(*blas_result);
+
+		co_return Model(model.hierarchy, std::move(mesh), std::move(material), std::move(blas));
 	}
 }

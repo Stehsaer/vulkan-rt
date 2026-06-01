@@ -6,7 +6,6 @@
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/interface/context.hpp"
 
-#include <coro/task.hpp>
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_float3.hpp>
@@ -14,6 +13,7 @@
 #include <span>
 #include <utility>
 #include <vector>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace render
 {
@@ -22,11 +22,11 @@ namespace render
 	///
 	/// @brief Attributes for a primitive
 	///
-	///
 	struct PrimitiveAttribute
 	{
 		uint32_t index_offset;    // Offset of the first index into the index buffer
 		uint32_t vertex_offset;   // Offset of the first vertex into the vertex buffer
+		uint32_t index_count;     // Number of indices in the primitive
 		uint32_t vertex_count;    // Number of vertices in the primitive
 		uint32_t material_index;  // `0xFFFFFFFF` if no material
 		glm::vec3 aabb_min;       // Minimum corner of AlignedBound

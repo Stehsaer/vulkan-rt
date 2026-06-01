@@ -23,7 +23,7 @@ public struct IndirectDrawcall
 		->IndirectDrawcall
 	{
 		var entry : IndirectDrawcall;
-		entry.index_count = attr.vertex_count;
+		entry.index_count = attr.index_count;
 		entry.instance_count = select(visible, 1, 0);
 		entry.first_index = attr.index_offset;
 		entry.vertex_offset = attr.vertex_offset;
