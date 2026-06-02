@@ -9,6 +9,7 @@
 #include "render/interface/primitive-drawcall.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
+#include "render/model/tlas.hpp"
 #include "render/util/per-render-state.hpp"
 #include "resource/aux-resource.hpp"
 #include "resource/context.hpp"
@@ -53,8 +54,9 @@ namespace page
 		[[nodiscard]]
 		static std::expected<RenderPage, Error> create(
 			std::shared_ptr<resource::Context> context,
+			render::MaterialLayout material_layout,
 			render::Model model,
-			render::MaterialLayout material_layout
+			render::Tlas tlas
 		) noexcept;
 
 	  private:
@@ -120,6 +122,7 @@ namespace page
 
 		render::MaterialLayout material_layout;
 		render::Model model;
+		render::Tlas tlas;
 
 		resource::Pipeline pipeline;
 		vulkan::Cycle<FrameResource> frame_resources;
@@ -170,6 +173,7 @@ namespace page
 			vk::raii::CommandPool command_pool,
 			render::MaterialLayout material_layout,
 			render::Model model,
+			render::Tlas tlas,
 			resource::Pipeline pipeline,
 			vulkan::Cycle<FrameResource> frame_resources,
 			resource::AuxResource aux_resource
@@ -178,6 +182,7 @@ namespace page
 			command_pool(std::move(command_pool)),
 			material_layout(std::move(material_layout)),
 			model(std::move(model)),
+			tlas(std::move(tlas)),
 			pipeline(std::move(pipeline)),
 			frame_resources(std::move(frame_resources)),
 			aux_resource(std::move(aux_resource))

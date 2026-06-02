@@ -8,11 +8,13 @@
 #include "model/gltf.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
+#include "render/model/tlas.hpp"
 #include "resource/context.hpp"
 #include "scene/page.hpp"
 
 #include <expected>
 #include <memory>
+#include <tuple>
 #include <utility>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -66,12 +68,13 @@ namespace page
 		{
 			std::unique_ptr<render::MaterialLayout> material_layout;
 			std::unique_ptr<TaskProgress> progress;
-			util::Future<std::expected<render::Model, Error>> model_future;
+			util::Future<std::expected<std::tuple<render::Model, render::Tlas>, Error>> model_future;
 		};
 
 		struct TaskResult
 		{
 			render::Model model;
+			render::Tlas tlas;
 			std::unique_ptr<render::MaterialLayout> material_layout;
 		};
 
@@ -86,7 +89,7 @@ namespace page
 		helper::ImGuiPage imgui_page;
 		StateData state_data;
 
-		static std::expected<render::Model, Error> load_model_task(
+		static std::expected<std::tuple<render::Model, render::Tlas>, Error> load_model_task(
 			std::shared_ptr<const resource::Context> context,
 			const render::MaterialLayout& material_layout,
 			Argument argument,

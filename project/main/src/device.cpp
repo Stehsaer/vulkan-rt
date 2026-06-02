@@ -4,6 +4,7 @@
 #include "vulkan/context/imgui.hpp"
 #include "vulkan/context/instance.hpp"
 #include "vulkan/context/swapchain.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <expected>
 #include <utility>
@@ -24,7 +25,9 @@ namespace resource
 		if (!instance_result) return instance_result.error().forward("Create instance context failed");
 		auto instance = std::move(*instance_result);
 
-		const auto device_option = vulkan::DeviceFeature{};
+		const auto device_option = vulkan::DeviceFeature{
+			.raytracing = true,
+		};
 		auto device_result = vulkan::SurfaceDeviceContext::create(instance, device_option);
 		if (!device_result) return device_result.error().forward("Create device context failed");
 		auto device = std::move(*device_result);

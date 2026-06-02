@@ -52,7 +52,7 @@ namespace vulkan
 		vma_vulkan_funcs.vkGetDeviceProcAddr = device.getDispatcher()->vkGetDeviceProcAddr;
 
 		create_info.vulkanApiVersion = vk::ApiVersion14;
-		// create_info.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+		create_info.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
 		create_info.physicalDevice = *physical_device;
 		create_info.device = *device;

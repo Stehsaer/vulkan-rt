@@ -200,6 +200,17 @@ namespace model
 			return nodes;
 		}
 
+		///
+		/// @brief Get all renderable nodes/drawcalls, regardless of their runtime visibility
+		///
+		/// @return Renderable nodes
+		///
+		[[nodiscard]]
+		std::span<const Drawcall> get_renderables() const noexcept
+		{
+			return renderable_nodes;
+		}
+
 	  private:
 
 		std::vector<FullNode> nodes;

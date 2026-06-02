@@ -9,6 +9,7 @@ namespace model
 
 		public uint32_t index_offset;   // Offset of the first index into the index buffer
 		public uint32_t vertex_offset;  // Offset of the first vertex into the vertex buffer
+		public uint32_t index_count;    // Number of indices in the primitive
 		public uint32_t vertex_count;   // Number of vertices in the primitive
 
 		// Material index for the primitive, or `DEFAULT_MATERIAL` if default material

@@ -5,6 +5,7 @@
 #include "render/interface/primitive-drawcall.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
+#include "render/model/tlas.hpp"
 #include "render/pipeline/forward.hpp"
 #include "render/util/per-render-state.hpp"
 #include "resource/aux-resource.hpp"
@@ -37,8 +38,9 @@ namespace page
 {
 	std::expected<RenderPage, Error> RenderPage::create(
 		std::shared_ptr<resource::Context> context,
+		render::MaterialLayout material_layout,
 		render::Model model,
-		render::MaterialLayout material_layout
+		render::Tlas tlas
 	) noexcept
 	{
 		auto command_pool_result = context->device->createCommandPool({
@@ -104,6 +106,7 @@ namespace page
 			std::move(command_pool),
 			std::move(material_layout),
 			std::move(model),
+			std::move(tlas),
 			std::move(pipeline),
 			std::move(frame_resources),
 			std::move(aux_resource)
