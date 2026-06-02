@@ -1,7 +1,7 @@
 add_requires("tinyobjloader v2.0.0rc13")
 
 -- Wavefront obj loading library
-target("model.obj")
+target("model.wavefront")
 	set_kind("static")
 
 	add_files("src/**.cpp")

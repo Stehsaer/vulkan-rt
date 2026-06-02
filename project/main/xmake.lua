@@ -10,7 +10,7 @@ target("main")
 		"vulkan.util",
 		"vulkan.alloc",
 		"vulkan.context",
-		"model.obj",
+		"model.wavefront",
 		"model.gltf",
 		"render"
 	)

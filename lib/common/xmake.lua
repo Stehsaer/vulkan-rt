@@ -6,8 +6,7 @@ target("lib.common")
 
 	add_includedirs("include", {public = true})
 	add_headerfiles("include/(**.hpp)")
-	add_packages("libassert", "nlohmann_json", {public = true})
-	add_packages("vulkan-hpp")
+	add_packages("libassert", "nlohmann_json", "vulkan-hpp", {public = true})
 
 target("lib.common.test")
 	set_kind("binary")

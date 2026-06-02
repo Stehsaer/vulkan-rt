@@ -53,10 +53,12 @@ add_requires(
 	"imgui[sdl3,freetype,vulkan_no_proto] v1.92.6-docking",
 
 	-- Vulkan
+	"vulkan-headers",
 	"vulkan-hpp",
 	"vulkan-memory-allocator 3.3.0"
 )
 
+add_requireconfs("**vulkan-headers", {version = "v1.4.351", override = true, system = false})
 add_requireconfs("**vulkan-hpp", {version = "v1.4.351", override = true, system = false})
 add_requireconfs("**libsdl3", {version = "3.4.2", override = true, system = false})
 

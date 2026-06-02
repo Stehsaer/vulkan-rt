@@ -14,7 +14,7 @@ namespace page
 {
 	InitPage InitPage::from(Argument argument) noexcept
 	{
-		auto task = util::Future(std::async(std::launch::async, [argument]() {
+		auto task = util::Future(std::async(std::launch::deferred, [argument]() {
 			return resource::Context::create();
 		}));
 		return InitPage(std::move(task), std::move(argument));
@@ -22,8 +22,6 @@ namespace page
 
 	std::expected<InitPage::ResultType, Error> InitPage::run_frame() noexcept
 	{
-		if (!task.ready()) return ResultType::from<Result::Continue>();
-
 		auto context_result = std::move(task).get();
 		if (!context_result) return context_result.error().forward("Initialize context failed");
 		auto context = std::move(*context_result);
