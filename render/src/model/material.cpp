@@ -84,7 +84,10 @@ namespace render
 			const std::span<const MaterialInfo> material_infos
 		) noexcept
 		{
-			vulkan::StaticResourceCreator resource_creator;
+			auto resource_creator_result = vulkan::StaticResourceCreator::create(context);
+			if (!resource_creator_result)
+				return resource_creator_result.error().forward("Create resource creator failed");
+			auto resource_creator = std::move(*resource_creator_result);
 
 			auto buffer_result =
 				resource_creator

@@ -110,7 +110,10 @@ namespace render
 			const MeshCollectResult& collect_result
 		) noexcept
 		{
-			vulkan::StaticResourceCreator resource_creator;
+			auto resource_creator_result = vulkan::StaticResourceCreator::create(context);
+			if (!resource_creator_result)
+				return resource_creator_result.error().forward("Create resource creator failed");
+			auto resource_creator = std::move(*resource_creator_result);
 
 			vk::BufferUsageFlags geometry_buffer_extra_flgs = vk::BufferUsageFlagBits::eShaderDeviceAddress;
 			if (context.feature.raytracing)

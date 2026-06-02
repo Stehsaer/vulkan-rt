@@ -33,7 +33,10 @@ namespace resource
 			return exposure_mask_image_result.error().forward("Decode exposure mask image failed");
 		auto exposure_mask_image = std::move(*exposure_mask_image_result);
 
-		vulkan::StaticResourceCreator resource_creator;
+		auto resource_creator_result = vulkan::StaticResourceCreator::create(context);
+		if (!resource_creator_result)
+			return resource_creator_result.error().forward("Create resource creator failed");
+		auto resource_creator = std::move(*resource_creator_result);
 
 		auto exposure_mask_texture_result = resource_creator.create_image(
 			context,

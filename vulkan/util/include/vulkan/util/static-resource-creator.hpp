@@ -11,6 +11,7 @@
 #include "vulkan/alloc/image.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
+#include "vulkan/util/command-runner.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -50,11 +51,12 @@ namespace vulkan
 	  public:
 
 		///
-		/// @brief Construct a new `StaticResourceCreator`
+		/// @brief Create a static resource creator
 		///
-		explicit StaticResourceCreator() noexcept :
-			execution_mutex(std::make_unique<std::mutex>())
-		{}
+		/// @param context Vulkan context
+		/// @return Created instance or failed
+		///
+		static std::expected<StaticResourceCreator, Error> create(const vulkan::Context& context) noexcept;
 
 		///
 		/// @brief Create a buffer
@@ -350,10 +352,16 @@ namespace vulkan
 		};
 
 		std::unique_ptr<std::mutex> execution_mutex;
+		CommandRunner command_runner;
 
 		std::vector<BufferUploadTask> buffer_upload_tasks;
 		std::vector<ImageUploadTask> image_upload_tasks;
 		size_t pending_data_size = 0;
+
+		explicit StaticResourceCreator(CommandRunner command_runner) :
+			execution_mutex(std::make_unique<std::mutex>()),
+			command_runner(std::move(command_runner))
+		{}
 
 		///
 		/// @brief Create a staging buffer and upload data to it.

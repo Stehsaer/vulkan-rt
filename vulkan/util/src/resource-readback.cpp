@@ -1,21 +1,19 @@
 #include "vulkan/util/resource-readback.hpp"
-#include "common/formatter.hpp"
 #include "common/util/error.hpp"
 #include "vulkan/alloc/allocator.hpp"
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/alloc/image.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
+#include "vulkan/util/command-runner.hpp"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
-#include <mutex>
 #include <span>
 #include <utility>
-#include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -23,52 +21,6 @@ namespace vulkan::impl
 {
 	namespace
 	{
-		struct CommitResource
-		{
-			vk::raii::CommandPool command_pool;
-			vk::raii::CommandBuffer command_buffer;
-			vk::raii::Fence fence;
-
-			static std::expected<CommitResource, Error> create(
-				const vk::raii::Device& device,
-				uint32_t queue_family
-			) noexcept
-			{
-				auto command_pool_result = device.createCommandPool(
-					vk::CommandPoolCreateInfo{
-						.flags = vk::CommandPoolCreateFlagBits::eTransient,
-						.queueFamilyIndex = queue_family,
-					}
-				);
-				if (!command_pool_result) return Error::from(command_pool_result);
-				auto command_pool = std::move(*command_pool_result);
-
-				auto command_buffer_result =
-					device
-						.allocateCommandBuffers({
-							.commandPool = command_pool,
-							.level = vk::CommandBufferLevel::ePrimary,
-							.commandBufferCount = 1,
-						})
-						.transform([](std::vector<vk::raii::CommandBuffer> list) {
-							return std::move(list.front());
-						});
-
-				if (!command_buffer_result) return Error::from(command_buffer_result);
-				auto command_buffer = std::move(*command_buffer_result);
-
-				auto fence_result = device.createFence(vk::FenceCreateInfo{});
-				if (!fence_result) return Error::from(fence_result);
-				auto fence = std::move(*fence_result);
-
-				return CommitResource{
-					.command_pool = std::move(command_pool),
-					.command_buffer = std::move(command_buffer),
-					.fence = std::move(fence)
-				};
-			}
-		};
-
 		struct TransferResource
 		{
 			vulkan::Image blit_dst_image;
@@ -124,10 +76,10 @@ namespace vulkan::impl
 
 		/* Create resources */
 
-		auto commit_resource_result = CommitResource::create(context.device, context.family);
-		if (!commit_resource_result)
-			return commit_resource_result.error().forward("Create commit resource failed");
-		auto commit_resource = std::move(*commit_resource_result);
+		auto command_runner_result = CommandRunner::create(context);
+		if (!command_runner_result)
+			return command_runner_result.error().forward("Create command runner failed");
+		auto command_runner = std::move(*command_runner_result);
 
 		auto transfer_resource_result =
 			TransferResource::create(context.allocator, size, output_data.size(), target_format);
@@ -137,9 +89,7 @@ namespace vulkan::impl
 
 		/* Record commands */
 
-		if (const auto result = commit_resource.command_buffer.begin(vk::CommandBufferBeginInfo{}); !result)
-			return Error::from(result);
-		{
+		const auto command_func = [&](const vk::raii::CommandBuffer& command_buffer) {
 			const auto subresource_range = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor);
 			const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
 
@@ -168,9 +118,7 @@ namespace vulkan::impl
 				};
 
 				const auto barriers = std::to_array({src_barrier, dst_barrier});
-				commit_resource.command_buffer.pipelineBarrier2(
-					vk::DependencyInfo().setImageMemoryBarriers(barriers)
-				);
+				command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(barriers));
 			}
 
 			// Blit
@@ -186,7 +134,7 @@ namespace vulkan::impl
 					.dstOffsets = region
 				};
 
-				commit_resource.command_buffer.blitImage(
+				command_buffer.blitImage(
 					src_image,
 					vk::ImageLayout::eTransferSrcOptimal,
 					transfer_resource.blit_dst_image,
@@ -219,9 +167,7 @@ namespace vulkan::impl
 					.subresourceRange = subresource_range
 				};
 				const auto barriers = std::to_array({src_barrier, dst_barrier});
-				commit_resource.command_buffer.pipelineBarrier2(
-					vk::DependencyInfo().setImageMemoryBarriers(barriers)
-				);
+				command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(barriers));
 			}
 
 			// Copy
@@ -232,35 +178,17 @@ namespace vulkan::impl
 					.imageExtent = {.width = size.x, .height = size.y, .depth = 1}
 				};
 
-				commit_resource.command_buffer.copyImageToBuffer(
+				command_buffer.copyImageToBuffer(
 					transfer_resource.blit_dst_image,
 					vk::ImageLayout::eTransferSrcOptimal,
 					transfer_resource.readback_buffer,
 					copy_region
 				);
 			}
-		}
-		if (const auto result = commit_resource.command_buffer.end(); !result) return Error::from(result);
+		};
 
-		/* Submit */
-
-		const auto command_buffers = std::to_array<vk::CommandBuffer>({*commit_resource.command_buffer});
-
-		{
-			const std::scoped_lock lock(context.submit_mutex);
-			if (const auto result =
-					context.queue
-						.submit(vk::SubmitInfo().setCommandBuffers(command_buffers), *commit_resource.fence);
-				!result)
-				return Error::from(result);
-		}
-
-		/* Wait for fences */
-
-		if (const auto wait_result =
-				context.device.waitForFences(*commit_resource.fence, vk::True, 1'000'000'000);
-			wait_result != vk::Result::eSuccess)
-			return Error::from(wait_result);
+		const auto run_result = command_runner.run(context, command_func);
+		if (!run_result) return run_result.error().forward("Download resources failed");
 
 		/* Download data */
 

@@ -39,7 +39,9 @@ static constexpr auto LARGE_TEX_NPOT_BC_MIPMAP_LEVELS = LARGE_TEX_NPOT_RAW_MIPMA
 
 TEST_CASE("Raw")
 {
-	vulkan::StaticResourceCreator resource_creator;
+	auto resource_creator_result = vulkan::StaticResourceCreator::create(vulkan::get_test_context().get());
+	EXPECT_SUCCESS(resource_creator_result);
+	auto resource_creator = std::move(*resource_creator_result);
 
 	auto load_result_8bit = render::Texture::load_color_texture(
 		vulkan::get_test_context().get(),
@@ -91,7 +93,9 @@ TEST_CASE("Raw")
 
 TEST_CASE("All BC3")
 {
-	vulkan::StaticResourceCreator resource_creator;
+	auto resource_creator_result = vulkan::StaticResourceCreator::create(vulkan::get_test_context().get());
+	EXPECT_SUCCESS(resource_creator_result);
+	auto resource_creator = std::move(*resource_creator_result);
 
 	auto load_result_8bit_bc3 = render::Texture::load_color_texture(
 		vulkan::get_test_context().get(),
@@ -143,7 +147,9 @@ TEST_CASE("All BC3")
 
 TEST_CASE("All BC7")
 {
-	vulkan::StaticResourceCreator resource_creator;
+	auto resource_creator_result = vulkan::StaticResourceCreator::create(vulkan::get_test_context().get());
+	EXPECT_SUCCESS(resource_creator_result);
+	auto resource_creator = std::move(*resource_creator_result);
 
 	auto load_result_8bit_bc7 = render::Texture::load_color_texture(
 		vulkan::get_test_context().get(),
@@ -195,7 +201,9 @@ TEST_CASE("All BC7")
 
 TEST_CASE("BalancedBC")
 {
-	vulkan::StaticResourceCreator resource_creator;
+	auto resource_creator_result = vulkan::StaticResourceCreator::create(vulkan::get_test_context().get());
+	EXPECT_SUCCESS(resource_creator_result);
+	auto resource_creator = std::move(*resource_creator_result);
 
 	// Balanced: use BC7 for small textures, BC3 for > 1024px
 

@@ -7,18 +7,18 @@
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/glm.hpp"
+#include "vulkan/util/command-runner.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
 
 #include <cstdint>
 #include <expected>
 #include <glm/ext/matrix_float4x4.hpp>
-#include <limits>
-#include <mutex>
 #include <ranges>
 #include <span>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace render
 {
@@ -52,7 +52,10 @@ namespace render
 				model.hierarchy.get_renderables() | std::views::transform(get_tlas_instance)
 			);
 
-			vulkan::StaticResourceCreator resource_creator;
+			auto resource_creator_result = vulkan::StaticResourceCreator::create(context);
+			if (!resource_creator_result)
+				return resource_creator_result.error().forward("Create resource creator failed");
+			auto resource_creator = std::move(*resource_creator_result);
 
 			auto instance_buffer_result = resource_creator.create_array_buffer(
 				context,
@@ -163,55 +166,24 @@ namespace render
 			.type = vk::AccelerationStructureTypeKHR::eTopLevel,
 		};
 		auto tlas_result = context.device.createAccelerationStructureKHR(tlas_create_info);
-		if (!tlas_result) return Error::from(tlas_result).forward("Create BLAS failed");
+		if (!tlas_result) return Error::from(tlas_result).forward("Create TLAS failed");
 		auto tlas = std::move(*tlas_result);
 
 		build_info.setDstAccelerationStructure(tlas);
 
 		/* Build TLAS */
 
-		// Create command pool
-		auto command_pool_result = context.device.createCommandPool({
-			.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-			.queueFamilyIndex = context.family,
-		});
-		if (!command_pool_result) return Error::from(command_pool_result);
-		auto command_pool = std::move(*command_pool_result);
+		auto runner_result = vulkan::CommandRunner::create(context);
+		if (!runner_result) return runner_result.error().forward("Create command runner failed");
+		auto runner = std::move(*runner_result);
 
-		// Create command buffer
-		auto command_buffer_result = context.device.allocateCommandBuffers({
-			.commandPool = command_pool,
-			.level = vk::CommandBufferLevel::ePrimary,
-			.commandBufferCount = 1,
-		});
-		if (!command_buffer_result) return Error::from(command_buffer_result);
-		auto command_buffer = std::move(command_buffer_result->at(0));
-
-		// Create fence
-		auto fence_result = context.device.createFence({});
-		if (!fence_result) return Error::from(fence_result);
-		auto fence = std::move(*fence_result);
-
-		if (const auto result = command_buffer.begin({}); !result) return Error::from(result);
-
-		command_buffer.buildAccelerationStructuresKHR({build_info}, {&build_range_info});
-
-		if (const auto result = command_buffer.end(); !result) return Error::from(result);
-
-		const auto command_buffer_info = vk::CommandBufferSubmitInfo{.commandBuffer = command_buffer};
-		const auto submit_info = vk::SubmitInfo2().setCommandBufferInfos(command_buffer_info);
-
-		{
-			const std::scoped_lock lock(context.submit_mutex);
-
-			if (const auto submit_result = context.queue.submit2(submit_info, fence); !submit_result)
-				return Error::from(submit_result);
-		}
-
-		if (const auto result =
-				context.device.waitForFences({fence}, vk::True, std::numeric_limits<uint64_t>::max());
-			result != vk::Result::eSuccess)
-			return Error::from(result);
+		const auto run_result = runner.run(
+			context,
+			[&build_info, &build_range_info](const vk::raii::CommandBuffer& command_buffer) {
+				command_buffer.buildAccelerationStructuresKHR({build_info}, {&build_range_info});
+			}
+		);
+		if (!run_result) return run_result.error().forward("Build TLAS failed");
 
 		return Tlas(std::move(instance_buffer), std::move(tlas_buffer), std::move(tlas));
 	}

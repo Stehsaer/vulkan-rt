@@ -9,27 +9,39 @@
 #include "vulkan/alloc/image.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
+#include "vulkan/util/command-runner.hpp"
 
 #include <algorithm>
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <functional>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <glm/vector_relational.hpp>
-#include <limits>
 #include <mutex>
 #include <ranges>
 #include <span>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
 namespace vulkan
 {
+
+	std::expected<StaticResourceCreator, Error> StaticResourceCreator::create(
+		const vulkan::Context& context
+	) noexcept
+	{
+		auto command_runner_result = CommandRunner::create(context);
+		if (!command_runner_result)
+			return command_runner_result.error().forward("Create command runner failed");
+		return StaticResourceCreator(std::move(*command_runner_result));
+	}
+
 #pragma region Utility
+
 	std::expected<Buffer, Error> StaticResourceCreator::create_staging_buffer(
 		const Context& context,
 		std::span<const std::byte> data
@@ -388,31 +400,6 @@ namespace vulkan
 	{
 		if (buffer_tasks.empty() && image_tasks.empty()) return {};
 
-		/* Create command pool */
-
-		auto command_pool_result = context.device.createCommandPool(
-			{.flags = vk::CommandPoolCreateFlagBits::eTransient, .queueFamilyIndex = context.family}
-		);
-		if (!command_pool_result) return Error::from(command_pool_result);
-		auto command_pool = std::move(*command_pool_result);
-
-		/* Create command buffer */
-
-		auto allocated_command_buffers_result = context.device.allocateCommandBuffers({
-			.commandPool = command_pool,
-			.level = vk::CommandBufferLevel::ePrimary,
-			.commandBufferCount = 1,
-		});
-		if (!allocated_command_buffers_result) return Error::from(allocated_command_buffers_result);
-		auto allocated_command_buffers = std::move(*allocated_command_buffers_result);
-		auto command_buffer = std::move(allocated_command_buffers[0]);
-
-		/* Create fence */
-
-		auto fence_result = context.device.createFence({});
-		if (!fence_result) return Error::from(fence_result);
-		auto fence = std::move(*fence_result);
-
 		/* Synchronization infos */
 
 		const auto buffer_barrier_post = vk::MemoryBarrier2{
@@ -431,12 +418,7 @@ namespace vulkan
 			| std::ranges::to<std::vector>();
 
 		/* Record commands */
-
-		if (const auto result =
-				command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-			!result)
-			return Error::from(result);
-		{
+		const auto command_func = [&](const vk::raii::CommandBuffer& command_buffer) {
 			// Copy buffers
 			for (const auto& task : buffer_tasks)
 			{
@@ -480,25 +462,8 @@ namespace vulkan
 				command_buffer.pipelineBarrier2(
 					vk::DependencyInfo{}.setImageMemoryBarriers(image_barriers_post)
 				);
-		}
-		if (const auto result = command_buffer.end(); !result) return Error::from(result);
+		};
 
-		/* Submit and wait for results */
-
-		const auto command_buffers = std::to_array<vk::CommandBuffer>({command_buffer});
-		const auto submit_info = vk::SubmitInfo{}.setCommandBuffers(command_buffers);
-
-		{
-			const std::scoped_lock lock(context.submit_mutex);
-			if (const auto result = context.queue.submit(submit_info, fence); !result)
-				return Error::from(result);
-		}
-
-		if (const auto result =
-				context.device.waitForFences({fence}, vk::True, std::numeric_limits<uint64_t>::max());
-			result != vk::Result::eSuccess)
-			return Error::from(result);
-
-		return {};
+		return command_runner.run(context, command_func);
 	}
 }

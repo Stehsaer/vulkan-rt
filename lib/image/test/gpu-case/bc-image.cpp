@@ -1,3 +1,4 @@
+#include "vulkan/interface/context.hpp"
 #define DOCTEST_CONFIG_IMPLEMENT
 
 #include <algorithm>
@@ -123,8 +124,10 @@ static void check_bc3(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(bc3_image_result);
 	auto bc3_image = std::move(*bc3_image_result);
 
-	vulkan::StaticResourceCreator resource_creator;
 	const auto context = context_ptr->device_context.get();
+	auto resource_creator_result = vulkan::StaticResourceCreator::create(context);
+	EXPECT_SUCCESS(resource_creator_result);
+	auto resource_creator = std::move(*resource_creator_result);
 
 	auto gpu_image_result = resource_creator.create_image_bcn(
 		context,
@@ -179,9 +182,10 @@ static void check_bc5(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(bc5_image_result);
 	auto bc5_image = std::move(*bc5_image_result);
 
-	vulkan::StaticResourceCreator resource_creator;
 	const auto context = context_ptr->device_context.get();
-
+	auto resource_creator_result = vulkan::StaticResourceCreator::create(context);
+	EXPECT_SUCCESS(resource_creator_result);
+	auto resource_creator = std::move(*resource_creator_result);
 	auto gpu_image_result = resource_creator.create_image_bcn(
 		context,
 		bc5_image,
@@ -236,9 +240,10 @@ static void check_bc7(const std::string_view& name, std::span<const std::byte> i
 	EXPECT_SUCCESS(bc7_image_result);
 	auto bc7_image = std::move(*bc7_image_result);
 
-	vulkan::StaticResourceCreator resource_creator;
 	const auto context = context_ptr->device_context.get();
-
+	auto resource_creator_result = vulkan::StaticResourceCreator::create(context);
+	EXPECT_SUCCESS(resource_creator_result);
+	auto resource_creator = std::move(*resource_creator_result);
 	auto gpu_image_result = resource_creator.create_image_bcn(
 		context,
 		bc7_image,

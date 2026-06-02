@@ -166,7 +166,10 @@ namespace render
 		LoadOption load_option
 	) noexcept
 	{
-		vulkan::StaticResourceCreator resource_creator;
+		auto resource_creator_result = vulkan::StaticResourceCreator::create(context);
+		if (!resource_creator_result)
+			co_return resource_creator_result.error().forward("Create resource creator failed");
+		auto resource_creator = std::move(*resource_creator_result);
 
 		/* Load and upload default textures */
 
