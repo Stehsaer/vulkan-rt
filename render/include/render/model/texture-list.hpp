@@ -140,11 +140,12 @@ namespace render
 		[[nodiscard]]
 		static coro::task<std::expected<TextureTuple, Error>> create_texture_tuple(
 			coro::thread_pool& thread_pool,
+			const util::Progress& progress,
+			const vulkan::Context& context,
 			vulkan::StaticResourceCreator& resource_creator,
 			const model::Texture& texture,
 			model::TextureUsage texture_usage,
-			LoadOption load_option,
-			const util::Progress& progress
+			LoadOption load_option
 		) noexcept;
 
 	  public:

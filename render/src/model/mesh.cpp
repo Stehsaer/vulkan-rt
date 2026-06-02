@@ -110,7 +110,7 @@ namespace render
 			const MeshCollectResult& collect_result
 		) noexcept
 		{
-			vulkan::StaticResourceCreator resource_creator(context);
+			vulkan::StaticResourceCreator resource_creator;
 
 			vk::BufferUsageFlags geometry_buffer_extra_flgs = vk::BufferUsageFlagBits::eShaderDeviceAddress;
 			if (context.feature.raytracing)
@@ -118,14 +118,17 @@ namespace render
 					vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR;
 
 			auto vertex_buffer_result = resource_creator.create_array_buffer(
+				context,
 				collect_result.vertices,
 				vk::BufferUsageFlagBits::eVertexBuffer | geometry_buffer_extra_flgs
 			);
 			auto index_buffer_result = resource_creator.create_array_buffer(
+				context,
 				collect_result.indices,
 				vk::BufferUsageFlagBits::eIndexBuffer | geometry_buffer_extra_flgs
 			);
 			auto primitive_attr_buffer_result = resource_creator.create_array_buffer(
+				context,
 				collect_result.primitive_attrs,
 				vk::BufferUsageFlagBits::eStorageBuffer
 			);
@@ -141,7 +144,7 @@ namespace render
 			auto index_buffer = std::move(*index_buffer_result);
 			auto primitive_attr_buffer = std::move(*primitive_attr_buffer_result);
 
-			if (const auto upload_result = resource_creator.execute_uploads(); !upload_result)
+			if (const auto upload_result = resource_creator.execute_uploads(context); !upload_result)
 				return upload_result.error().forward("Execute upload tasks failed");
 
 			return BufferResult{

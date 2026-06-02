@@ -33,16 +33,19 @@ namespace resource
 			return exposure_mask_image_result.error().forward("Decode exposure mask image failed");
 		auto exposure_mask_image = std::move(*exposure_mask_image_result);
 
-		auto resource_creator = vulkan::StaticResourceCreator(context);
+		vulkan::StaticResourceCreator resource_creator;
 
-		auto exposure_mask_texture_result =
-			resource_creator
-				.create_image(exposure_mask_image, vk::Format::eR8Unorm, vk::ImageUsageFlagBits::eSampled);
+		auto exposure_mask_texture_result = resource_creator.create_image(
+			context,
+			exposure_mask_image,
+			vk::Format::eR8Unorm,
+			vk::ImageUsageFlagBits::eSampled
+		);
 		if (!exposure_mask_texture_result)
 			return exposure_mask_texture_result.error().forward("Create exposure mask texture failed");
 		auto exposure_mask_texture = std::move(*exposure_mask_texture_result);
 
-		if (const auto result = resource_creator.execute_uploads(); !result)
+		if (const auto result = resource_creator.execute_uploads(context); !result)
 			return result.error().forward("Upload exposure mask texture failed");
 
 		auto exposure_mask_view_result = context.device.createImageView(

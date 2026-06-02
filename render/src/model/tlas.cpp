@@ -52,9 +52,10 @@ namespace render
 				model.hierarchy.get_renderables() | std::views::transform(get_tlas_instance)
 			);
 
-			vulkan::StaticResourceCreator resource_creator(context);
+			vulkan::StaticResourceCreator resource_creator;
 
 			auto instance_buffer_result = resource_creator.create_array_buffer(
+				context,
 				instances,
 				vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR
 					| vk::BufferUsageFlagBits::eShaderDeviceAddress
@@ -63,7 +64,7 @@ namespace render
 				return instance_buffer_result.error().forward("Create instance buffer failed");
 			auto instance_buffer = std::move(*instance_buffer_result);
 
-			if (const auto result = resource_creator.execute_uploads(); !result)
+			if (const auto result = resource_creator.execute_uploads(context); !result)
 				return result.error().forward("Upload resources failed");
 
 			return instance_buffer;

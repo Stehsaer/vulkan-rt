@@ -6,6 +6,7 @@
 #include "image/image.hpp"
 #include "model/texture.hpp"
 #include "vulkan/alloc/image.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
 
 #include <cstddef>
@@ -110,13 +111,16 @@ namespace render
 		/// @warning Calling this function will add image upload tasks to the creator, but will not execute
 		/// them. Call `vulkan::StaticResourceCreator::execute_uploads` to actually execute the upload tasks.
 		///
-		/// @param load_context Load context
+		/// @param context Vulkan context
+		/// @param resource_creator Resource creator instance
 		/// @param texture Input texture
 		/// @param load_strategy Color image loading strategy
+		/// @param usage Vulkan image usage, defaulted to `eSampled`
 		/// @return Loaded texture, or error
 		///
 		[[nodiscard]]
 		static std::expected<Texture, Error> load_color_texture(
+			const vulkan::Context& context,
 			vulkan::StaticResourceCreator& resource_creator,
 			const model::Texture& texture,
 			ColorLoadStrategy load_strategy,
@@ -129,13 +133,16 @@ namespace render
 		/// not execute them. Call `vulkan::StaticResourceCreator::execute_uploads` to actually execute the
 		/// upload tasks.
 		///
-		/// @param load_context Load context
+		/// @param context Vulkan context
+		/// @param resource_creator Resource creator instance
 		/// @param texture Input texture
 		/// @param load_strategy Normal map loading strategy
+		/// @param usage Vulkan image usage, defaulted to `eSampled`
 		/// @return Loaded texture, or error
 		///
 		[[nodiscard]]
 		static std::expected<Texture, Error> load_normal_texture(
+			const vulkan::Context& context,
 			vulkan::StaticResourceCreator& resource_creator,
 			const model::Texture& texture,
 			NormalLoadStrategy load_strategy,
@@ -160,6 +167,7 @@ namespace render
 		// Load RGBA8_UNORM image, if `allow_resize` is set to true, NPOT image is resized as POT image and
 		// mipmap is generated
 		static std::expected<Texture, Error> load_rgba8_unorm(
+			const vulkan::Context& context,
 			vulkan::StaticResourceCreator& resource_creator,
 			const image::Image<image::Format::Unorm8, image::Layout::RGBA>& image,
 			vk::ImageUsageFlags usage
@@ -167,6 +175,7 @@ namespace render
 
 		// Load BCn image, resize and generate mipmap
 		static std::expected<Texture, Error> load_bcn(
+			const vulkan::Context& context,
 			vulkan::StaticResourceCreator& resource_creator,
 			const image::Image<image::Format::Unorm8, image::Layout::RGBA>& image,
 			image::BCnFormat format,
@@ -174,12 +183,14 @@ namespace render
 		) noexcept;
 
 		static std::expected<Texture, Error> load_rg8_unorm(
+			const vulkan::Context& context,
 			vulkan::StaticResourceCreator& resource_creator,
 			const image::Image<image::Format::Unorm8, image::Layout::RGBA>& image,
 			vk::ImageUsageFlags usage
 		) noexcept;
 
 		static std::expected<Texture, Error> load_rg16_unorm(
+			const vulkan::Context& context,
 			vulkan::StaticResourceCreator& resource_creator,
 			const image::Image<image::Format::Unorm16, image::Layout::RGBA>& image,
 			vk::ImageUsageFlags usage

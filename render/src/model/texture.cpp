@@ -6,6 +6,7 @@
 #include "image/common.hpp"
 #include "image/image.hpp"
 #include "model/texture.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
 
 #include <cstdint>
@@ -24,6 +25,7 @@
 namespace render
 {
 	std::expected<Texture, Error> Texture::load_rgba8_unorm(
+		const vulkan::Context& context,
 		vulkan::StaticResourceCreator& resource_creator,
 		const image::Image<image::Format::Unorm8, image::Layout::RGBA>& image,
 		vk::ImageUsageFlags usage
@@ -36,6 +38,7 @@ namespace render
 		/* Create vulkan image */
 
 		auto image_result = resource_creator.create_image_mipmap(
+			context,
 			mipmap_chain,
 			vk::Format::eR8G8B8A8Unorm,
 			usage,
@@ -55,6 +58,7 @@ namespace render
 	}
 
 	std::expected<Texture, Error> Texture::load_bcn(
+		const vulkan::Context& context,
 		vulkan::StaticResourceCreator& resource_creator,
 		const image::Image<image::Format::Unorm8, image::Layout::RGBA>& image,
 		image::BCnFormat format,
@@ -91,6 +95,7 @@ namespace render
 		/* Create vulkan image */
 
 		auto image_result = resource_creator.create_image_mipmap_bcn(
+			context,
 			mipmap_chain,
 			false,
 			usage,
@@ -110,6 +115,7 @@ namespace render
 	}
 
 	std::expected<Texture, Error> Texture::load_rg8_unorm(
+		const vulkan::Context& context,
 		vulkan::StaticResourceCreator& resource_creator,
 		const image::Image<image::Format::Unorm8, image::Layout::RGBA>& image,
 		vk::ImageUsageFlags usage
@@ -121,6 +127,7 @@ namespace render
 
 		return resource_creator
 			.create_image_mipmap(
+				context,
 				mipmap_chain,
 				vk::Format::eR8G8Unorm,
 				usage,
@@ -138,6 +145,7 @@ namespace render
 	}
 
 	std::expected<Texture, Error> Texture::load_rg16_unorm(
+		const vulkan::Context& context,
 		vulkan::StaticResourceCreator& resource_creator,
 		const image::Image<image::Format::Unorm16, image::Layout::RGBA>& image,
 		vk::ImageUsageFlags usage
@@ -149,6 +157,7 @@ namespace render
 
 		return resource_creator
 			.create_image_mipmap(
+				context,
 				mipmap_chain,
 				vk::Format::eR16G16Unorm,
 				usage,
@@ -166,6 +175,7 @@ namespace render
 	}
 
 	std::expected<Texture, Error> Texture::load_color_texture(
+		const vulkan::Context& context,
 		vulkan::StaticResourceCreator& resource_creator,
 		const model::Texture& texture,
 		ColorLoadStrategy load_strategy,
@@ -179,16 +189,17 @@ namespace render
 		switch (load_strategy)
 		{
 		case ColorLoadStrategy::Raw:
-			return load_rgba8_unorm(resource_creator, image, usage);
+			return load_rgba8_unorm(context, resource_creator, image, usage);
 
 		case ColorLoadStrategy::AllBC3:
-			return load_bcn(resource_creator, image, image::BCnFormat::BC3, usage);
+			return load_bcn(context, resource_creator, image, image::BCnFormat::BC3, usage);
 
 		case ColorLoadStrategy::AllBC7:
-			return load_bcn(resource_creator, image, image::BCnFormat::BC7, usage);
+			return load_bcn(context, resource_creator, image, image::BCnFormat::BC7, usage);
 
 		case ColorLoadStrategy::BalancedBC:
 			return load_bcn(
+				context,
 				resource_creator,
 				image,
 				glm::max(image.size.x, image.size.y) <= BC7_THRESHOLD
@@ -203,6 +214,7 @@ namespace render
 	}
 
 	std::expected<Texture, Error> Texture::load_normal_texture(
+		const vulkan::Context& context,
 		vulkan::StaticResourceCreator& resource_creator,
 		const model::Texture& texture,
 		NormalLoadStrategy load_strategy,
@@ -228,20 +240,27 @@ namespace render
 		switch (load_strategy)
 		{
 		case NormalLoadStrategy::AllUnorm8:
-			return load_rg8_unorm(resource_creator, std::visit(convert_to_unorm8, image), usage);
+			return load_rg8_unorm(context, resource_creator, std::visit(convert_to_unorm8, image), usage);
 
 		case NormalLoadStrategy::AdaptiveUnorm:
 			return std::holds_alternative<Unorm16Image>(image)
-				? load_rg16_unorm(resource_creator, std::get<Unorm16Image>(image), usage)
-				: load_rg8_unorm(resource_creator, std::get<Unorm8Image>(image), usage);
+				? load_rg16_unorm(context, resource_creator, std::get<Unorm16Image>(image), usage)
+				: load_rg8_unorm(context, resource_creator, std::get<Unorm8Image>(image), usage);
 
 		case NormalLoadStrategy::AdaptiveUnormBC5:
 			return std::holds_alternative<Unorm16Image>(image)
-				? load_rg16_unorm(resource_creator, std::get<Unorm16Image>(image), usage)
-				: load_bcn(resource_creator, std::get<Unorm8Image>(image), image::BCnFormat::BC5, usage);
+				? load_rg16_unorm(context, resource_creator, std::get<Unorm16Image>(image), usage)
+				: load_bcn(
+					  context,
+					  resource_creator,
+					  std::get<Unorm8Image>(image),
+					  image::BCnFormat::BC5,
+					  usage
+				  );
 
 		case NormalLoadStrategy::AllBC5:
 			return load_bcn(
+				context,
 				resource_creator,
 				std::visit(convert_to_unorm8, image),
 				image::BCnFormat::BC5,

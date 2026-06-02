@@ -7,6 +7,7 @@
 #include "vulkan/alloc/allocator.hpp"
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/alloc/image.hpp"
+#include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
 
 #include <algorithm>
@@ -30,10 +31,11 @@ namespace vulkan
 {
 #pragma region Utility
 	std::expected<Buffer, Error> StaticResourceCreator::create_staging_buffer(
+		const Context& context,
 		std::span<const std::byte> data
 	) noexcept
 	{
-		auto staging_buffer_result = allocator.get().create_buffer(
+		auto staging_buffer_result = context.allocator.create_buffer(
 			vk::BufferCreateInfo{.size = data.size_bytes(), .usage = vk::BufferUsageFlagBits::eTransferSrc},
 			MemoryUsage::CpuToGpu
 		);
@@ -136,16 +138,17 @@ namespace vulkan
 #pragma region Creation
 
 	std::expected<Buffer, Error> StaticResourceCreator::create_buffer(
+		const Context& context,
 		std::span<const std::byte> data,
 		vk::BufferUsageFlags usage
 	) noexcept
 	{
-		auto staging_buffer_result = create_staging_buffer(data);
+		auto staging_buffer_result = create_staging_buffer(context, data);
 		if (!staging_buffer_result)
 			return staging_buffer_result.error().forward("Create staging buffer failed");
 		auto staging_buffer = std::move(*staging_buffer_result);
 
-		auto dst_buffer_result = allocator.get().create_buffer(
+		auto dst_buffer_result = context.allocator.create_buffer(
 			vk::BufferCreateInfo{
 				.size = data.size_bytes(),
 				.usage = usage | vk::BufferUsageFlagBits::eTransferDst
@@ -169,6 +172,7 @@ namespace vulkan
 	}
 
 	std::expected<Image, Error> StaticResourceCreator::create_image_bcn(
+		const Context& context,
 		const image::BCnImage& image,
 		bool srgb,
 		vk::ImageUsageFlags usage,
@@ -188,11 +192,11 @@ namespace vulkan
 			.arrayLayers = 1,
 			.usage = usage | vk::ImageUsageFlagBits::eTransferDst
 		};
-		auto image_result = allocator.get().create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
+		auto image_result = context.allocator.create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
 		if (!image_result) return image_result.error().forward("Create gpu image failed");
 		auto dst_image = std::move(*image_result);
 
-		auto staging_buffer_result = create_staging_buffer(util::as_bytes(image.data));
+		auto staging_buffer_result = create_staging_buffer(context, util::as_bytes(image.data));
 		if (!staging_buffer_result)
 			return staging_buffer_result.error().forward("Create staging buffer failed");
 
@@ -212,6 +216,7 @@ namespace vulkan
 	}
 
 	std::expected<Image, Error> StaticResourceCreator::create_image_mipmap_bcn(
+		const Context& context,
 		const std::span<const image::BCnImage>& mipmap_chain,
 		bool srgb,
 		vk::ImageUsageFlags usage,
@@ -263,15 +268,18 @@ namespace vulkan
 			.arrayLayers = 1,
 			.usage = usage | vk::ImageUsageFlagBits::eTransferDst
 		};
-		auto image_result = allocator.get().create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
+		auto image_result = context.allocator.create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
 		if (!image_result) return image_result.error().forward("Create gpu image failed");
 		auto dst_image = std::move(*image_result);
 
 		/* Create staging buffers */
 
-		auto staging_buffer_result = mipmap_chain
+		auto staging_buffer_result =
+			mipmap_chain
 			| std::views::transform([](const auto& image) { return util::as_bytes(image.data); })
-			| std::views::transform([this](auto data) { return create_staging_buffer(data); })
+			| std::views::transform([this, &context](auto data) {
+				  return create_staging_buffer(context, data);
+			  })
 			| Error::collect();
 		if (!staging_buffer_result)
 			return staging_buffer_result.error().forward("Create staging buffers failed");
@@ -333,6 +341,7 @@ namespace vulkan
 	}
 
 	std::expected<void, Error> StaticResourceCreator::execute_uploads_with_size_thres(
+		const Context& context,
 		size_t size_thres
 	) noexcept
 	{
@@ -350,10 +359,10 @@ namespace vulkan
 			pending_data_size = 0;
 		}
 
-		return execute_uploads_impl(buffer_tasks, image_tasks);
+		return execute_uploads_impl(context, buffer_tasks, image_tasks);
 	}
 
-	std::expected<void, Error> StaticResourceCreator::execute_uploads() noexcept
+	std::expected<void, Error> StaticResourceCreator::execute_uploads(const Context& context) noexcept
 	{
 		// Note: these buffers has 0 size before use, no extra alloc
 		std::vector<BufferUploadTask> buffer_tasks;
@@ -368,10 +377,11 @@ namespace vulkan
 			pending_data_size = 0;
 		}
 
-		return execute_uploads_impl(buffer_tasks, image_tasks);
+		return execute_uploads_impl(context, buffer_tasks, image_tasks);
 	}
 
 	std::expected<void, Error> StaticResourceCreator::execute_uploads_impl(
+		const Context& context,
 		const std::vector<BufferUploadTask>& buffer_tasks,
 		const std::vector<ImageUploadTask>& image_tasks
 	) noexcept
@@ -380,24 +390,26 @@ namespace vulkan
 
 		/* Create command pool */
 
-		auto command_pool_result = device.get().createCommandPool(
-			{.flags = vk::CommandPoolCreateFlagBits::eTransient, .queueFamilyIndex = queue_family}
+		auto command_pool_result = context.device.createCommandPool(
+			{.flags = vk::CommandPoolCreateFlagBits::eTransient, .queueFamilyIndex = context.family}
 		);
 		if (!command_pool_result) return Error::from(command_pool_result);
 		auto command_pool = std::move(*command_pool_result);
 
 		/* Create command buffer */
 
-		auto allocated_command_buffers_result = device.get().allocateCommandBuffers(
-			{.commandPool = command_pool, .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1}
-		);
+		auto allocated_command_buffers_result = context.device.allocateCommandBuffers({
+			.commandPool = command_pool,
+			.level = vk::CommandBufferLevel::ePrimary,
+			.commandBufferCount = 1,
+		});
 		if (!allocated_command_buffers_result) return Error::from(allocated_command_buffers_result);
 		auto allocated_command_buffers = std::move(*allocated_command_buffers_result);
 		auto command_buffer = std::move(allocated_command_buffers[0]);
 
 		/* Create fence */
 
-		auto fence_result = device.get().createFence({});
+		auto fence_result = context.device.createFence({});
 		if (!fence_result) return Error::from(fence_result);
 		auto fence = std::move(*fence_result);
 
@@ -477,13 +489,13 @@ namespace vulkan
 		const auto submit_info = vk::SubmitInfo{}.setCommandBuffers(command_buffers);
 
 		{
-			const std::scoped_lock lock(submit_mutex.get());
-			if (const auto result = transfer_queue.get().submit(submit_info, fence); !result)
+			const std::scoped_lock lock(context.submit_mutex);
+			if (const auto result = context.queue.submit(submit_info, fence); !result)
 				return Error::from(result);
 		}
 
 		if (const auto result =
-				device.get().waitForFences({fence}, vk::True, std::numeric_limits<uint64_t>::max());
+				context.device.waitForFences({fence}, vk::True, std::numeric_limits<uint64_t>::max());
 			result != vk::Result::eSuccess)
 			return Error::from(result);
 

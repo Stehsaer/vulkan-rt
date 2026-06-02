@@ -42,11 +42,13 @@ namespace render
 
 	// (color fallback, normal fallback, error hint texture)
 	static std::expected<std::tuple<Texture, Texture, Texture>, Error> load_fallback_textures(
+		const vulkan::Context& context,
 		vulkan::StaticResourceCreator& resource_creator,
 		TextureList::LoadOption load_option
 	) noexcept
 	{
 		auto color_fallback_result = Texture::load_color_texture(
+			context,
 			resource_creator,
 			model::Texture{.source = model::TextureSet::get_general_fallback_texture()},
 			Texture::ColorLoadStrategy::AllBC7,
@@ -57,6 +59,7 @@ namespace render
 		auto color_fallback = std::move(*color_fallback_result);
 
 		auto normal_fallback_result = Texture::load_normal_texture(
+			context,
 			resource_creator,
 			model::Texture{.source = model::TextureSet::get_normal_map_fallback_texture()},
 			Texture::NormalLoadStrategy::AllBC5,
@@ -67,6 +70,7 @@ namespace render
 		auto normal_fallback = std::move(*normal_fallback_result);
 
 		auto error_hint_texture_result = Texture::load_color_texture(
+			context,
 			resource_creator,
 			model::Texture{.source = get_error_hint_image()},
 			Texture::ColorLoadStrategy::Raw,
@@ -85,11 +89,12 @@ namespace render
 
 	coro::task<std::expected<TextureList::TextureTuple, Error>> TextureList::create_texture_tuple(
 		coro::thread_pool& thread_pool,
+		const util::Progress& progress,
+		const vulkan::Context& context,
 		vulkan::StaticResourceCreator& resource_creator,
 		const model::Texture& texture,
 		model::TextureUsage texture_usage,
-		LoadOption load_option,
-		const util::Progress& progress
+		LoadOption load_option
 	) noexcept
 	{
 		co_await thread_pool.schedule();
@@ -100,6 +105,7 @@ namespace render
 		if (texture_usage.linear || texture_usage.srgb)
 		{
 			auto color_texture_result = Texture::load_color_texture(
+				context,
 				resource_creator,
 				texture,
 				load_option.color_load_strategy,
@@ -120,6 +126,7 @@ namespace render
 		if (texture_usage.normal)
 		{
 			auto normal_texture_result = Texture::load_normal_texture(
+				context,
 				resource_creator,
 				texture,
 				load_option.normal_load_strategy,
@@ -138,7 +145,7 @@ namespace render
 		}
 
 		if (const auto upload_result =
-				resource_creator.execute_uploads_with_size_thres(load_option.max_pending_data_size);
+				resource_creator.execute_uploads_with_size_thres(context, load_option.max_pending_data_size);
 			!upload_result)
 			co_return upload_result.error().forward("Execute upload tasks failed");
 
@@ -159,25 +166,26 @@ namespace render
 		LoadOption load_option
 	) noexcept
 	{
-		auto resource_creator = vulkan::StaticResourceCreator(context);
+		vulkan::StaticResourceCreator resource_creator;
 
 		/* Load and upload default textures */
 
-		auto fallback_result = load_fallback_textures(resource_creator, load_option);
+		auto fallback_result = load_fallback_textures(context, resource_creator, load_option);
 		if (!fallback_result) co_return fallback_result.error().forward("Load fallback textures failed");
 		auto [color_fallback, normal_fallback, error_hint_texture] = std::move(*fallback_result);
 
 		/* Load material textures */
 
 		const auto task_func =
-			[&progress, &thread_pool, &resource_creator, &load_option](const auto& texture_info) {
+			[&progress, &thread_pool, &resource_creator, &load_option, &context](const auto& texture_info) {
 				return create_texture_tuple(
 					thread_pool,
+					progress,
+					context,
 					resource_creator,
 					texture_info.first,
 					texture_info.second,
-					load_option,
-					progress
+					load_option
 				);
 			};
 
@@ -193,7 +201,7 @@ namespace render
 
 		/* Last upload */
 
-		if (const auto upload_result = resource_creator.execute_uploads(); !upload_result)
+		if (const auto upload_result = resource_creator.execute_uploads(context); !upload_result)
 			co_return upload_result.error().forward("Execute upload tasks failed");
 
 		co_return TextureList(

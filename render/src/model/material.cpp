@@ -84,13 +84,14 @@ namespace render
 			const std::span<const MaterialInfo> material_infos
 		) noexcept
 		{
-			auto resource_creator = vulkan::StaticResourceCreator(context);
+			vulkan::StaticResourceCreator resource_creator;
 
 			auto buffer_result =
-				resource_creator.create_array_buffer(material_infos, vk::BufferUsageFlagBits::eStorageBuffer);
+				resource_creator
+					.create_array_buffer(context, material_infos, vk::BufferUsageFlagBits::eStorageBuffer);
 			if (!buffer_result) return buffer_result.error().forward("Create info buffer failed");
 
-			if (const auto upload_result = resource_creator.execute_uploads(); !upload_result)
+			if (const auto upload_result = resource_creator.execute_uploads(context); !upload_result)
 				return upload_result.error().forward("Upload info buffer failed");
 
 			return buffer_result;
