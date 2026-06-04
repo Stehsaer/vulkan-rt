@@ -28,6 +28,7 @@
 #include <optional>
 #include <utility>
 #include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace page
@@ -68,13 +69,13 @@ namespace page
 			vk::raii::CommandBuffer command_buffer;
 			resource::RenderResource render_resource;
 			resource::ResourceSet resource_set;
-			resource::SyncPrimitive sync_primitive;
+			resource::FrameSyncPrimitive sync_primitive;
 
 			explicit FrameResource(
 				vk::raii::CommandBuffer command_buffer,
 				resource::RenderResource render_resource,
 				resource::ResourceSet resource_set,
-				resource::SyncPrimitive sync_primitive
+				resource::FrameSyncPrimitive sync_primitive
 			) :
 				command_buffer(std::move(command_buffer)),
 				render_resource(std::move(render_resource)),
@@ -94,7 +95,8 @@ namespace page
 			const resource::RenderResource& render_resource;
 			const resource::RenderResource& prev_render_resource;
 			const resource::ResourceSet& resource_set;
-			const resource::SyncPrimitive& sync_primitive;
+			const resource::FrameSyncPrimitive& sync_primitive;
+			vk::Semaphore render_complete_semaphore;
 			vulkan::SwapchainContext::Frame swapchain;
 		};
 
@@ -126,6 +128,7 @@ namespace page
 
 		resource::Pipeline pipeline;
 		vulkan::Cycle<FrameResource> frame_resources;
+		std::vector<vk::raii::Semaphore> render_complete_semaphores;  // Indexed by swapchain image indices
 		resource::AuxResource aux_resource;
 
 		logic::DrawcallGenerator drawcall_generator;
@@ -176,6 +179,7 @@ namespace page
 			render::Tlas tlas,
 			resource::Pipeline pipeline,
 			vulkan::Cycle<FrameResource> frame_resources,
+			std::vector<vk::raii::Semaphore> render_complete_semaphores,
 			resource::AuxResource aux_resource
 		) :
 			context(std::move(context)),
@@ -185,6 +189,7 @@ namespace page
 			tlas(std::move(tlas)),
 			pipeline(std::move(pipeline)),
 			frame_resources(std::move(frame_resources)),
+			render_complete_semaphores(std::move(render_complete_semaphores)),
 			aux_resource(std::move(aux_resource))
 		{}
 

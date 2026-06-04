@@ -22,7 +22,8 @@ namespace page
 		std::string hint_message
 	) noexcept
 	{
-		auto image_page_result = helper::ImGuiPage::create(context.device.get());
+		auto image_page_result =
+			helper::ImGuiPage::create(context.device.get(), context.swapchain->image_count);
 		if (!image_page_result) return image_page_result.error().forward("Create ImGui page failed");
 		auto image_page = std::move(*image_page_result);
 

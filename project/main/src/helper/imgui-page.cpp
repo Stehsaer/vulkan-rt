@@ -23,7 +23,10 @@
 
 namespace helper
 {
-	std::expected<ImGuiPage, Error> ImGuiPage::create(const vulkan::Context& context) noexcept
+	std::expected<ImGuiPage, Error> ImGuiPage::create(
+		const vulkan::Context& context,
+		size_t swapchain_image_count
+	) noexcept
 	{
 		auto command_pool_result = context.device.createCommandPool(
 			vk::CommandPoolCreateInfo{
@@ -44,14 +47,34 @@ namespace helper
 			std::move(*command_buffer_result) | vulkan::Cycle<vk::raii::CommandBuffer>::into;
 
 		auto sync_primitives_result = std::views::iota(0_u32, config::INFLIGHT_FRAMES)
-			| std::views::transform([&](auto) { return resource::SyncPrimitive::create(context); })
+			| std::views::transform([&](auto) { return resource::FrameSyncPrimitive::create(context); })
 			| Error::collect();
 		if (!sync_primitives_result)
-			return sync_primitives_result.error().forward("Create sync primitives failed");
+			return sync_primitives_result.error().forward("Create frame sync primitives failed");
 		auto sync_primitives =
-			std::move(*sync_primitives_result) | vulkan::Cycle<resource::SyncPrimitive>::into;
+			std::move(*sync_primitives_result) | vulkan::Cycle<resource::FrameSyncPrimitive>::into;
 
-		return ImGuiPage(std::move(command_pool), std::move(command_buffers), std::move(sync_primitives));
+		auto render_complete_semaphores_result =
+			std::views::repeat(
+				[&context] { return context.device.createSemaphore({}); },
+				swapchain_image_count
+			)
+			| std::views::transform([](const auto& lambda) {
+				  return lambda().transform_error([](vk::Result result) { return Error::from(result); });
+			  })
+			| Error::collect();
+		if (!render_complete_semaphores_result)
+			return render_complete_semaphores_result.error().forward(
+				"Create swapchain image semaphores failed"
+			);
+		auto render_complete_semaphores = std::move(*render_complete_semaphores_result);
+
+		return ImGuiPage(
+			std::move(command_pool),
+			std::move(command_buffers),
+			std::move(sync_primitives),
+			std::move(render_complete_semaphores)
+		);
 	}
 
 	bool ImGuiPage::poll_events(resource::Context& context) const noexcept
@@ -77,11 +100,11 @@ namespace helper
 		resource::Context& context
 	) noexcept
 	{
-		sync_primitives.cycle();
+		frame_sync_primitives.cycle();
 		command_buffers.cycle();
 
 		if (const auto wait_result = context.device->waitForFences(
-				{sync_primitives.current().draw_fence},
+				{frame_sync_primitives.current().draw_fence},
 				vk::True,
 				std::numeric_limits<uint64_t>::max()
 			);
@@ -91,14 +114,15 @@ namespace helper
 		const auto swapchain_result = context.swapchain.acquire_next(
 			context.instance,
 			context.device,
-			sync_primitives.current().image_available_semaphore
+			frame_sync_primitives.current().image_available_semaphore
 		);
 		if (!swapchain_result) return swapchain_result.error().forward("Acquire swapchain failed");
 		return swapchain_result->transform([this](vulkan::SwapchainContext::Frame frame) {
 			return FrameContext{
 				.command_buffer = command_buffers.current(),
-				.sync = sync_primitives.current(),
-				.swapchain = frame
+				.sync = frame_sync_primitives.current(),
+				.render_complete_semaphore = render_complete_semaphores[frame.index],
+				.swapchain = frame,
 			};
 		});
 	}
@@ -172,7 +196,7 @@ namespace helper
 			const auto wait_semaphores =
 				std::to_array<vk::Semaphore>({frame_context.sync.image_available_semaphore});
 			const auto signal_semaphores =
-				std::to_array<vk::Semaphore>({frame_context.sync.render_finished_semaphore});
+				std::to_array<vk::Semaphore>({frame_context.render_complete_semaphore});
 			const auto submit_buffers = std::to_array<vk::CommandBuffer>({frame_context.command_buffer});
 			const auto wait_stages =
 				std::to_array<vk::PipelineStageFlags>({vk::PipelineStageFlagBits::eColorAttachmentOutput});
@@ -196,7 +220,7 @@ namespace helper
 			if (const auto present_result = context.swapchain.present(
 					context.device,
 					frame_context.swapchain,
-					frame_context.sync.render_finished_semaphore
+					frame_context.render_complete_semaphore
 				);
 				!present_result)
 				return present_result.error().forward("Present frame failed");

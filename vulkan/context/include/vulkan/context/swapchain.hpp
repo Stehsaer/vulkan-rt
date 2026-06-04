@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <utility>
 #include <variant>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -134,6 +135,7 @@ namespace vulkan
 		std::unique_ptr<const std::vector<uint32_t>> queue_family_indices;
 		vk::SurfaceFormatKHR surface_format;
 		vk::PresentModeKHR present_mode;
+		uint32_t image_count;
 
 		/* Swapchain State Machine */
 
@@ -159,8 +161,17 @@ namespace vulkan
 			vk::SharingMode sharing_mode,
 			std::vector<uint32_t> queue_family_indices,
 			vk::SurfaceFormatKHR surface_format,
-			vk::PresentModeKHR present_mode
-		) noexcept;
+			vk::PresentModeKHR present_mode,
+			uint32_t image_count
+		) noexcept :
+			sharing_mode(sharing_mode),
+			queue_family_indices(
+				std::make_unique<const std::vector<uint32_t>>(std::move(queue_family_indices))
+			),
+			surface_format(surface_format),
+			present_mode(present_mode),
+			image_count(image_count)
+		{}
 
 		[[nodiscard]]
 		std::expected<void, Error> recreate_swapchain(
@@ -175,13 +186,23 @@ namespace vulkan
 			std::span<const uint32_t> queue_family_indices;
 			vk::SurfaceFormatKHR surface_format;
 			vk::PresentModeKHR present_mode;
+			uint32_t image_count;
 
 			const ReadonlyWrapper* operator->() const noexcept { return this; }
 		};
 
 	  public:
 
-		ReadonlyWrapper operator->() const noexcept;
+		ReadonlyWrapper operator->() const noexcept
+		{
+			return ReadonlyWrapper{
+				.sharing_mode = sharing_mode,
+				.queue_family_indices = std::span(*queue_family_indices),
+				.surface_format = surface_format,
+				.present_mode = present_mode,
+				.image_count = image_count
+			};
+		}
 
 		SwapchainContext(const SwapchainContext&) = delete;
 		SwapchainContext(SwapchainContext&&) = default;

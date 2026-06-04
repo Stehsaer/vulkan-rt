@@ -12,13 +12,10 @@ namespace resource
 	///
 	/// @brief General sync primitives
 	///
-	struct SyncPrimitive
+	struct FrameSyncPrimitive
 	{
 		// Signaled when rendering complete
 		vk::raii::Fence draw_fence;
-
-		// Signaled when rendering complete (same as `draw_fence`)
-		vk::raii::Semaphore render_finished_semaphore;
 
 		// Signaled when last frame has finished present
 		vk::raii::Semaphore image_available_semaphore;
@@ -30,6 +27,6 @@ namespace resource
 		/// @return Created sync primitive or error
 		///
 		[[nodiscard]]
-		static std::expected<SyncPrimitive, Error> create(const vulkan::Context& context) noexcept;
+		static std::expected<FrameSyncPrimitive, Error> create(const vulkan::Context& context) noexcept;
 	};
 }

@@ -13,12 +13,12 @@
 #include <cassert>
 #include <cstdint>
 #include <expected>
+#include <format>
 #include <glm/common.hpp>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <libassert/assert.hpp>
 #include <memory>
 #include <optional>
-#include <span>
 #include <tuple>
 #include <utility>
 #include <variant>
@@ -149,18 +149,6 @@ namespace vulkan
 		}
 	}
 
-	SwapchainContext::SwapchainContext(
-		vk::SharingMode sharing_mode,
-		std::vector<uint32_t> queue_family_indices,
-		vk::SurfaceFormatKHR surface_format,
-		vk::PresentModeKHR present_mode
-	) noexcept :
-		sharing_mode(sharing_mode),
-		queue_family_indices(std::make_unique<const std::vector<uint32_t>>(std::move(queue_family_indices))),
-		surface_format(surface_format),
-		present_mode(present_mode)
-	{}
-
 	std::expected<SwapchainContext, Error> SwapchainContext::create(
 		const SurfaceInstanceContext& instance_context,
 		const SurfaceDeviceContext& device_context,
@@ -194,7 +182,7 @@ namespace vulkan
 			}
 		}();
 
-		return SwapchainContext(sharing_mode, queue_family_indices, surface_format, present_mode);
+		return SwapchainContext(sharing_mode, queue_family_indices, surface_format, present_mode, 3);
 	}
 
 	std::expected<std::optional<SwapchainContext::Frame>, Error> SwapchainContext::acquire_next(
@@ -327,8 +315,19 @@ namespace vulkan
 		if (!surface_capability_result) return Error::from(surface_capability_result);
 		const auto surface_capability = *surface_capability_result;
 
-		const auto image_count =
-			glm::clamp<uint32_t>(3, surface_capability.minImageCount, surface_capability.maxImageCount);
+		if (image_count < surface_capability.minImageCount
+			|| (surface_capability.maxImageCount != 0
+				&& this->image_count > surface_capability.maxImageCount))
+		{
+			return Error(
+				"Triple-buffer is not supported",
+				std::format(
+					"Min image count: {}, max image count: {}",
+					surface_capability.minImageCount,
+					surface_capability.maxImageCount
+				)
+			);
+		}
 		const auto min_extent =
 			glm::u32vec2(surface_capability.minImageExtent.width, surface_capability.minImageExtent.height);
 		const auto max_extent =
@@ -381,15 +380,5 @@ namespace vulkan
 		};
 
 		return {};
-	}
-
-	SwapchainContext::ReadonlyWrapper SwapchainContext::operator->() const noexcept
-	{
-		return ReadonlyWrapper{
-			.sharing_mode = sharing_mode,
-			.queue_family_indices = std::span(*queue_family_indices),
-			.surface_format = surface_format,
-			.present_mode = present_mode
-		};
 	}
 }

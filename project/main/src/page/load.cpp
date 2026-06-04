@@ -95,7 +95,8 @@ namespace page
 			return material_layout_result.error().forward("Create material layout failed");
 		auto material_layout = std::make_unique<render::MaterialLayout>(std::move(*material_layout_result));
 
-		auto imgui_page_result = helper::ImGuiPage::create(context.device.get());
+		auto imgui_page_result =
+			helper::ImGuiPage::create(context.device.get(), context.swapchain->image_count);
 		if (!imgui_page_result) return imgui_page_result.error().forward("Create ImGui page failed");
 		auto imgui_page = std::move(*imgui_page_result);
 

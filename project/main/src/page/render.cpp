@@ -66,7 +66,7 @@ namespace page
 		auto render_buffers = std::move(*render_buffers_result);
 
 		auto sync_primitives_result =
-			std::views::repeat(resource::SyncPrimitive::create, config::INFLIGHT_FRAMES)
+			std::views::repeat(resource::FrameSyncPrimitive::create, config::INFLIGHT_FRAMES)
 			| std::views::transform([&context](auto f) { return f(context->device.get()); })
 			| Error::collect();
 		if (!sync_primitives_result)
@@ -96,6 +96,21 @@ namespace page
 			)
 			| vulkan::Cycle<FrameResource>::into;
 
+		auto render_complete_semaphores_result =
+			std::views::repeat(
+				[&context] { return context->device->createSemaphore({}); },
+				context->swapchain->image_count
+			)
+			| std::views::transform([](const auto& lambda) {
+				  return lambda().transform_error([](vk::Result result) { return Error::from(result); });
+			  })
+			| Error::collect();
+		if (!render_complete_semaphores_result)
+			return render_complete_semaphores_result.error().forward(
+				"Create swapchain image semaphores failed"
+			);
+		auto render_complete_semaphores = std::move(*render_complete_semaphores_result);
+
 		auto aux_resource_result = resource::AuxResource::create(context->device.get());
 		if (!aux_resource_result)
 			return aux_resource_result.error().forward("Create auxiliary resources failed");
@@ -109,6 +124,7 @@ namespace page
 			std::move(tlas),
 			std::move(pipeline),
 			std::move(frame_resources),
+			std::move(render_complete_semaphores),
 			std::move(aux_resource)
 		);
 	}
@@ -297,7 +313,8 @@ namespace page
 			.prev_render_resource = frame.prev_resource.render_resource,
 			.resource_set = frame.curr_resource.resource_set,
 			.sync_primitive = frame.curr_resource.sync_primitive,
-			.swapchain = frame.swapchain_frame
+			.render_complete_semaphore = render_complete_semaphores[frame.swapchain_frame.index],
+			.swapchain = frame.swapchain_frame,
 		};
 	}
 
@@ -396,7 +413,7 @@ namespace page
 		};
 
 		const auto signal_semaphore_info = vk::SemaphoreSubmitInfo{
-			.semaphore = frame.sync_primitive.render_finished_semaphore,
+			.semaphore = frame.render_complete_semaphore,
 		};
 
 		const auto submit_info =
@@ -414,8 +431,7 @@ namespace page
 			return Error::from(result);
 
 		const auto present_result =
-			context->swapchain
-				.present(context->device, frame.swapchain, frame.sync_primitive.render_finished_semaphore);
+			context->swapchain.present(context->device, frame.swapchain, frame.render_complete_semaphore);
 		if (!present_result) return present_result.error().forward("Present frame failed");
 
 		return {};

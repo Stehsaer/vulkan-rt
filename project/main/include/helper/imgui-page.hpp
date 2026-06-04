@@ -9,10 +9,13 @@
 #include "vulkan/interface/context.hpp"
 
 #include <SDL3/SDL_events.h>
+#include <cstddef>
 #include <expected>
 #include <optional>
 #include <type_traits>
 #include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace helper
@@ -50,7 +53,10 @@ namespace helper
 		/// @return Created imgui page or error
 		///
 		[[nodiscard]]
-		static std::expected<ImGuiPage, Error> create(const vulkan::Context& context) noexcept;
+		static std::expected<ImGuiPage, Error> create(
+			const vulkan::Context& context,
+			size_t swapchain_image_count
+		) noexcept;
 
 		///
 		/// @brief Run frame
@@ -149,13 +155,15 @@ namespace helper
 		struct FrameContext
 		{
 			const vk::raii::CommandBuffer& command_buffer;
-			const resource::SyncPrimitive& sync;
+			const resource::FrameSyncPrimitive& sync;
+			const vk::Semaphore render_complete_semaphore;
 			vulkan::SwapchainContext::Frame swapchain;
 		};
 
 		vk::raii::CommandPool command_pool;
 		vulkan::Cycle<vk::raii::CommandBuffer> command_buffers;
-		vulkan::Cycle<resource::SyncPrimitive> sync_primitives;
+		vulkan::Cycle<resource::FrameSyncPrimitive> frame_sync_primitives;
+		std::vector<vk::raii::Semaphore> render_complete_semaphores;
 
 		[[nodiscard]]
 		bool poll_events(resource::Context& context) const noexcept;
@@ -172,11 +180,13 @@ namespace helper
 		explicit ImGuiPage(
 			vk::raii::CommandPool command_pool,
 			vulkan::Cycle<vk::raii::CommandBuffer> command_buffers,
-			vulkan::Cycle<resource::SyncPrimitive> sync_primitives
+			vulkan::Cycle<resource::FrameSyncPrimitive> sync_primitives,
+			std::vector<vk::raii::Semaphore> render_complete_semaphores
 		) :
 			command_pool(std::move(command_pool)),
 			command_buffers(std::move(command_buffers)),
-			sync_primitives(std::move(sync_primitives))
+			frame_sync_primitives(std::move(sync_primitives)),
+			render_complete_semaphores(std::move(render_complete_semaphores))
 		{}
 
 	  public:
