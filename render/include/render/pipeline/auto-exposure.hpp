@@ -10,6 +10,7 @@
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -142,7 +143,7 @@ namespace render
 		vk::Sampler input_sampler;
 		vk::Sampler mask_sampler;
 
-		glm::u32vec2 image_size;
+		std::optional<glm::u32vec2> image_size;
 
 		explicit ResourceSet(
 			std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool,

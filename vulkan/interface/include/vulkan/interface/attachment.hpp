@@ -7,7 +7,7 @@ namespace vulkan
 	///
 	/// @brief Generic attachment reference struct
 	///
-	struct AttachmentRef
+	struct AttachmentView
 	{
 		vk::Format format = vk::Format::eUndefined;
 		vk::Image image = nullptr;

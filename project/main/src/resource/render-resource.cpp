@@ -3,6 +3,7 @@
 #include "common/util/error.hpp"
 #include "render/interface/primitive-drawcall.hpp"
 #include "render/resource/auto-exposure.hpp"
+#include "render/resource/forward.hpp"
 #include "render/resource/host.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/interface/context.hpp"
@@ -29,7 +30,6 @@ namespace resource
 			.param = std::move(*param_result),
 			.drawcall = {},
 			.indirect = {},
-			.forward = {},
 			.auto_exposure = std::move(*auto_exposure_result)
 		};
 	}
@@ -54,21 +54,16 @@ namespace resource
 		return {};
 	}
 
-	std::expected<void, Error> RenderResource::resize(
+	std::expected<void, Error> RenderResource::resize_attachments(
 		const vulkan::Context& context,
 		glm::u32vec2 extent
 	) noexcept
 	{
-		if (const auto result = forward.resize(context, extent); !result)
-			return result.error().forward("Resize forward render resource failed");
+		auto forward_result = render::ForwardAttachments::create(context, extent);
+		if (!forward_result) return forward_result.error().forward("Create forward attachments failed");
 
+		attachments = Attachments{.forward = std::move(*forward_result)};
 		return {};
-	}
-
-	[[nodiscard]]
-	bool RenderResource::is_complete() const noexcept
-	{
-		return forward.is_complete();
 	}
 
 	void RenderResource::upload(const vk::raii::CommandBuffer& command_buffer) const noexcept

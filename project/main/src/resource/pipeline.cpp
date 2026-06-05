@@ -7,7 +7,7 @@
 #include "render/pipeline/composite.hpp"
 #include "render/pipeline/forward.hpp"
 #include "render/pipeline/indirect.hpp"
-#include "render/resource/forward-rendering.hpp"
+#include "render/resource/forward.hpp"
 #include "resource/aux-resource.hpp"
 #include "resource/render-resource.hpp"
 #include "vulkan/context/swapchain.hpp"
@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <expected>
+#include <libassert/assert.hpp>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -108,6 +109,9 @@ namespace resource
 		const vulkan::SwapchainContext::Frame& swapchain_frame
 	) noexcept
 	{
+		DEBUG_ASSERT(curr_resource.attachments.has_value());
+		DEBUG_ASSERT(prev_resource.attachments.has_value());
+
 		indirect_resource_set.update(context, model, curr_resource.drawcall, curr_resource.indirect);
 
 		forward_resource_set.update(
@@ -115,10 +119,9 @@ namespace resource
 			model,
 			curr_resource.drawcall,
 			curr_resource.indirect,
-			curr_resource.forward,
+			curr_resource.attachments->forward,
 			curr_resource.param->camera,
-			curr_resource.param->primary_light,
-			swapchain_frame.extent
+			curr_resource.param->primary_light
 		);
 
 		auto_exposure_resource_set.update(
@@ -127,14 +130,14 @@ namespace resource
 			prev_resource.auto_exposure,
 			curr_resource.param->exposure_param,
 			aux_resource.exposure_mask_view,
-			curr_resource.forward->hdr.view,
+			curr_resource.attachments->forward->hdr.view,
 			swapchain_frame.extent
 		);
 
 		composite_resource_set.update(
 			context,
 			curr_resource.auto_exposure->exposure_result_buffer,
-			curr_resource.forward->hdr.view,
+			curr_resource.attachments->forward->hdr.view,
 			swapchain_frame.extent
 		);
 	}

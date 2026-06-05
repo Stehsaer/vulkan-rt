@@ -4,6 +4,7 @@
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -16,12 +17,11 @@
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
-#include "render/resource/forward-rendering.hpp"
+#include "render/resource/forward.hpp"
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 
 namespace render
@@ -133,7 +133,7 @@ namespace render
 		/// @param primary_light_param  Primary light parameter buffer
 		/// @param host_drawcall Host drawcall resource
 		/// @param indirect_resource Indirect drawcall resource
-		/// @param forward_resource Forward rendering resource containing the render targets
+		/// @param attachments Forward attachments (primary)
 		/// @param extent Rendering extent
 		///
 		void update(
@@ -141,30 +141,29 @@ namespace render
 			const Model& model,
 			const HostDrawcallResource& host_drawcall,
 			const IndirectResource& indirect_resource,
-			const ForwardRenderResource& forward_resource,
+			ForwardAttachments::View attachments,
 			vulkan::ElementBufferRef<Camera> camera_param,
-			vulkan::ElementBufferRef<DirectLight> primary_light_param,
-			glm::u32vec2 extent
+			vulkan::ElementBufferRef<DirectLight> primary_light_param
 		) noexcept;
 
 	  private:
 
 		std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool;
-
-		vk::DescriptorSet material_descriptor_set = nullptr;
 		PerRenderState<vk::raii::DescriptorSet> data_descriptor_set;
 
-		vulkan::ArrayBufferRef<model::FullVertex> vertex_buffer;
-		vulkan::ArrayBufferRef<uint32_t> index_buffer;
-		PerRenderState<vulkan::ArrayBufferRef<IndirectDrawcall>> indirect_buffers = {
-			.opaque_single_sided = {},
-			.opaque_double_sided = {},
-			.masked_single_sided = {},
-			.masked_double_sided = {}
+		// External resources
+		struct Resource
+		{
+			vk::DescriptorSet material_descriptor_set;
+
+			vulkan::ArrayBufferRef<model::FullVertex> vertex_buffer;
+			vulkan::ArrayBufferRef<uint32_t> index_buffer;
+			PerRenderState<vulkan::ArrayBufferRef<IndirectDrawcall>> indirect_buffers;
+
+			ForwardAttachments::View attachments;
 		};
 
-		glm::u32vec2 rendering_extent = {0, 0};
-		vulkan::AttachmentRef color_target = {}, depth_target = {};
+		std::optional<Resource> resource = std::nullopt;
 
 		explicit ResourceSet(
 			std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool,

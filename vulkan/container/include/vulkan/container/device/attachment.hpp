@@ -14,25 +14,12 @@
 namespace vulkan
 {
 	///
-	/// @brief Frame buffer helper class, contains an image and its view
-	/// @details Designed for creating a frame buffer attachment in a quick fashion
+	/// @brief Attachment, contains an image and its view
+	/// @details Designed for creating an attachment in a quick fashion
 	///
-	class FrameBuffer
+	class Attachment
 	{
 	  public:
-
-		vk::Format format;
-		vulkan::Image image;
-		vk::raii::ImageView view;
-
-		operator AttachmentRef() const noexcept
-		{
-			return {
-				.format = format,
-				.image = image,
-				.view = view,
-			};
-		}
 
 		///
 		/// @brief Create a framebuffer
@@ -46,7 +33,7 @@ namespace vulkan
 		/// @return Created frame buffer, or error
 		///
 		[[nodiscard]]
-		static std::expected<FrameBuffer, Error> create(
+		static std::expected<Attachment, Error> create(
 			const vk::raii::Device& device,
 			const vulkan::Allocator& allocator,
 			glm::u32vec2 extent,
@@ -54,9 +41,22 @@ namespace vulkan
 			vk::ImageUsageFlags additional_usage = {}
 		) noexcept;
 
+		operator AttachmentView() const noexcept
+		{
+			return {
+				.format = format,
+				.image = image,
+				.view = view,
+			};
+		}
+
 	  private:
 
-		explicit FrameBuffer(vk::Format format, vulkan::Image image, vk::raii::ImageView view) :
+		vk::Format format;
+		vulkan::Image image;
+		vk::raii::ImageView view;
+
+		explicit Attachment(vk::Format format, vulkan::Image image, vk::raii::ImageView view) :
 			format(format),
 			image(std::move(image)),
 			view(std::move(view))
@@ -64,9 +64,9 @@ namespace vulkan
 
 	  public:
 
-		FrameBuffer(const FrameBuffer&) = delete;
-		FrameBuffer(FrameBuffer&&) = default;
-		FrameBuffer& operator=(const FrameBuffer&) = delete;
-		FrameBuffer& operator=(FrameBuffer&&) = default;
+		Attachment(const Attachment&) = delete;
+		Attachment(Attachment&&) = default;
+		Attachment& operator=(const Attachment&) = delete;
+		Attachment& operator=(Attachment&&) = default;
 	};
 }

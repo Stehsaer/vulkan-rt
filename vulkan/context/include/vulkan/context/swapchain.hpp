@@ -63,7 +63,7 @@ namespace vulkan
 			glm::u32vec2 extent;
 			bool extent_changed;
 			uint32_t index;
-			AttachmentRef attachment;
+			AttachmentView attachment;
 		};
 
 		struct Config

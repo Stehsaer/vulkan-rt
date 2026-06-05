@@ -190,16 +190,19 @@ namespace page
 		if (!*swapchain_result) return std::nullopt;  // Soft failed, retry next frame
 		const auto swapchain_frame = **swapchain_result;
 
-		/* Check, recreate if needed */
+		/* Check, recreate attachments if needed */
 
-		if (swapchain_frame.extent_changed || !curr_resource.render_resource.is_complete())
+		if (swapchain_frame.extent_changed || !curr_resource.render_resource.attachments)
 		{
 			if (const auto result = context->device->waitIdle(); !result) return Error::from(result);
 
+			// NOTE: recreating every set is intended
 			for (auto& resource : frame_resources.iterate())
 			{
-				auto render_target_result =
-					resource.render_resource.resize(context->device.get(), swapchain_frame.extent);
+				auto render_target_result = resource.render_resource.resize_attachments(
+					context->device.get(),
+					swapchain_frame.extent
+				);
 				if (!render_target_result)
 					return render_target_result.error().forward("Create render target failed");
 			}

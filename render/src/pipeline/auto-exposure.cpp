@@ -20,6 +20,7 @@
 #include <glm/ext/vector_uint3.hpp>
 #include <glm/ext/vector_uint3_sized.hpp>
 #include <glm/glm.hpp>
+#include <libassert/assert.hpp>
 #include <memory>
 #include <ranges>
 #include <utility>
@@ -139,6 +140,8 @@ namespace render
 		const ResourceSet& resource_set
 	) const noexcept
 	{
+		DEBUG_ASSERT(resource_set.image_size.has_value());
+
 		/*===== Clear Histogram =====*/
 
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, clear_pipeline);
@@ -164,7 +167,7 @@ namespace render
 		/*===== Histogram =====*/
 
 		const auto histogram_group_count =
-			(glm::u32vec3(resource_set.image_size, 1) + HISTOGRAM_WORKGROUP_SIZE - 1_u32)
+			(glm::u32vec3(*resource_set.image_size, 1) + HISTOGRAM_WORKGROUP_SIZE - 1_u32)
 			/ HISTOGRAM_WORKGROUP_SIZE;
 
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, histogram_pipeline);
@@ -524,6 +527,7 @@ namespace render
 			.descriptorType = vk::DescriptorType::eCombinedImageSampler,
 			.pImageInfo = &mask_image_info
 		};
+
 		const auto reduce_binding_0 = vk::WriteDescriptorSet{
 			.dstSet = reduce_descriptor_set,
 			.dstBinding = 0,
@@ -567,10 +571,12 @@ namespace render
 
 		const auto descriptor_writes = std::to_array({
 			clear_binding_0,
+
 			histogram_binding_0,
 			histogram_binding_1,
 			histogram_binding_2,
 			histogram_binding_3,
+
 			reduce_binding_0,
 			reduce_binding_1,
 			reduce_binding_2,

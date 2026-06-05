@@ -1,6 +1,6 @@
-#include "vulkan/container/device/frame-buffer.hpp"
 #include "common/util/error.hpp"
 #include "vulkan/alloc/allocator.hpp"
+#include "vulkan/container/device/attachment.hpp"
 #include "vulkan/numeric/base-level.hpp"
 
 #include <expected>
@@ -33,7 +33,7 @@ namespace vulkan
 		}
 	}
 
-	std::expected<FrameBuffer, Error> FrameBuffer::create(
+	std::expected<Attachment, Error> Attachment::create(
 		const vk::raii::Device& device,
 		const vulkan::Allocator& allocator,
 		glm::u32vec2 extent,
@@ -67,6 +67,6 @@ namespace vulkan
 		if (!view_result) return Error::from(view_result);
 		auto view = std::move(view_result.value());
 
-		return FrameBuffer(format, std::move(image), std::move(view));
+		return Attachment(format, std::move(image), std::move(view));
 	}
 }

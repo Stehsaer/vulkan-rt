@@ -6,7 +6,7 @@
 #include "render/interface/direct-light.hpp"
 #include "render/interface/primitive-drawcall.hpp"
 #include "render/resource/auto-exposure.hpp"
-#include "render/resource/forward-rendering.hpp"
+#include "render/resource/forward.hpp"
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
@@ -15,6 +15,7 @@
 #include <expected>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_uint2_sized.hpp>
+#include <optional>
 #include <span>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -45,8 +46,14 @@ namespace resource
 		render::HostParamResource param;
 		render::HostDrawcallResource drawcall;
 		render::IndirectResource indirect;
-		render::ForwardRenderResource forward;
 		render::AutoExposureResource auto_exposure;
+
+		struct Attachments
+		{
+			render::ForwardAttachments forward;
+		};
+
+		std::optional<Attachments> attachments = std::nullopt;
 
 		///
 		/// @brief Create render resources
@@ -68,22 +75,17 @@ namespace resource
 		std::expected<void, Error> update(const vulkan::Context& context, const RenderData& data) noexcept;
 
 		///
-		/// @brief Resize the render resources (typically the render targets)
+		/// @brief Resize the attachments
 		///
 		/// @param context Vulkan context
 		/// @param extent Swapchain extent
 		/// @return `void` if success, or error
 		///
 		[[nodiscard]]
-		std::expected<void, Error> resize(const vulkan::Context& context, glm::u32vec2 extent) noexcept;
-
-		///
-		/// @brief Check if all render targets in the resources are complete (ready to use)
-		///
-		/// @return `true` for complete, `false` otherwise
-		///
-		[[nodiscard]]
-		bool is_complete() const noexcept;
+		std::expected<void, Error> resize_attachments(
+			const vulkan::Context& context,
+			glm::u32vec2 extent
+		) noexcept;
 
 		///
 		/// @brief Record upload and barrier commands

@@ -234,7 +234,7 @@ namespace vulkan
 		{
 		case vk::Result::eSuccess:
 		{
-			const auto attachment = AttachmentRef{
+			const auto attachment = AttachmentView{
 				.format = surface_format.format,
 				.image = runtime_state.images.at(idx),
 				.view = runtime_state.image_views.at(idx),

@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
+#include <libassert/assert.hpp>
 #include <memory>
 #include <ranges>
 #include <utility>
@@ -186,15 +187,17 @@ namespace render
 
 	void CompositePipeline::render(
 		const vk::raii::CommandBuffer& command_buffer,
-		const ResourceSet& resource_binding
+		const ResourceSet& resource_set
 	) const noexcept
 	{
+		DEBUG_ASSERT(resource_set.image_size.has_value());
+
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 		command_buffer.bindDescriptorSets(
 			vk::PipelineBindPoint::eGraphics,
 			*pipeline_layout,
 			0,
-			{resource_binding.descriptor_set},
+			{resource_set.descriptor_set},
 			{}
 		);
 
@@ -203,8 +206,8 @@ namespace render
 			vk::Viewport{
 				.x = 0.0f,
 				.y = 0.0f,
-				.width = static_cast<float>(resource_binding.image_size.x),
-				.height = static_cast<float>(resource_binding.image_size.y),
+				.width = static_cast<float>(resource_set.image_size->x),
+				.height = static_cast<float>(resource_set.image_size->y),
 				.minDepth = 0.0f,
 				.maxDepth = 1.0f
 			}
@@ -212,7 +215,7 @@ namespace render
 
 		const auto scissor = vk::Rect2D{
 			.offset = vk::Offset2D{.x = 0, .y = 0},
-			.extent = vulkan::to<vk::Extent2D>(resource_binding.image_size),
+			.extent = vulkan::to<vk::Extent2D>(*resource_set.image_size),
 		};
 		command_buffer.setScissor(0, scissor);
 

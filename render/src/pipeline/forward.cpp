@@ -7,7 +7,7 @@
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
-#include "render/resource/forward-rendering.hpp"
+#include "render/resource/forward.hpp"
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
@@ -26,6 +26,7 @@
 #include <expected>
 #include <format>
 #include <glm/ext/vector_uint2_sized.hpp>
+#include <libassert/assert.hpp>
 #include <memory>
 #include <ranges>
 #include <utility>
@@ -334,8 +335,8 @@ namespace render
 					context,
 					pipeline_layout,
 					shader_module,
-					ForwardRenderResource::HDR_FORMAT,
-					ForwardRenderResource::DEPTH_FORMAT,
+					ForwardAttachments::HDR_FORMAT,
+					ForwardAttachments::DEPTH_FORMAT,
 					alpha_mode == model::AlphaMode::Mask,
 					double_sided
 				);
@@ -409,6 +410,8 @@ namespace render
 		const ResourceSet& resource_set
 	) const noexcept
 	{
+		DEBUG_ASSERT(resource_set.resource.has_value());
+
 		/*===== Pre-rendering Layout Transitions =====*/
 
 		const auto pre_depth_barrier = vk::ImageMemoryBarrier2{
@@ -421,7 +424,7 @@ namespace render
 				| vk::AccessFlagBits2::eDepthStencilAttachmentRead,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-			.image = resource_set.depth_target.image,
+			.image = resource_set.resource->attachments.depth.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eDepth)
 		};
 
@@ -432,7 +435,7 @@ namespace render
 			.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-			.image = resource_set.color_target.image,
+			.image = resource_set.resource->attachments.hdr.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 
@@ -445,7 +448,7 @@ namespace render
 		/*===== Draw =====*/
 
 		const auto swapchain_attachment_info = vk::RenderingAttachmentInfo{
-			.imageView = resource_set.color_target.view,
+			.imageView = resource_set.resource->attachments.hdr.view,
 			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.loadOp = vk::AttachmentLoadOp::eClear,
 			.storeOp = vk::AttachmentStoreOp::eStore,
@@ -453,7 +456,7 @@ namespace render
 		};
 
 		const auto depth_attachment_info = vk::RenderingAttachmentInfo{
-			.imageView = resource_set.depth_target.view,
+			.imageView = resource_set.resource->attachments.depth.view,
 			.imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
 			.loadOp = vk::AttachmentLoadOp::eClear,
 			.storeOp = vk::AttachmentStoreOp::eDontCare,
@@ -462,7 +465,7 @@ namespace render
 
 		const auto rendering_rect = vk::Rect2D{
 			.offset = vk::Offset2D{.x = 0, .y = 0},
-			.extent = vulkan::to<vk::Extent2D>(resource_set.rendering_extent)
+			.extent = vulkan::to<vk::Extent2D>(resource_set.resource->attachments.extent)
 		};
 
 		const auto rendering_info =
@@ -475,16 +478,17 @@ namespace render
 
 		command_buffer.beginRendering(rendering_info);
 
-		command_buffer.bindVertexBuffers(0, static_cast<vk::Buffer>(resource_set.vertex_buffer), {0});
-		command_buffer.bindIndexBuffer(resource_set.index_buffer, 0, vk::IndexType::eUint32);
+		command_buffer
+			.bindVertexBuffers(0, static_cast<vk::Buffer>(resource_set.resource->vertex_buffer), {0});
+		command_buffer.bindIndexBuffer(resource_set.resource->index_buffer, 0, vk::IndexType::eUint32);
 
 		command_buffer.setViewport(
 			0,
 			vk::Viewport{
 				.x = 0.0f,
 				.y = 0.0f,
-				.width = static_cast<float>(resource_set.rendering_extent.x),
-				.height = static_cast<float>(resource_set.rendering_extent.y),
+				.width = static_cast<float>(resource_set.resource->attachments.extent.x),
+				.height = static_cast<float>(resource_set.resource->attachments.extent.y),
 				.minDepth = 0.0f,
 				.maxDepth = 1.0f
 			}
@@ -495,7 +499,7 @@ namespace render
 			const auto& [pipeline, data_descriptor_set, indirect_buffer] : std::views::zip(
 				pipelines.all(),
 				resource_set.data_descriptor_set.all(),
-				resource_set.indirect_buffers.all()
+				resource_set.resource->indirect_buffers.all()
 			)
 		)
 		{
@@ -507,7 +511,7 @@ namespace render
 				vk::PipelineBindPoint::eGraphics,
 				*pipeline_layout,
 				0,
-				{resource_set.material_descriptor_set, data_descriptor_set},
+				{resource_set.resource->material_descriptor_set, data_descriptor_set},
 				{}
 			);
 
@@ -531,7 +535,7 @@ namespace render
 			.dstAccessMask = vk::AccessFlagBits2::eShaderRead,
 			.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-			.image = resource_set.color_target.image,
+			.image = resource_set.resource->attachments.hdr.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 
@@ -543,10 +547,9 @@ namespace render
 		const Model& model,
 		const HostDrawcallResource& host_drawcall,
 		const IndirectResource& indirect_resource,
-		const ForwardRenderResource& forward_resource,
+		ForwardAttachments::View attachments,
 		vulkan::ElementBufferRef<Camera> camera_param,
-		vulkan::ElementBufferRef<DirectLight> primary_light_param,
-		glm::u32vec2 extent
+		vulkan::ElementBufferRef<DirectLight> primary_light_param
 	) noexcept
 	{
 		/* Write descriptor sets */
@@ -646,14 +649,14 @@ namespace render
 
 		/* Store infos */
 
-		material_descriptor_set = model.material_list.get_descriptor_set();
+		resource = Resource{
+			.material_descriptor_set = model.material_list.get_descriptor_set(),
 
-		vertex_buffer = model.mesh_list->vertex_buffer;
-		index_buffer = model.mesh_list->index_buffer;
-		indirect_buffers = indirect_resource.ref();
+			.vertex_buffer = model.mesh_list->vertex_buffer,
+			.index_buffer = model.mesh_list->index_buffer,
+			.indirect_buffers = indirect_resource.ref(),
 
-		rendering_extent = extent;
-		color_target = forward_resource->hdr;
-		depth_target = forward_resource->depth;
+			.attachments = attachments
+		};
 	}
 }

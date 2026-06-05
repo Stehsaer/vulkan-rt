@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <expected>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
@@ -116,7 +117,9 @@ namespace render
 
 		std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool;
 		PerRenderState<vk::raii::DescriptorSet> descriptor_sets;
-		PerRenderState<vulkan::ArrayBufferRef<IndirectDrawcall>> indirect_buffers = {};
+
+		std::optional<PerRenderState<vulkan::ArrayBufferRef<IndirectDrawcall>>> indirect_buffers =
+			std::nullopt;
 
 		friend class IndirectPipeline;
 

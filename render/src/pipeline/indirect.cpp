@@ -4,7 +4,6 @@
 #include "render/model/model.hpp"
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
-#include "render/util/per-render-state.hpp"
 #include "shader/indirect.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/pool-size.hpp"
@@ -13,6 +12,7 @@
 #include <array>
 #include <cstdint>
 #include <expected>
+#include <libassert/assert.hpp>
 #include <memory>
 #include <ranges>
 #include <utility>
@@ -188,11 +188,13 @@ namespace render
 		const ResourceSet& resource_set
 	) const noexcept
 	{
+		DEBUG_ASSERT(resource_set.indirect_buffers.has_value());
+
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
 
 		for (
 			const auto [descriptor_set, buffer] :
-			std::views::zip(resource_set.descriptor_sets.all(), resource_set.indirect_buffers.all())
+			std::views::zip(resource_set.descriptor_sets.all(), resource_set.indirect_buffers->all())
 		)
 		{
 			if (buffer.count() == 0) continue;
@@ -226,7 +228,7 @@ namespace render
 			};
 		};
 
-		const auto barriers = resource_set.indirect_buffers.as_ref_array()
+		const auto barriers = resource_set.indirect_buffers->as_ref_array()
 			| util::map_array([](auto&& buffer) { return get_sync_barrier(buffer.get()); });
 
 		command_buffer.pipelineBarrier2(vk::DependencyInfo().setBufferMemoryBarriers(barriers));
@@ -240,10 +242,8 @@ namespace render
 	) noexcept
 	{
 		for (
-			const auto& [descriptor_set, self_indirect_buffer, indirect_buffer, drawcall_buffer] :
-			std::views::zip(
+			const auto& [descriptor_set, indirect_buffer, drawcall_buffer] : std::views::zip(
 				descriptor_sets.all(),
-				this->indirect_buffers.all(),
 				indirect_resource.ref().all(),
 				drawcall_resource->primitive_drawcalls.all()
 			)

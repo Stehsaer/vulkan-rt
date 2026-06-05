@@ -10,6 +10,7 @@
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <glm/glm.hpp>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -57,11 +58,11 @@ namespace render
 		/// @brief Execute the composite pass
 		///
 		/// @param command_buffer Command buffer
-		/// @param resource_binding Resource set
+		/// @param resource_set Resource set
 		///
 		void render(
 			const vk::raii::CommandBuffer& command_buffer,
-			const ResourceSet& resource_binding
+			const ResourceSet& resource_set
 		) const noexcept;
 
 	  private:
@@ -120,7 +121,7 @@ namespace render
 
 		vk::Sampler sampler;
 
-		glm::u32vec2 image_size = {0, 0};
+		std::optional<glm::u32vec2> image_size = std::nullopt;
 
 		explicit ResourceSet(
 			std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool,
