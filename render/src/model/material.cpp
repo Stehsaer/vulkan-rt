@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <expected>
 #include <format>
+#include <libassert/assert.hpp>
 #include <memory>
 #include <ranges>
 #include <span>
@@ -279,7 +280,8 @@ namespace render
 		TextureList::LoadOption texture_load_option
 	) noexcept
 	{
-		/* Step 1: Create texture list */
+		/*===== Create texture list =====*/
+
 		util::Progress texture_list_progress;
 		progress->set<ProgressState::TextureList>(texture_list_progress.get_ref());
 
@@ -295,26 +297,52 @@ namespace render
 
 		progress->set<ProgressState::Processing>(std::monostate());
 
-		/* Step 2: Collect texture info */
+		/*===== Collect texture info =====*/
 
 		auto collect_result = collect_textures(context, texture_list, material_list);
 		if (!collect_result) co_return collect_result.error().forward("Collect textures failed");
 		auto [textures, samplers, combined, material_infos, material_modes] = std::move(*collect_result);
 
-		/* Step 3: Create info buffer */
+		/*===== Detect material modes =====*/
+		// Avoid unnecessary alpha-testing
+
+		for (
+			const auto [material, mode] : std::views::zip(
+				material_list.materials | std::views::as_const,
+				material_modes | std::views::drop(1)  // NOTE: skip fallback texture at index 0
+			)
+		)
+		{
+			const auto albedo_idx = material.texture_set.albedo;
+			const auto albedo_tex_ref = texture_list.get_color_texture(albedo_idx);
+			const auto min_alpha = albedo_tex_ref.texture.min_alpha;
+
+			switch (mode.alpha_mode)
+			{
+			case model::AlphaMode::Opaque:
+				continue;
+			case model::AlphaMode::Mask:
+			case model::AlphaMode::Blend:
+				if (min_alpha.value_or(0) * material.param.base_color_factor.a > material.param.alpha_cutoff)
+					mode.alpha_mode = model::AlphaMode::Opaque;
+				continue;
+			}
+		}
+
+		/*===== Create info buffer =====*/
 
 		auto info_buffer_result = create_info_buffer(context, material_infos);
 		if (!info_buffer_result) co_return info_buffer_result.error().forward("Create info buffer failed");
 		auto info_buffer = std::move(*info_buffer_result);
 
-		/* Step 4: Create descriptor pool */
+		/*===== Create descriptor pool =====*/
 
 		auto descriptor_pool_result = create_descriptor_pool(context.device, combined.size());
 		if (!descriptor_pool_result)
 			co_return descriptor_pool_result.error().forward("Create descriptor pool failed");
 		auto descriptor_pool = std::move(*descriptor_pool_result);
 
-		/* Step 5: Allocate descriptor set */
+		/*===== Allocate descriptor set =====*/
 
 		auto descriptor_set_result =
 			allocate_descriptor_set(context.device, descriptor_pool, layout, combined.size());
@@ -322,14 +350,14 @@ namespace render
 			co_return descriptor_set_result.error().forward("Allocate descriptor set failed");
 		auto descriptor_set = std::move(*descriptor_set_result);
 
-		/* Step 6: Write descriptor set */
+		/*===== Write descriptor set =====*/
 
 		if (const auto update_result =
 				update_descriptor_set(context.device, descriptor_set, info_buffer, combined);
 			!update_result)
 			co_return update_result.error().forward("Update descriptor set failed");
 
-		/* Done */
+		/*===== Done =====*/
 
 		co_return MaterialList(
 			std::move(texture_list),

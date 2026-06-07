@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <optional>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -86,6 +87,7 @@ namespace render
 			vk::Image image;
 			Format format;
 			uint32_t mipmap_levels;
+			std::optional<float> min_alpha;
 
 			auto operator<=>(const Ref& other) const { return image <=> other.image; }
 			bool operator==(const Ref& other) const { return image == other.image; };
@@ -105,6 +107,7 @@ namespace render
 		vulkan::Image image;
 		Format format;
 		uint32_t mipmap_levels;
+		std::optional<float> min_alpha = std::nullopt;
 
 		///
 		/// @brief Load a color texture from a `lib.model` texture
@@ -157,7 +160,12 @@ namespace render
 		[[nodiscard]]
 		Ref ref() const noexcept
 		{
-			return {.image = image, .format = format, .mipmap_levels = mipmap_levels};
+			return {
+				.image = image,
+				.format = format,
+				.mipmap_levels = mipmap_levels,
+				.min_alpha = min_alpha,
+			};
 		}
 
 	  private:

@@ -9,6 +9,7 @@
 #include "vulkan/interface/context.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <expected>
 #include <glm/common.hpp>
@@ -186,31 +187,40 @@ namespace render
 		if (!image_result) return image_result.error().forward("Load texture failed");
 		auto image = std::move(*image_result);
 
-		switch (load_strategy)
-		{
-		case ColorLoadStrategy::Raw:
-			return load_rgba8_unorm(context, resource_creator, image, usage);
+		const auto min_alpha = std::ranges::min(image.data | std::views::transform(&glm::u8vec4::a));
 
-		case ColorLoadStrategy::AllBC3:
-			return load_bcn(context, resource_creator, image, image::BCnFormat::BC3, usage);
+		auto load_result = [&] {
+			switch (load_strategy)
+			{
+			case ColorLoadStrategy::Raw:
+				return load_rgba8_unorm(context, resource_creator, image, usage);
 
-		case ColorLoadStrategy::AllBC7:
-			return load_bcn(context, resource_creator, image, image::BCnFormat::BC7, usage);
+			case ColorLoadStrategy::AllBC3:
+				return load_bcn(context, resource_creator, image, image::BCnFormat::BC3, usage);
 
-		case ColorLoadStrategy::BalancedBC:
-			return load_bcn(
-				context,
-				resource_creator,
-				image,
-				glm::max(image.size.x, image.size.y) <= BC7_THRESHOLD
-					? image::BCnFormat::BC7
-					: image::BCnFormat::BC3,
-				usage
-			);
+			case ColorLoadStrategy::AllBC7:
+				return load_bcn(context, resource_creator, image, image::BCnFormat::BC7, usage);
 
-		default:
-			UNREACHABLE("Invalid enum input");
-		}
+			case ColorLoadStrategy::BalancedBC:
+				return load_bcn(
+					context,
+					resource_creator,
+					image,
+					glm::max(image.size.x, image.size.y) <= BC7_THRESHOLD
+						? image::BCnFormat::BC7
+						: image::BCnFormat::BC3,
+					usage
+				);
+
+			default:
+				UNREACHABLE("Invalid enum input");
+			}
+		}();
+
+		return std::move(load_result).transform([min_alpha](Texture texture) {
+			texture.min_alpha = min_alpha / 255.0f;
+			return texture;
+		});
 	}
 
 	std::expected<Texture, Error> Texture::load_normal_texture(
