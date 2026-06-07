@@ -7,7 +7,7 @@ namespace logic
 {
 	void Param::ui(glm::u32vec2 extent) noexcept
 	{
-		camera.update(extent);
+		camera.update_view(extent);
 
 		if (ImGui::Begin("Render Settings"))
 		{

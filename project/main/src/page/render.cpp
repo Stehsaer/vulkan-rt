@@ -228,7 +228,7 @@ namespace page
 	RenderPage::SceneData RenderPage::prepare_scene(glm::u32vec2 extent) noexcept
 	{
 		auto [drawcalls, transforms] = drawcall_generator.compute(model, glm::mat4(1.0f));
-		const auto camera = param.camera.get(extent);
+		const auto camera = param.camera.get_and_update(extent);
 		const auto primary_light = param.primary_light.get();
 		const auto exposure_param = param.exposure.get(ImGui::GetIO().DeltaTime, extent);
 
