@@ -3,7 +3,8 @@
 #include "common/util/error.hpp"
 #include "render/interface/primitive-drawcall.hpp"
 #include "render/resource/auto-exposure.hpp"
-#include "render/resource/forward.hpp"
+#include "render/resource/deferred.hpp"
+#include "render/resource/hdr.hpp"
 #include "render/resource/host.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/interface/context.hpp"
@@ -59,10 +60,16 @@ namespace resource
 		glm::u32vec2 extent
 	) noexcept
 	{
-		auto forward_result = render::ForwardAttachments::create(context, extent);
-		if (!forward_result) return forward_result.error().forward("Create forward attachments failed");
+		auto deferred_result = render::DeferredAttachment::create(context, extent);
+		if (!deferred_result) return deferred_result.error().forward("Create deferred attachments failed");
 
-		attachments = Attachments{.forward = std::move(*forward_result)};
+		auto hdr_result = render::HdrAttachment::create(context, extent);
+		if (!hdr_result) return hdr_result.error().forward("Create HDR attachments failed");
+
+		attachments = Attachments{
+			.deferred = std::move(*deferred_result),
+			.hdr = std::move(*hdr_result),
+		};
 		return {};
 	}
 

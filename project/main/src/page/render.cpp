@@ -6,7 +6,6 @@
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
 #include "render/model/tlas.hpp"
-#include "render/pipeline/forward.hpp"
 #include "render/util/per-render-state.hpp"
 #include "resource/aux-resource.hpp"
 #include "resource/context.hpp"
@@ -306,8 +305,7 @@ namespace page
 			model,
 			frame.curr_resource.render_resource,
 			frame.prev_resource.render_resource,
-			aux_resource,
-			frame.swapchain_frame
+			aux_resource
 		);
 
 		return Frame{
@@ -321,7 +319,59 @@ namespace page
 		};
 	}
 
-	std::expected<void, Error> RenderPage::render_final_composite(const Frame& frame) noexcept
+	void RenderPage::render_objects(const Frame& frame) const noexcept
+	{
+		pipeline.indirect.compute(frame.command_buffer, frame.resource_set.indirect);
+		pipeline.deferred.render(frame.command_buffer, frame.resource_set.deferred);
+	}
+
+	void RenderPage::render_lighting(const Frame& frame) const noexcept
+	{
+		const auto rendering_area = vk::Rect2D{
+			.offset = vk::Offset2D{.x = 0, .y = 0},
+			.extent = vulkan::to<vk::Extent2D>(frame.swapchain.extent)
+		};
+
+		const auto hdr_attachment_info = vk::RenderingAttachmentInfo{
+			.imageView = frame.render_resource.attachments->hdr->attachment.view,
+			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+			.loadOp = vk::AttachmentLoadOp::eClear,
+			.storeOp = vk::AttachmentStoreOp::eStore,
+			.clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f)
+		};
+
+		const auto rendering_info =
+			vk::RenderingInfo{.renderArea = rendering_area, .layerCount = 1}
+				.setColorAttachments(hdr_attachment_info);
+
+		frame.command_buffer.beginRendering(rendering_info);
+		{
+			pipeline.direct_lighting.render(frame.command_buffer, frame.resource_set.direct_lighting);
+		}
+		frame.command_buffer.endRendering();
+
+		const auto post_lighting_barrier = vk::ImageMemoryBarrier2{
+			.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+			.srcAccessMask = vk::AccessFlagBits2::eNone,
+			.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+			.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+			.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			.image = frame.render_resource.attachments->hdr->attachment.image,
+			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
+		};
+
+		frame.command_buffer.pipelineBarrier2(
+			vk::DependencyInfo().setImageMemoryBarriers(post_lighting_barrier)
+		);
+	}
+
+	void RenderPage::render_post_processing(const Frame& frame) const noexcept
+	{
+		pipeline.auto_exposure.compute(frame.command_buffer, frame.resource_set.auto_exposure);
+	}
+
+	std::expected<void, Error> RenderPage::render_composite(const Frame& frame) noexcept
 	{
 		const auto pre_composite_barrier = vk::ImageMemoryBarrier2{
 			.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
@@ -357,7 +407,7 @@ namespace page
 
 		frame.command_buffer.beginRendering(rendering_info);
 
-		pipeline.composite_pipeline.render(frame.command_buffer, frame.resource_set.composite_resource_set);
+		pipeline.composite.render(frame.command_buffer, frame.resource_set.composite);
 
 		if (const auto draw_result = context->imgui.draw(frame.command_buffer); !draw_result)
 		{
@@ -391,12 +441,11 @@ namespace page
 
 		frame.render_resource.upload(frame.command_buffer);
 
-		pipeline.indirect_pipeline.compute(frame.command_buffer, frame.resource_set.indirect_resource_set);
-		pipeline.forward_pipeline.render(frame.command_buffer, frame.resource_set.forward_resource_set);
-		pipeline.auto_exposure_pipeline
-			.compute(frame.command_buffer, frame.resource_set.auto_exposure_resource_set);
+		render_objects(frame);
+		render_lighting(frame);
+		render_post_processing(frame);
 
-		if (const auto composite_result = render_final_composite(frame); !composite_result)
+		if (const auto composite_result = render_composite(frame); !composite_result)
 			return composite_result.error().forward("Render final composite failed");
 
 		if (const auto result = frame.command_buffer.end(); !result) return Error::from(result);

@@ -5,6 +5,7 @@
 #include "common/util/error.hpp"
 #include "render/interface/auto-exposure.hpp"
 #include "render/resource/auto-exposure.hpp"
+#include "render/resource/hdr.hpp"
 #include "shader/auto-exposure/clear.hpp"
 #include "shader/auto-exposure/histogram.hpp"
 #include "shader/auto-exposure/reduce.hpp"
@@ -439,12 +440,11 @@ namespace render
 		const AutoExposureResource& resource,
 		const AutoExposureResource& prev_resource,
 		vulkan::ElementBufferRef<ExposureParam> exposure_param,
-		vk::ImageView mask_image_view,
-		vk::ImageView input_image_view,
-		glm::u32vec2 image_size
+		HdrAttachment::View hdr,
+		vk::ImageView mask_image_view
 	) noexcept
 	{
-		this->image_size = image_size;
+		this->image_size = hdr.extent;
 
 		/*===== Resource Infos =====*/
 
@@ -475,7 +475,7 @@ namespace render
 		};
 		const auto input_image_info = vk::DescriptorImageInfo{
 			.sampler = input_sampler,
-			.imageView = input_image_view,
+			.imageView = hdr.attachment.view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
 		};
 		const auto mask_image_info = vk::DescriptorImageInfo{

@@ -2,6 +2,7 @@
 
 #include "common/util/error.hpp"
 #include "render/interface/auto-exposure.hpp"
+#include "render/resource/hdr.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 
@@ -110,8 +111,7 @@ namespace render
 		void update(
 			const vulkan::Context& context,
 			vulkan::ElementBufferRef<ExposureResult> exposure_result,
-			vk::ImageView hdr_input,
-			glm::u32vec2 image_size
+			HdrAttachment::View hdr
 		) noexcept;
 
 	  private:

@@ -24,8 +24,6 @@ namespace render
 
 		return impl::create_blas(context, mesh_list, material_list)
 			.and_then(std::bind(impl::build_blas, std::cref(context), std::placeholders::_1))
-			.transform([](impl::BuildBlasResult result) {
-				return BlasList(std::move(result.blas_list));
-			});
+			.transform([](impl::BuildBlasResult result) { return BlasList(std::move(result.blas_list)); });
 	}
 }

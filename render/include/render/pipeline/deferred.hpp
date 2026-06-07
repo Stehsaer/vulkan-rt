@@ -17,38 +17,50 @@
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
-#include "render/resource/forward.hpp"
+#include "render/resource/deferred.hpp"
+#include "render/resource/hdr.hpp"
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
+#include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 
 namespace render
 {
 	///
-	/// @brief Forward rendering pipeline
+	/// @brief Deferred rendering pipeline
 	/// @details
-	/// - Takes the indirect drawcalls and render to a HDR target
+	/// - Takes the indirect drawcalls and render to deferred attachment
 	/// - Supports 4 material variants, where BLEND is currently rendered as MASK
 	///
-	class ForwardPipeline
+	/// ### Color attachments
+	///
+	/// | Location | Description | R            | G         | B        | A        |
+	/// | :------: | :---------: | :----------: | :-------: | :------: | :------: |
+	/// | 0        | Albedo      | Albedo R     | Albedo G  | Albedo B | Sky Flag |
+	/// | 1        | Normal      | Packed Norm. | -         | -        | -        |
+	/// | 2        | PBR         | Roughness    | Metalness | -        | -        |
+	/// | 3        | HDR Output  | HDR R        | HDR G     | HDR B    | Alpha    |
+	///
+	/// @note Synchronization scheme used by this pipeline expects next usage of the HDR attachment is color
+	/// attachment (which is very likely to be lighting pass)
+	///
+	class DeferredPipeline
 	{
 	  public:
 
 		class ResourceSet;
 
 		///
-		/// @brief Create a forward rendering pipeline
+		/// @brief Create a deferred rendering pipeline
 		///
 		/// @param context Vulkan context
 		/// @param material_layout Model material layout
-		/// @param color_format Color target format
-		/// @param depth_format Depth target format
-		/// @return Created forward rendering pipeline, or error if creation failed
+		/// @return Created deferred rendering pipeline, or error if creation failed
 		///
 		[[nodiscard]]
-		static std::expected<ForwardPipeline, Error> create(
+		static std::expected<DeferredPipeline, Error> create(
 			const vulkan::Context& context,
 			const render::MaterialLayout& material_layout
 		) noexcept;
@@ -67,7 +79,7 @@ namespace render
 		) const noexcept;
 
 		///
-		/// @brief Render the scene using the forward rendering pipeline
+		/// @brief Render the scene using the deferred rendering pipeline
 		///
 		/// @param command_buffer Command buffer
 		/// @param resource_set Resource set
@@ -89,8 +101,6 @@ namespace render
 			const vulkan::Context& context,
 			const vk::raii::PipelineLayout& pipeline_layout,
 			const vk::raii::ShaderModule& shader_module,
-			vk::Format color_format,
-			vk::Format depth_format,
 			bool alpha_mask_enabled,
 			bool double_sided
 		) noexcept;
@@ -99,7 +109,7 @@ namespace render
 		vk::raii::PipelineLayout pipeline_layout;
 		PerRenderState<vk::raii::Pipeline> pipelines;
 
-		explicit ForwardPipeline(
+		explicit DeferredPipeline(
 			vk::raii::DescriptorSetLayout data_descriptor_set_layout,
 			vk::raii::PipelineLayout pipeline_layout,
 			PerRenderState<vk::raii::Pipeline> pipelines
@@ -111,16 +121,16 @@ namespace render
 
 	  public:
 
-		ForwardPipeline(const ForwardPipeline&) = delete;
-		ForwardPipeline(ForwardPipeline&&) = default;
-		ForwardPipeline& operator=(const ForwardPipeline&) = delete;
-		ForwardPipeline& operator=(ForwardPipeline&&) = default;
+		DeferredPipeline(const DeferredPipeline&) = delete;
+		DeferredPipeline(DeferredPipeline&&) = default;
+		DeferredPipeline& operator=(const DeferredPipeline&) = delete;
+		DeferredPipeline& operator=(DeferredPipeline&&) = default;
 	};
 
 	///
-	/// @brief Resource set for forward pipeline
+	/// @brief Resource set for deferred pipeline
 	///
-	class ForwardPipeline::ResourceSet
+	class DeferredPipeline::ResourceSet
 	{
 	  public:
 
@@ -133,15 +143,20 @@ namespace render
 		/// @param primary_light_param  Primary light parameter buffer
 		/// @param host_drawcall Host drawcall resource
 		/// @param indirect_resource Indirect drawcall resource
-		/// @param attachments Forward attachments (primary)
+		/// @param deferred_attachment Deferred attachments
+		/// @param hdr_attachment HDR attachments
 		/// @param extent Rendering extent
+		///
+		/// @warning Deferred and HDR attachments must have identical extents, or a fatal/unrecoverable error
+		/// will occur
 		///
 		void update(
 			const vulkan::Context& context,
 			const Model& model,
 			const HostDrawcallResource& host_drawcall,
 			const IndirectResource& indirect_resource,
-			ForwardAttachments::View attachments,
+			DeferredAttachment::View deferred_attachment,
+			HdrAttachment::View hdr_attachment,
 			vulkan::ElementBufferRef<Camera> camera_param,
 			vulkan::ElementBufferRef<DirectLight> primary_light_param
 		) noexcept;
@@ -150,6 +165,12 @@ namespace render
 
 		std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool;
 		PerRenderState<vk::raii::DescriptorSet> data_descriptor_set;
+
+		struct Attachment
+		{
+			glm::u32vec2 extent;
+			vulkan::AttachmentView albedo, normal, pbr, depth, hdr;
+		};
 
 		// External resources
 		struct Resource
@@ -160,10 +181,12 @@ namespace render
 			vulkan::ArrayBufferRef<uint32_t> index_buffer;
 			PerRenderState<vulkan::ArrayBufferRef<IndirectDrawcall>> indirect_buffers;
 
-			ForwardAttachments::View attachments;
+			Attachment attachment;
 		};
 
 		std::optional<Resource> resource = std::nullopt;
+
+		const Resource* operator->() const noexcept { return resource.operator->(); }
 
 		explicit ResourceSet(
 			std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool,
@@ -173,7 +196,7 @@ namespace render
 			data_descriptor_set(std::move(data_descriptor_set))
 		{}
 
-		friend class ForwardPipeline;
+		friend class DeferredPipeline;
 
 	  public:
 

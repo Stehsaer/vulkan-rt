@@ -1,4 +1,5 @@
-#include "render/pipeline/forward.hpp"
+#include "render/pipeline/deferred.hpp"
+#include "common/util/array.hpp"
 #include "common/util/error.hpp"
 #include "model/material.hpp"
 #include "model/mesh.hpp"
@@ -7,13 +8,16 @@
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
-#include "render/resource/forward.hpp"
+#include "render/pipeline/util/constant.hpp"
+#include "render/resource/deferred.hpp"
+#include "render/resource/hdr.hpp"
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
-#include "shader/forward.hpp"
+#include "shader/deferred.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/container/host/linked-struct.hpp"
+#include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
 #include "vulkan/numeric/glm.hpp"
@@ -81,6 +85,7 @@ namespace render
 			direct_light_param_binding,
 		});
 	}
+
 	static std::expected<vk::raii::DescriptorSetLayout, Error> create_descriptor_set_layout(
 		const vulkan::Context& context
 	) noexcept
@@ -149,12 +154,10 @@ namespace render
 		});
 	}
 
-	std::expected<vk::raii::Pipeline, Error> ForwardPipeline::create_pipeline(
+	std::expected<vk::raii::Pipeline, Error> DeferredPipeline::create_pipeline(
 		const vulkan::Context& context,
 		const vk::raii::PipelineLayout& pipeline_layout,
 		const vk::raii::ShaderModule& shader_module,
-		vk::Format color_format,
-		vk::Format depth_format,
 		bool alpha_mask_enabled,
 		bool double_sided
 	) noexcept
@@ -218,18 +221,10 @@ namespace render
 
 		/*===== Fixed Function =====*/
 
-		const auto input_assembly_state_create_info = vk::PipelineInputAssemblyStateCreateInfo{
-			.topology = vk::PrimitiveTopology::eTriangleList,
-			.primitiveRestartEnable = vk::False
-		};
-
 		const auto rasterization_info = vk::PipelineRasterizationStateCreateInfo{
 			.cullMode = double_sided ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack,
 			.lineWidth = 1.0
 		};
-
-		constexpr auto multisample_info =
-			vk::PipelineMultisampleStateCreateInfo{.rasterizationSamples = vk::SampleCountFlagBits::e1};
 
 		constexpr auto depth_stencil_info = vk::PipelineDepthStencilStateCreateInfo{
 			.depthTestEnable = vk::True,
@@ -239,7 +234,7 @@ namespace render
 			.stencilTestEnable = vk::False
 		};
 
-		const auto swapchain_attachment_blend_state = vk::PipelineColorBlendAttachmentState{
+		const auto attachment_blend_state = vk::PipelineColorBlendAttachmentState{
 			.blendEnable = vk::False,
 			.colorWriteMask = vk::ColorComponentFlagBits::eR
 				| vk::ColorComponentFlagBits::eG
@@ -247,34 +242,32 @@ namespace render
 				| vk::ColorComponentFlagBits::eA
 		};
 		const auto color_attachment_blend_states = std::to_array({
-			swapchain_attachment_blend_state,
+			attachment_blend_state,
+			attachment_blend_state,
+			attachment_blend_state,
+			attachment_blend_state,
 		});
 		const auto color_blend_info =
 			vk::PipelineColorBlendStateCreateInfo().setAttachments(color_attachment_blend_states);
 
 		/*===== Output =====*/
 
+		constexpr auto color_formats = std::to_array({
+			DeferredAttachment::ALBEDO_FORMAT,  // Location 0
+			DeferredAttachment::NORMAL_FORMAT,  // Location 1
+			DeferredAttachment::PBR_FORMAT,     // Location 2
+			HdrAttachment::HDR_FORMAT,          // Location 3
+		});
+
 		const auto pipeline_rendering_create_info =
 			vk::PipelineRenderingCreateInfo()
-				.setColorAttachmentFormats(color_format)
-				.setDepthAttachmentFormat(depth_format);
-
-		/* Viewport */
-
-		const auto viewport_info = vk::PipelineViewportStateCreateInfo{
-			.viewportCount = 1,
-			.pViewports = nullptr,
-			.scissorCount = 1,
-			.pScissors = nullptr,
-		};
+				.setColorAttachmentFormats(color_formats)
+				.setDepthAttachmentFormat(DeferredAttachment::DEPTH_FORMAT);
 
 		/*===== Dynamic States =====*/
 
-		const auto dynamic_states = std::to_array({
-			vk::DynamicState::eViewport,
-			vk::DynamicState::eScissor,
-		});
-		const auto dynamic_state_info = vk::PipelineDynamicStateCreateInfo().setDynamicStates(dynamic_states);
+		const auto dynamic_state_info =
+			vk::PipelineDynamicStateCreateInfo().setDynamicStates(constant::DYNAMIC_VIEWPORT_DYNSTATE);
 
 		/*===== Pipeline Creation =====*/
 
@@ -282,12 +275,12 @@ namespace render
 			vk::GraphicsPipelineCreateInfo()
 				.setStages(shader_stage_create_infos)
 				.setPVertexInputState(&vertex_input_state_create_info)
-				.setPInputAssemblyState(&input_assembly_state_create_info)
+				.setPInputAssemblyState(&constant::TRIANGLE_LIST_INPUT_ASSEMBLY_STATE)
 				.setPRasterizationState(&rasterization_info)
-				.setPMultisampleState(&multisample_info)
+				.setPMultisampleState(&constant::BASIC_MULTISAMPLE_STATE)
 				.setPDepthStencilState(&depth_stencil_info)
 				.setPColorBlendState(&color_blend_info)
-				.setPViewportState(&viewport_info)
+				.setPViewportState(&constant::DYNAMIC_VIEWPORT_STATE)
 				.setPDynamicState(&dynamic_state_info)
 				.setLayout(pipeline_layout);
 		pipeline_create_info.push(pipeline_rendering_create_info);
@@ -305,12 +298,12 @@ namespace render
 		return std::move(*pipeline_result);
 	}
 
-	std::expected<ForwardPipeline, Error> ForwardPipeline::create(
+	std::expected<DeferredPipeline, Error> DeferredPipeline::create(
 		const vulkan::Context& context,
 		const render::MaterialLayout& material_layout
 	) noexcept
 	{
-		auto shader_module_result = vulkan::create_shader(context.device, shader::forward);
+		auto shader_module_result = vulkan::create_shader(context.device, shader::deferred);
 		if (!shader_module_result) return shader_module_result.error().forward("Create shader module failed");
 		auto shader_module = std::move(*shader_module_result);
 
@@ -335,8 +328,6 @@ namespace render
 					context,
 					pipeline_layout,
 					shader_module,
-					ForwardAttachments::HDR_FORMAT,
-					ForwardAttachments::DEPTH_FORMAT,
 					alpha_mode == model::AlphaMode::Mask,
 					double_sided
 				);
@@ -348,14 +339,14 @@ namespace render
 		}
 		auto pipelines = std::move(*pipelines_result);
 
-		return ForwardPipeline{
+		return DeferredPipeline{
 			std::move(data_descriptor_set_layout),
 			std::move(pipeline_layout),
 			std::move(pipelines)
 		};
 	}
 
-	std::expected<std::vector<ForwardPipeline::ResourceSet>, Error> ForwardPipeline::create_resource_sets(
+	std::expected<std::vector<DeferredPipeline::ResourceSet>, Error> DeferredPipeline::create_resource_sets(
 		const vulkan::Context& context,
 		uint32_t count
 	) const noexcept
@@ -405,12 +396,19 @@ namespace render
 			| Error::collect();
 	}
 
-	void ForwardPipeline::render(
+	void DeferredPipeline::render(
 		const vk::raii::CommandBuffer& command_buffer,
 		const ResourceSet& resource_set
 	) const noexcept
 	{
 		DEBUG_ASSERT(resource_set.resource.has_value());
+
+		const auto color_attachments = std::to_array({
+			resource_set.resource->attachment.albedo,
+			resource_set.resource->attachment.normal,
+			resource_set.resource->attachment.pbr,
+			resource_set.resource->attachment.hdr,
+		});
 
 		/*===== Pre-rendering Layout Transitions =====*/
 
@@ -424,56 +422,58 @@ namespace render
 				| vk::AccessFlagBits2::eDepthStencilAttachmentRead,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-			.image = resource_set.resource->attachments.depth.image,
+			.image = resource_set.resource->attachment.depth.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eDepth)
 		};
 
-		const auto pre_color_barrier = vk::ImageMemoryBarrier2{
-			.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-			.srcAccessMask = vk::AccessFlagBits2::eNone,
-			.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-			.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-			.oldLayout = vk::ImageLayout::eUndefined,
-			.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-			.image = resource_set.resource->attachments.hdr.image,
-			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
-		};
+		const auto pre_color_barriers =
+			color_attachments | util::map_array([](const vulkan::AttachmentView& attachment) {
+				return vk::ImageMemoryBarrier2{
+					.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+					.srcAccessMask = vk::AccessFlagBits2::eNone,
+					.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+					.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+					.oldLayout = vk::ImageLayout::eUndefined,
+					.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+					.image = attachment.image,
+					.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
+				};
+			});
 
-		const auto pre_barriers = std::to_array({
-			pre_depth_barrier,
-			pre_color_barrier,
-		});
+		const auto pre_barriers = util::array_concat(pre_depth_barrier, pre_color_barriers);
 		command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(pre_barriers));
 
 		/*===== Draw =====*/
 
-		const auto swapchain_attachment_info = vk::RenderingAttachmentInfo{
-			.imageView = resource_set.resource->attachments.hdr.view,
-			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-			.loadOp = vk::AttachmentLoadOp::eClear,
-			.storeOp = vk::AttachmentStoreOp::eStore,
-			.clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f)
-		};
+		const auto color_attachment_infos =
+			color_attachments | util::map_array([](const vulkan::AttachmentView& attachment) {
+				return vk::RenderingAttachmentInfo{
+					.imageView = attachment.view,
+					.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+					.loadOp = vk::AttachmentLoadOp::eClear,
+					.storeOp = vk::AttachmentStoreOp::eStore,
+					.clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f)
+				};
+			});
 
 		const auto depth_attachment_info = vk::RenderingAttachmentInfo{
-			.imageView = resource_set.resource->attachments.depth.view,
+			.imageView = resource_set.resource->attachment.depth.view,
 			.imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
 			.loadOp = vk::AttachmentLoadOp::eClear,
-			.storeOp = vk::AttachmentStoreOp::eDontCare,
+			.storeOp = vk::AttachmentStoreOp::eStore,
 			.clearValue = vk::ClearDepthStencilValue{.depth = 0.0f, .stencil = 0}
 		};
 
 		const auto rendering_rect = vk::Rect2D{
 			.offset = vk::Offset2D{.x = 0, .y = 0},
-			.extent = vulkan::to<vk::Extent2D>(resource_set.resource->attachments.extent)
+			.extent = vulkan::to<vk::Extent2D>(resource_set.resource->attachment.extent)
 		};
 
 		const auto rendering_info =
-			vk::RenderingInfo{
-				.renderArea = rendering_rect,
-				.layerCount = 1,
-			}
-				.setColorAttachments(swapchain_attachment_info)
+			vk::RenderingInfo()
+				.setRenderArea(rendering_rect)
+				.setLayerCount(1)
+				.setColorAttachments(color_attachment_infos)
 				.setPDepthAttachment(&depth_attachment_info);
 
 		command_buffer.beginRendering(rendering_info);
@@ -487,8 +487,8 @@ namespace render
 			vk::Viewport{
 				.x = 0.0f,
 				.y = 0.0f,
-				.width = static_cast<float>(resource_set.resource->attachments.extent.x),
-				.height = static_cast<float>(resource_set.resource->attachments.extent.y),
+				.width = static_cast<float>(resource_set.resource->attachment.extent.x),
+				.height = static_cast<float>(resource_set.resource->attachment.extent.y),
 				.minDepth = 0.0f,
 				.maxDepth = 1.0f
 			}
@@ -526,32 +526,74 @@ namespace render
 		command_buffer.endRendering();
 
 		/*===== Post-rendering Layout Transitions =====*/
+		// NOTE: HDR attachment is handled differently than others -- no layout transitions, expect next usage
+		// to be color attachment
 
-		const auto post_color_barrier = vk::ImageMemoryBarrier2{
+		const auto post_layout_transition_color_attachments = std::to_array({
+			resource_set.resource->attachment.albedo,
+			resource_set.resource->attachment.normal,
+			resource_set.resource->attachment.pbr,
+		});
+
+		const auto post_color_barriers =
+			post_layout_transition_color_attachments
+			| util::map_array([](const vulkan::AttachmentView& attachment) {
+				  return vk::ImageMemoryBarrier2{
+					  .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+					  .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+					  .dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader
+						  | vk::PipelineStageFlagBits2::eComputeShader,
+					  .dstAccessMask = vk::AccessFlagBits2::eShaderRead,
+					  .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+					  .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+					  .image = attachment.image,
+					  .subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
+				  };
+			  });
+
+		const auto post_hdr_barrier = vk::ImageMemoryBarrier2{
 			.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
 			.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-			.dstStageMask =
-				vk::PipelineStageFlagBits2::eAllGraphics | vk::PipelineStageFlagBits2::eComputeShader,
-			.dstAccessMask = vk::AccessFlagBits2::eShaderRead,
+			.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+			.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
 			.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
-			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-			.image = resource_set.resource->attachments.hdr.image,
+			.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+			.image = resource_set->attachment.hdr.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 
-		command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(post_color_barrier));
+		const auto post_depth_barrier = vk::ImageMemoryBarrier2{
+			.srcStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests
+				| vk::PipelineStageFlagBits2::eLateFragmentTests,
+			.srcAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite
+				| vk::AccessFlagBits2::eDepthStencilAttachmentRead,
+			.dstStageMask =
+				vk::PipelineStageFlagBits2::eAllGraphics | vk::PipelineStageFlagBits2::eComputeShader,
+			.dstAccessMask = vk::AccessFlagBits2::eShaderRead,
+			.oldLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			.image = resource_set.resource->attachment.depth.image,
+			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eDepth)
+		};
+
+		const auto post_barriers =
+			util::array_concat(post_color_barriers, post_hdr_barrier, post_depth_barrier);
+		command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(post_barriers));
 	}
 
-	void ForwardPipeline::ResourceSet::update(
+	void DeferredPipeline::ResourceSet::update(
 		const vulkan::Context& context,
 		const Model& model,
 		const HostDrawcallResource& host_drawcall,
 		const IndirectResource& indirect_resource,
-		ForwardAttachments::View attachments,
+		DeferredAttachment::View deferred_attachment,
+		HdrAttachment::View hdr_attachment,
 		vulkan::ElementBufferRef<Camera> camera_param,
 		vulkan::ElementBufferRef<DirectLight> primary_light_param
 	) noexcept
 	{
+		DEBUG_ASSERT(deferred_attachment.extent == hdr_attachment.extent);
+
 		/* Write descriptor sets */
 
 		const auto primitive_attr_buffer_write = vk::DescriptorBufferInfo{
@@ -649,6 +691,15 @@ namespace render
 
 		/* Store infos */
 
+		const auto attachment = Attachment{
+			.extent = deferred_attachment.extent,
+			.albedo = deferred_attachment.albedo,
+			.normal = deferred_attachment.normal,
+			.pbr = deferred_attachment.pbr,
+			.depth = deferred_attachment.depth,
+			.hdr = hdr_attachment.attachment,
+		};
+
 		resource = Resource{
 			.material_descriptor_set = model.material_list.get_descriptor_set(),
 
@@ -656,7 +707,7 @@ namespace render
 			.index_buffer = model.mesh_list->index_buffer,
 			.indirect_buffers = indirect_resource.ref(),
 
-			.attachments = attachments
+			.attachment = attachment
 		};
 	}
 }

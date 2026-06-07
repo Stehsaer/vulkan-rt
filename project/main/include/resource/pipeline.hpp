@@ -7,9 +7,9 @@
 #include "render/model/model.hpp"
 #include "render/pipeline/auto-exposure.hpp"
 #include "render/pipeline/composite.hpp"
-#include "render/pipeline/forward.hpp"
+#include "render/pipeline/deferred.hpp"
+#include "render/pipeline/direct.hpp"
 #include "render/pipeline/indirect.hpp"
-#include "vulkan/context/swapchain.hpp"
 #include "vulkan/interface/context.hpp"
 
 #include <cstdint>
@@ -26,10 +26,11 @@ namespace resource
 	///
 	struct Pipeline
 	{
-		render::IndirectPipeline indirect_pipeline;
-		render::ForwardPipeline forward_pipeline;
-		render::AutoExposurePipeline auto_exposure_pipeline;
-		render::CompositePipeline composite_pipeline;
+		render::IndirectPipeline indirect;
+		render::DeferredPipeline deferred;
+		render::DirectLightingPipeline direct_lighting;
+		render::AutoExposurePipeline auto_exposure;
+		render::CompositePipeline composite;
 
 		///
 		/// @brief Create pipelines
@@ -65,10 +66,11 @@ namespace resource
 	///
 	struct ResourceSet
 	{
-		render::IndirectPipeline::ResourceSet indirect_resource_set;
-		render::ForwardPipeline::ResourceSet forward_resource_set;
-		render::AutoExposurePipeline::ResourceSet auto_exposure_resource_set;
-		render::CompositePipeline::ResourceSet composite_resource_set;
+		render::IndirectPipeline::ResourceSet indirect;
+		render::DeferredPipeline::ResourceSet deferred;
+		render::DirectLightingPipeline::ResourceSet direct_lighting;
+		render::AutoExposurePipeline::ResourceSet auto_exposure;
+		render::CompositePipeline::ResourceSet composite;
 
 		///
 		/// @brief Update the resource sets
@@ -85,8 +87,7 @@ namespace resource
 			const render::Model& model,
 			const resource::RenderResource& curr_resource,
 			const resource::RenderResource& prev_resource,
-			const resource::AuxResource& aux_resource,
-			const vulkan::SwapchainContext::Frame& swapchain_frame
+			const resource::AuxResource& aux_resource
 		) noexcept;
 	};
 }

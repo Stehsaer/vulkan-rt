@@ -6,7 +6,8 @@
 #include "render/interface/direct-light.hpp"
 #include "render/interface/primitive-drawcall.hpp"
 #include "render/resource/auto-exposure.hpp"
-#include "render/resource/forward.hpp"
+#include "render/resource/deferred.hpp"
+#include "render/resource/hdr.hpp"
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
@@ -50,7 +51,8 @@ namespace resource
 
 		struct Attachments
 		{
-			render::ForwardAttachments forward;
+			render::DeferredAttachment deferred;
+			render::HdrAttachment hdr;
 		};
 
 		std::optional<Attachments> attachments = std::nullopt;

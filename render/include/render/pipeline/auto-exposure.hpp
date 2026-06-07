@@ -3,6 +3,7 @@
 #include "common/util/error.hpp"
 #include "render/interface/auto-exposure.hpp"
 #include "render/resource/auto-exposure.hpp"
+#include "render/resource/hdr.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 
@@ -121,18 +122,16 @@ namespace render
 		/// @param exposure_param Exposure parameters for current frame
 		/// @param resource Auto-exposure resources of current frame
 		/// @param prev_resource Auto-exposure resources of previous frame
+		/// @param hdr HDR image input
 		/// @param mask_image_view Image view of the mask image
-		/// @param input_image_view Input image view
-		/// @param image_size Image size
 		///
 		void update(
 			const vulkan::Context& context,
 			const AutoExposureResource& resource,
 			const AutoExposureResource& prev_resource,
 			vulkan::ElementBufferRef<ExposureParam> exposure_param,
-			vk::ImageView mask_image_view,
-			vk::ImageView input_image_view,
-			glm::u32vec2 image_size
+			HdrAttachment::View hdr,
+			vk::ImageView mask_image_view
 		) noexcept;
 
 	  private:

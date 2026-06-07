@@ -2,7 +2,9 @@
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
 #include "render/interface/auto-exposure.hpp"
+#include "render/pipeline/util/constant.hpp"
 #include "render/pipeline/util/fullscreen-pipeline.hpp"
+#include "render/resource/hdr.hpp"
 #include "shader/composite.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/container/host/linked-struct.hpp"
@@ -100,9 +102,8 @@ namespace render
 
 		/*===== Pipeline =====*/
 
-		const auto color_attachment_blend_states = std::to_array({fullscreen::BLEND_STATE});
 		const auto color_blend_state =
-			vk::PipelineColorBlendStateCreateInfo().setAttachments(color_attachment_blend_states);
+			vk::PipelineColorBlendStateCreateInfo().setAttachments(constant::DEFAULT_BLEND_STATE);
 
 		const auto pipeline_rendering_create_info =
 			vk::PipelineRenderingCreateInfo().setColorAttachmentFormats(target_format);
@@ -111,12 +112,12 @@ namespace render
 			vk::GraphicsPipelineCreateInfo()
 				.setStages(shader_stages)
 				.setPVertexInputState(&fullscreen::VERTEX_INPUT_STATE)
-				.setPInputAssemblyState(&fullscreen::INPUT_ASSEMBLY_STATE)
-				.setPRasterizationState(&fullscreen::RASTERIZATION_STATE)
-				.setPMultisampleState(&fullscreen::MULTISAMPLE_STATE)
-				.setPDepthStencilState(&fullscreen::DEPTH_STENCIL_STATE)
+				.setPInputAssemblyState(&constant::TRIANGLE_LIST_INPUT_ASSEMBLY_STATE)
+				.setPRasterizationState(&constant::NO_CULL_RASTERIZATION_STATE)
+				.setPMultisampleState(&constant::BASIC_MULTISAMPLE_STATE)
+				.setPDepthStencilState(&constant::NO_DEPTH_TEST_STATE)
 				.setPColorBlendState(&color_blend_state)
-				.setPViewportState(&fullscreen::VIEWPORT_STATE)
+				.setPViewportState(&constant::DYNAMIC_VIEWPORT_STATE)
 				.setPDynamicState(&fullscreen::DYNAMIC_STATE_INFO)
 				.setLayout(pipeline_layout);
 		pipeline_create_info.push(pipeline_rendering_create_info);
@@ -134,7 +135,7 @@ namespace render
 
 			// NOTE: use repeat to flip image vertically
 			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
-			.addressModeV = vk::SamplerAddressMode::eRepeat,
+			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
 			.addressModeW = vk::SamplerAddressMode::eClampToEdge,
 			.mipLodBias = 0.0f,
 			.minLod = 0.0f,
@@ -225,11 +226,10 @@ namespace render
 	void CompositePipeline::ResourceSet::update(
 		const vulkan::Context& context,
 		vulkan::ElementBufferRef<ExposureResult> exposure_result,
-		vk::ImageView hdr_input,
-		glm::u32vec2 image_size
+		HdrAttachment::View hdr
 	) noexcept
 	{
-		this->image_size = image_size;
+		this->image_size = hdr.extent;
 
 		const auto exposure_result_buffer_info = vk::DescriptorBufferInfo{
 			.buffer = exposure_result,
@@ -238,7 +238,7 @@ namespace render
 		};
 		const auto hdr_image_info = vk::DescriptorImageInfo{
 			.sampler = sampler,
-			.imageView = hdr_input,
+			.imageView = hdr.attachment.view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
 		};
 

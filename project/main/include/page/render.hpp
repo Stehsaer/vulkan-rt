@@ -158,8 +158,12 @@ namespace page
 
 		/*===== Render =====*/
 
+		void render_objects(const Frame& frame) const noexcept;
+		void render_lighting(const Frame& frame) const noexcept;
+		void render_post_processing(const Frame& frame) const noexcept;
+
 		[[nodiscard]]
-		std::expected<void, Error> render_final_composite(const Frame& frame) noexcept;
+		std::expected<void, Error> render_composite(const Frame& frame) noexcept;
 
 		[[nodiscard]]
 		std::expected<void, Error> draw_frame(const Frame& frame) noexcept;

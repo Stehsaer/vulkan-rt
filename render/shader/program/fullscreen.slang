@@ -1,3 +1,5 @@
+import algorithm.coord;
+
 static const float2 fullscreen_vert[6] = {
 	float2(-1.0, -1.0),
 	float2(1.0, -1.0),
@@ -17,8 +19,12 @@ struct VertexOutput
 VertexOutput main(uint vertex_id: SV_VertexID)
 {
 	VertexOutput output;
-	output.clip_space_pos = float4(fullscreen_vert[vertex_id], 0.0, 1.0);
-	output.texcoord = (fullscreen_vert[vertex_id] + 1.0) * 0.5;
+
+	let vert = fullscreen_vert[vertex_id];
+	output.clip_space_pos = float4(vert, 0.0, 1.0);
+	output.texcoord = ndc_to_texcoord(vert);
+
 	return output;
 }
+
 

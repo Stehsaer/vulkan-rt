@@ -11,6 +11,7 @@
 
 #include <SDL3/SDL_events.h>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <limits>
@@ -210,20 +211,22 @@ namespace helper
 			if (const auto result = context.device->resetFences({frame_context.sync.draw_fence}); !result)
 				return Error::from(result);
 
-			const std::scoped_lock lock(context.device.get().submit_mutex);
+			{
+				const std::scoped_lock lock(context.device.get().submit_mutex);
 
-			if (const auto result =
-					context.device.get().queue.submit(graphic_submit_info, frame_context.sync.draw_fence);
-				!result)
-				return Error::from(result);
+				if (const auto result =
+						context.device.get().queue.submit(graphic_submit_info, frame_context.sync.draw_fence);
+					!result)
+					return Error::from(result);
 
-			if (const auto present_result = context.swapchain.present(
-					context.device,
-					frame_context.swapchain,
-					frame_context.render_complete_semaphore
-				);
-				!present_result)
-				return present_result.error().forward("Present frame failed");
+				if (const auto present_result = context.swapchain.present(
+						context.device,
+						frame_context.swapchain,
+						frame_context.render_complete_semaphore
+					);
+					!present_result)
+					return present_result.error().forward("Present frame failed");
+			}
 		}
 
 		return {};
