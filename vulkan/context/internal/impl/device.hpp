@@ -5,6 +5,7 @@
 #include "vulkan/container/host/linked-struct.hpp"
 #include "vulkan/context/device.hpp"
 #include "vulkan/context/instance.hpp"
+#include "vulkan/interface/context.hpp"
 
 #include <cstdint>
 #include <expected>

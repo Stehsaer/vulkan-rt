@@ -153,6 +153,39 @@ namespace vulkan::impl
 	}
 
 	[[nodiscard]]
+	static std::expected<vk::PhysicalDeviceRayQueryFeaturesKHR, Error> find_ray_query_features(
+		const vk::raii::PhysicalDevice& phy_device
+	) noexcept
+	{
+		const auto available_features =
+			phy_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceRayQueryFeaturesKHR>()
+				.get<vk::PhysicalDeviceRayQueryFeaturesKHR>();
+
+		vk::PhysicalDeviceRayQueryFeaturesKHR result = {};
+		CHECK_FIELD(available_features, result, rayQuery);
+
+		return result;
+	}
+
+	[[nodiscard]]
+	static std::expected<
+		vk::PhysicalDeviceRayTracingPipelineFeaturesKHR,
+		Error
+	> find_raytracing_pipeline_features(const vk::raii::PhysicalDevice& phy_device) noexcept
+	{
+		const auto available_features =
+			phy_device
+				.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>()
+				.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
+
+		vk::PhysicalDeviceRayTracingPipelineFeaturesKHR result = {};
+		CHECK_FIELD(available_features, result, rayTracingPipeline);
+		CHECK_FIELD(available_features, result, rayTraversalPrimitiveCulling);
+
+		return result;
+	}
+
+	[[nodiscard]]
 	static std::expected<void, Error> check_device_constraints(
 		const vk::raii::PhysicalDevice& phy_device,
 		const DeviceFeature& feature [[maybe_unused]]
@@ -237,7 +270,15 @@ namespace vulkan::impl
 			const auto required_features_as = find_as_features(phy_device);
 			if (!required_features_as) return required_features_as.error();
 
+			const auto required_features_ray_query = find_ray_query_features(phy_device);
+			if (!required_features_ray_query) return required_features_ray_query.error();
+
+			const auto required_features_raytracing_pipeline = find_raytracing_pipeline_features(phy_device);
+			if (!required_features_raytracing_pipeline) return required_features_raytracing_pipeline.error();
+
 			features.push(*required_features_as);
+			features.push(*required_features_ray_query);
+			features.push(*required_features_raytracing_pipeline);
 		}
 
 		return features;
@@ -248,6 +289,8 @@ namespace vulkan::impl
 	constexpr auto RAYTRACE_EXT = std::to_array({
 		vk::KHRDeferredHostOperationsExtensionName,
 		vk::KHRAccelerationStructureExtensionName,
+		vk::KHRRayQueryExtensionName,
+		vk::KHRRayTracingPipelineExtensionName,
 	});
 
 	[[nodiscard]]
