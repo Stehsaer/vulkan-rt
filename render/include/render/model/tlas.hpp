@@ -9,16 +9,26 @@
 #include <glm/ext/matrix_float4x4.hpp>
 #include <span>
 #include <utility>
-#include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace render
 {
+	///
+	/// @brief Tlas object
+	///
 	class Tlas
 	{
 	  public:
 
+		///
+		/// @brief Build a TLAS from model and node transforms
+		///
+		/// @param context Vulkan context
+		/// @param model Model instance
+		/// @param transforms Node transform matrix array
+		/// @return Built TLAS or error
+		///
 		static std::expected<Tlas, Error> build(
 			const vulkan::Context& context,
 			const Model& model,
