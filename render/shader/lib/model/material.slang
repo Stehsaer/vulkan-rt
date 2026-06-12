@@ -40,12 +40,12 @@ namespace model
 
 		// Get material info for a primitive
 		// - `primitive_attr`: Primitive attribute of the primitive
-		public func get_material(primitive_attr: PrimitiveAttribute)->MaterialInfo
+		public func get_material(material_index: uint32_t)->MaterialInfo
 		{
 			let material_index = select(
-				primitive_attr.material_index == PrimitiveAttribute.DEFAULT_MATERIAL,
+				material_index == PrimitiveAttribute.DEFAULT_MATERIAL,
 				0,
-				primitive_attr.material_index + 1
+				material_index + 1
 			);
 
 			return info[material_index];

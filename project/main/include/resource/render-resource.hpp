@@ -10,6 +10,7 @@
 #include "render/resource/hdr.hpp"
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
+#include "render/resource/shadow.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/interface/context.hpp"
 
@@ -52,6 +53,8 @@ namespace resource
 		struct Attachments
 		{
 			render::DeferredAttachment deferred;
+			render::HalfDeferredAttachment half_deferred;
+			render::ShadowAttachment shadow;
 			render::HdrAttachment hdr;
 		};
 

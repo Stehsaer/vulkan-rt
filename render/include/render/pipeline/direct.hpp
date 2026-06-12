@@ -5,6 +5,7 @@
 #include "render/interface/direct-light.hpp"
 #include "render/resource/deferred.hpp"
 #include "render/resource/hdr.hpp"
+#include "render/resource/shadow.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 
@@ -93,14 +94,28 @@ namespace render
 		DirectLightingPipeline& operator=(DirectLightingPipeline&&) = default;
 	};
 
+	///
+	/// @brief Resource set for direct lighting pipeline
+	///
 	class DirectLightingPipeline::ResourceSet
 	{
 	  public:
 
+		///
+		/// @brief Update resource set
+		///
+		/// @param context Vulkan context
+		/// @param deferred Deferred attachment
+		/// @param hdr HDR attachment
+		/// @param shadow Shadow attachment
+		/// @param camera Camera parameter buffer
+		/// @param direct_light Direct light buffer
+		///
 		void update(
 			const vulkan::Context& context,
 			DeferredAttachment::View deferred,
 			HdrAttachment::View hdr,
+			ShadowAttachment::View shadow,
 			vulkan::ElementBufferRef<Camera> camera,
 			vulkan::ElementBufferRef<DirectLight> direct_light
 		) noexcept;

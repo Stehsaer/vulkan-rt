@@ -13,7 +13,6 @@
 #include "common/util/error.hpp"
 #include "model/mesh.hpp"
 #include "render/interface/camera.hpp"
-#include "render/interface/direct-light.hpp"
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
@@ -99,8 +98,8 @@ namespace render
 
 		static std::expected<vk::raii::Pipeline, Error> create_pipeline(
 			const vulkan::Context& context,
-			const vk::raii::PipelineLayout& pipeline_layout,
-			const vk::raii::ShaderModule& shader_module,
+			vk::PipelineLayout pipeline_layout,
+			vk::ShaderModule shader_module,
 			bool alpha_mask_enabled,
 			bool double_sided
 		) noexcept;
@@ -139,13 +138,11 @@ namespace render
 		///
 		/// @param context Vulkan context
 		/// @param model Model instance
-		/// @param camera_param Camera parameter buffer
-		/// @param primary_light_param  Primary light parameter buffer
 		/// @param host_drawcall Host drawcall resource
 		/// @param indirect_resource Indirect drawcall resource
-		/// @param deferred_attachment Deferred attachments
-		/// @param hdr_attachment HDR attachments
-		/// @param extent Rendering extent
+		/// @param deferred Deferred attachments
+		/// @param hdr HDR attachments
+		/// @param camera_param Camera parameter buffer
 		///
 		/// @warning Deferred and HDR attachments must have identical extents, or a fatal/unrecoverable error
 		/// will occur
@@ -155,10 +152,9 @@ namespace render
 			const Model& model,
 			const HostDrawcallResource& host_drawcall,
 			const IndirectResource& indirect_resource,
-			DeferredAttachment::View deferred_attachment,
-			HdrAttachment::View hdr_attachment,
-			vulkan::ElementBufferRef<Camera> camera_param,
-			vulkan::ElementBufferRef<DirectLight> primary_light_param
+			DeferredAttachment::View deferred,
+			HdrAttachment::View hdr,
+			vulkan::ElementBufferRef<Camera> camera_param
 		) noexcept;
 
 	  private:

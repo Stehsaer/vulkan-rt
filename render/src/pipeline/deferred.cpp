@@ -4,7 +4,6 @@
 #include "model/material.hpp"
 #include "model/mesh.hpp"
 #include "render/interface/camera.hpp"
-#include "render/interface/direct-light.hpp"
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
@@ -22,6 +21,7 @@
 #include "vulkan/numeric/base-level.hpp"
 #include "vulkan/numeric/glm.hpp"
 #include "vulkan/numeric/pool-size.hpp"
+#include "vulkan/util/descriptor-set-layout.hpp"
 #include "vulkan/util/shader.hpp"
 
 #include <array>
@@ -40,124 +40,86 @@
 
 namespace render
 {
-	static consteval auto get_descriptor_set_bindings() noexcept
+	namespace
 	{
-		constexpr auto primitive_attr_buffer_binding = vk::DescriptorSetLayoutBinding{
-			.binding = 0,
-			.descriptorType = vk::DescriptorType::eStorageBuffer,
-			.descriptorCount = 1,
-			.stageFlags = vk::ShaderStageFlagBits::eFragment
-		};
+		using DataDescriptorSetLayout = vulkan::MonoDescriptorSetLayout<
+			// primitive_attr
+			vulkan::
+				MonoDescriptorSetSlot<vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment>,
+			// indirect_buffer
+			vulkan::
+				MonoDescriptorSetSlot<vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eVertex>,
+			// transform_buffer
+			vulkan::
+				MonoDescriptorSetSlot<vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eVertex>,
+			// camera_buffer
+			vulkan::MonoDescriptorSetSlot<
+				vk::DescriptorType::eUniformBuffer,
+				vk::ShaderStageFlagBits::eVertex,
+				vk::ShaderStageFlagBits::eFragment
+			>
+		>;
 
-		constexpr auto indirect_buffer_binding = vk::DescriptorSetLayoutBinding{
-			.binding = 1,
-			.descriptorType = vk::DescriptorType::eStorageBuffer,
-			.descriptorCount = 1,
-			.stageFlags = vk::ShaderStageFlagBits::eVertex
-		};
+		std::expected<vk::raii::PipelineLayout, Error> create_pipeline_layout(
+			const vulkan::Context& context,
+			vk::DescriptorSetLayout material_descriptor_set_layout,
+			vk::DescriptorSetLayout data_descriptor_set_layout
+		) noexcept
+		{
+			const auto set_layouts = std::to_array<const vk::DescriptorSetLayout>({
+				material_descriptor_set_layout,
+				data_descriptor_set_layout,
+			});
+			const auto create_info = vk::PipelineLayoutCreateInfo().setSetLayouts(set_layouts);
 
-		constexpr auto transform_buffer_binding = vk::DescriptorSetLayoutBinding{
-			.binding = 2,
-			.descriptorType = vk::DescriptorType::eStorageBuffer,
-			.descriptorCount = 1,
-			.stageFlags = vk::ShaderStageFlagBits::eVertex
-		};
+			auto layout_result = context.device.createPipelineLayout(create_info);
+			if (!layout_result) return Error::from(layout_result);
+			return std::move(*layout_result);
+		}
 
-		constexpr auto camera_buffer_binding = vk::DescriptorSetLayoutBinding{
-			.binding = 3,
-			.descriptorType = vk::DescriptorType::eUniformBuffer,
-			.descriptorCount = 1,
-			.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
-		};
+		constexpr auto get_vertex_input_attribute_descs() noexcept
+		{
+			constexpr auto vertex_position_attr_desc = vk::VertexInputAttributeDescription{
+				.location = 0,
+				.binding = 0,
+				.format = vk::Format::eR32G32B32Sfloat,
+				.offset = offsetof(model::FullVertex, position)
+			};
 
-		constexpr auto direct_light_param_binding = vk::DescriptorSetLayoutBinding{
-			.binding = 4,
-			.descriptorType = vk::DescriptorType::eUniformBuffer,
-			.descriptorCount = 1,
-			.stageFlags = vk::ShaderStageFlagBits::eFragment
-		};
+			constexpr auto vertex_texcoord_attr_desc = vk::VertexInputAttributeDescription{
+				.location = 1,
+				.binding = 0,
+				.format = vk::Format::eR32G32Sfloat,
+				.offset = offsetof(model::FullVertex, texcoord)
+			};
 
-		return std::to_array({
-			primitive_attr_buffer_binding,
-			indirect_buffer_binding,
-			transform_buffer_binding,
-			camera_buffer_binding,
-			direct_light_param_binding,
-		});
-	}
+			constexpr auto vertex_normal_attr_desc = vk::VertexInputAttributeDescription{
+				.location = 2,
+				.binding = 0,
+				.format = vk::Format::eR32G32B32Sfloat,
+				.offset = offsetof(model::FullVertex, normal)
+			};
 
-	static std::expected<vk::raii::DescriptorSetLayout, Error> create_descriptor_set_layout(
-		const vulkan::Context& context
-	) noexcept
-	{
-		constexpr auto bindings = get_descriptor_set_bindings();
+			constexpr auto vertex_tangent_attr_desc = vk::VertexInputAttributeDescription{
+				.location = 3,
+				.binding = 0,
+				.format = vk::Format::eR32G32B32A32Sfloat,
+				.offset = offsetof(model::FullVertex, tangent)
+			};
 
-		auto layout_result = context.device.createDescriptorSetLayout(
-			vk::DescriptorSetLayoutCreateInfo().setBindings(bindings)
-		);
-		if (!layout_result) return Error::from(layout_result);
-		return std::move(*layout_result);
-	}
-
-	static std::expected<vk::raii::PipelineLayout, Error> create_pipeline_layout(
-		const vulkan::Context& context,
-		vk::DescriptorSetLayout material_descriptor_set_layout,
-		vk::DescriptorSetLayout data_descriptor_set_layout
-	) noexcept
-	{
-		const auto set_layouts = std::to_array<const vk::DescriptorSetLayout>({
-			material_descriptor_set_layout,
-			data_descriptor_set_layout,
-		});
-		const auto create_info = vk::PipelineLayoutCreateInfo().setSetLayouts(set_layouts);
-
-		auto layout_result = context.device.createPipelineLayout(create_info);
-		if (!layout_result) return Error::from(layout_result);
-		return std::move(*layout_result);
-	}
-
-	static constexpr auto get_vertex_input_attribute_descs() noexcept
-	{
-		constexpr auto vertex_position_attr_desc = vk::VertexInputAttributeDescription{
-			.location = 0,
-			.binding = 0,
-			.format = vk::Format::eR32G32B32Sfloat,
-			.offset = offsetof(model::FullVertex, position)
-		};
-
-		constexpr auto vertex_texcoord_attr_desc = vk::VertexInputAttributeDescription{
-			.location = 1,
-			.binding = 0,
-			.format = vk::Format::eR32G32Sfloat,
-			.offset = offsetof(model::FullVertex, texcoord)
-		};
-
-		constexpr auto vertex_normal_attr_desc = vk::VertexInputAttributeDescription{
-			.location = 2,
-			.binding = 0,
-			.format = vk::Format::eR32G32B32Sfloat,
-			.offset = offsetof(model::FullVertex, normal)
-		};
-
-		constexpr auto vertex_tangent_attr_desc = vk::VertexInputAttributeDescription{
-			.location = 3,
-			.binding = 0,
-			.format = vk::Format::eR32G32B32A32Sfloat,
-			.offset = offsetof(model::FullVertex, tangent)
-		};
-
-		return std::to_array({
-			vertex_position_attr_desc,
-			vertex_texcoord_attr_desc,
-			vertex_normal_attr_desc,
-			vertex_tangent_attr_desc,
-		});
+			return std::to_array({
+				vertex_position_attr_desc,
+				vertex_texcoord_attr_desc,
+				vertex_normal_attr_desc,
+				vertex_tangent_attr_desc,
+			});
+		}
 	}
 
 	std::expected<vk::raii::Pipeline, Error> DeferredPipeline::create_pipeline(
 		const vulkan::Context& context,
-		const vk::raii::PipelineLayout& pipeline_layout,
-		const vk::raii::ShaderModule& shader_module,
+		vk::PipelineLayout pipeline_layout,
+		vk::ShaderModule shader_module,
 		bool alpha_mask_enabled,
 		bool double_sided
 	) noexcept
@@ -304,22 +266,22 @@ namespace render
 	) noexcept
 	{
 		auto shader_module_result = vulkan::create_shader(context.device, shader::deferred);
-		if (!shader_module_result) return shader_module_result.error().forward("Create shader module failed");
+		if (!shader_module_result)
+			return shader_module_result.error().forward("Create primary shader module failed");
 		auto shader_module = std::move(*shader_module_result);
 
-		auto descriptor_set_layout_result = create_descriptor_set_layout(context);
-		if (!descriptor_set_layout_result)
-		{
-			return descriptor_set_layout_result.error().forward("Create descriptor set layout failed");
-		}
-		auto data_descriptor_set_layout = std::move(*descriptor_set_layout_result);
+		auto data_descriptor_set_layout_result =
+			DataDescriptorSetLayout::create_descriptor_set_layout(context);
+		if (!data_descriptor_set_layout_result)
+			return data_descriptor_set_layout_result.error().forward(
+				"Create data descriptor set layout failed"
+			);
+		auto data_descriptor_set_layout = std::move(*data_descriptor_set_layout_result);
 
 		auto pipeline_layout_result =
 			create_pipeline_layout(context, material_layout.layout, data_descriptor_set_layout);
 		if (!pipeline_layout_result)
-		{
-			return pipeline_layout_result.error().forward("Create pipeline layout failed");
-		}
+			return pipeline_layout_result.error().forward("Create primary pipeline layout failed");
 		auto pipeline_layout = std::move(*pipeline_layout_result);
 
 		auto pipelines_result = PerRenderState<vk::raii::Pipeline>::from_ctor(
@@ -333,10 +295,7 @@ namespace render
 				);
 			}
 		);
-		if (!pipelines_result)
-		{
-			return pipelines_result.error().forward("Create pipelines failed");
-		}
+		if (!pipelines_result) return pipelines_result.error().forward("Create pipelines failed");
 		auto pipelines = std::move(*pipelines_result);
 
 		return DeferredPipeline{
@@ -357,7 +316,7 @@ namespace render
 
 		static constexpr auto SETS_PER_RESOURCE_SET = 4;
 
-		const auto descriptor_bindings = get_descriptor_set_bindings();
+		const auto descriptor_bindings = DataDescriptorSetLayout::get_bindings();
 		const auto descriptor_pool_sizes =
 			vulkan::calc_pool_sizes(descriptor_bindings, count * SETS_PER_RESOURCE_SET);
 
@@ -370,13 +329,12 @@ namespace render
 		if (!descriptor_pool_result) return Error::from(descriptor_pool_result);
 		auto descriptor_pool = std::make_shared<vk::raii::DescriptorPool>(std::move(*descriptor_pool_result));
 
-		const auto layouts = std::vector(SETS_PER_RESOURCE_SET, *data_descriptor_set_layout);
-		const auto set_alloc_info =
-			vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor_pool).setSetLayouts(layouts);
+		const auto data_layouts = std::vector(SETS_PER_RESOURCE_SET, *data_descriptor_set_layout);
+		const auto data_set_alloc_info =
+			vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor_pool).setSetLayouts(data_layouts);
 
-		const auto create_resource_set_fn =
-			[&set_alloc_info, &context, &descriptor_pool] -> std::expected<ResourceSet, Error> {
-			auto sets_result = context.device.allocateDescriptorSets(set_alloc_info);
+		const auto create_resource_set_fn = [&] -> std::expected<ResourceSet, Error> {
+			auto sets_result = context.device.allocateDescriptorSets(data_set_alloc_info);
 			if (!sets_result) return Error::from(sets_result);
 			auto sets = std::move(*sets_result);
 
@@ -511,7 +469,7 @@ namespace render
 				vk::PipelineBindPoint::eGraphics,
 				*pipeline_layout,
 				0,
-				{resource_set.resource->material_descriptor_set, data_descriptor_set},
+				{resource_set->material_descriptor_set, data_descriptor_set},
 				{}
 			);
 
@@ -586,15 +544,14 @@ namespace render
 		const Model& model,
 		const HostDrawcallResource& host_drawcall,
 		const IndirectResource& indirect_resource,
-		DeferredAttachment::View deferred_attachment,
-		HdrAttachment::View hdr_attachment,
-		vulkan::ElementBufferRef<Camera> camera_param,
-		vulkan::ElementBufferRef<DirectLight> primary_light_param
+		DeferredAttachment::View deferred,
+		HdrAttachment::View hdr,
+		vulkan::ElementBufferRef<Camera> camera_param
 	) noexcept
 	{
-		DEBUG_ASSERT(deferred_attachment.extent == hdr_attachment.extent);
+		DEBUG_ASSERT(deferred.extent == hdr.extent);
 
-		/* Write descriptor sets */
+		/*===== Storage Infos =====*/
 
 		const auto primitive_attr_buffer_write = vk::DescriptorBufferInfo{
 			.buffer = model.mesh_list->primitive_attr_buffer,
@@ -622,82 +579,33 @@ namespace render
 			.range = vk::WholeSize,
 		};
 
-		const auto direct_light_param_buffer_write = vk::DescriptorBufferInfo{
-			.buffer = primary_light_param,
-			.offset = 0,
-			.range = vk::WholeSize,
-		};
+		/*===== Write descriptor for primary pipeline =====*/
 
 		for (
 			const auto& [descriptor_set, indirect_buffer_write] :
 			std::views::zip(data_descriptor_set.all(), indirect_buffer_writes.all())
 		)
 		{
-			const auto primitive_attr_buffer_write_set = vk::WriteDescriptorSet{
-				.dstSet = descriptor_set,
-				.dstBinding = 0,
-				.dstArrayElement = 0,
-				.descriptorCount = 1,
-				.descriptorType = vk::DescriptorType::eStorageBuffer,
-				.pBufferInfo = &primitive_attr_buffer_write
-			};
-
-			const auto indirect_buffer_write_set = vk::WriteDescriptorSet{
-				.dstSet = descriptor_set,
-				.dstBinding = 1,
-				.dstArrayElement = 0,
-				.descriptorCount = 1,
-				.descriptorType = vk::DescriptorType::eStorageBuffer,
-				.pBufferInfo = &indirect_buffer_write
-			};
-
-			const auto transform_buffer_write_set = vk::WriteDescriptorSet{
-				.dstSet = descriptor_set,
-				.dstBinding = 2,
-				.dstArrayElement = 0,
-				.descriptorCount = 1,
-				.descriptorType = vk::DescriptorType::eStorageBuffer,
-				.pBufferInfo = &transform_buffer_write
-			};
-
-			const auto camera_buffer_write_set = vk::WriteDescriptorSet{
-				.dstSet = descriptor_set,
-				.dstBinding = 3,
-				.dstArrayElement = 0,
-				.descriptorCount = 1,
-				.descriptorType = vk::DescriptorType::eUniformBuffer,
-				.pBufferInfo = &camera_buffer_write
-			};
-
-			const auto direct_light_param_buffer_write_set = vk::WriteDescriptorSet{
-				.dstSet = descriptor_set,
-				.dstBinding = 4,
-				.dstArrayElement = 0,
-				.descriptorCount = 1,
-				.descriptorType = vk::DescriptorType::eUniformBuffer,
-				.pBufferInfo = &direct_light_param_buffer_write
-			};
-
-			const auto write_sets = std::to_array({
-				primitive_attr_buffer_write_set,
-				indirect_buffer_write_set,
-				transform_buffer_write_set,
-				camera_buffer_write_set,
-				direct_light_param_buffer_write_set,
-			});
+			const auto write_sets = DataDescriptorSetLayout::get_write_infos(
+				descriptor_set,
+				primitive_attr_buffer_write,
+				indirect_buffer_write,
+				transform_buffer_write,
+				camera_buffer_write
+			);
 
 			context.device.updateDescriptorSets(write_sets, {});
 		}
 
-		/* Store infos */
+		/*===== Store infos =====*/
 
 		const auto attachment = Attachment{
-			.extent = deferred_attachment.extent,
-			.albedo = deferred_attachment.albedo,
-			.normal = deferred_attachment.normal,
-			.pbr = deferred_attachment.pbr,
-			.depth = deferred_attachment.depth,
-			.hdr = hdr_attachment.attachment,
+			.extent = deferred.extent,
+			.albedo = deferred.albedo,
+			.normal = deferred.normal,
+			.pbr = deferred.pbr,
+			.depth = deferred.depth,
+			.hdr = hdr.attachment
 		};
 
 		resource = Resource{

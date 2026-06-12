@@ -37,6 +37,8 @@ namespace render
 
 		// TODO: update TLAS
 
+		operator vk::AccelerationStructureKHR() const noexcept { return tlas; }
+
 	  private:
 
 		vulkan::ArrayBuffer<vk::AccelerationStructureInstanceKHR> instance_buffer;

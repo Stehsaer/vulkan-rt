@@ -1,4 +1,5 @@
 #include "render/resource/deferred.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "vulkan/container/device/attachment.hpp"
 #include "vulkan/interface/context.hpp"
@@ -6,6 +7,7 @@
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <utility>
+#include <vulkan/vulkan.hpp>
 
 namespace render
 {
@@ -16,14 +18,14 @@ namespace render
 	{
 		auto albedo_result =
 			vulkan::Attachment::create(context.device, context.allocator, extent, ALBEDO_FORMAT);
-		if (!albedo_result) return albedo_result.error().forward("Create depth buffer failed");
+		if (!albedo_result) return albedo_result.error().forward("Create albedo buffer failed");
 
 		auto normal_result =
 			vulkan::Attachment::create(context.device, context.allocator, extent, NORMAL_FORMAT);
-		if (!normal_result) return normal_result.error().forward("Create depth buffer failed");
+		if (!normal_result) return normal_result.error().forward("Create normal buffer failed");
 
 		auto pbr_result = vulkan::Attachment::create(context.device, context.allocator, extent, PBR_FORMAT);
-		if (!pbr_result) return pbr_result.error().forward("Create depth buffer failed");
+		if (!pbr_result) return pbr_result.error().forward("Create pbr buffer failed");
 
 		auto depth_result =
 			vulkan::Attachment::create(context.device, context.allocator, extent, DEPTH_FORMAT);
@@ -35,6 +37,62 @@ namespace render
 			std::move(*normal_result),
 			std::move(*pbr_result),
 			std::move(*depth_result)
+		);
+	}
+
+	std::expected<HalfDeferredAttachment, Error> HalfDeferredAttachment::create(
+		const vulkan::Context& context,
+		glm::u32vec2 extent
+	) noexcept
+	{
+		const auto half_extent = (extent + 1_u32) / 2_u32;
+
+		auto half_albedo_result = vulkan::Attachment::create(
+			context.device,
+			context.allocator,
+			half_extent,
+			HALF_ALBEDO_STORAGE_FORMAT,
+			vk::ImageUsageFlagBits::eStorage
+		);
+		if (!half_albedo_result)
+			return half_albedo_result.error().forward("Create half-res albedo buffer failed");
+
+		auto half_normal_result = vulkan::Attachment::create(
+			context.device,
+			context.allocator,
+			half_extent,
+			HALF_NORMAL_FORMAT,
+			vk::ImageUsageFlagBits::eStorage
+		);
+		if (!half_normal_result)
+			return half_normal_result.error().forward("Create half-res normal buffer failed");
+
+		auto half_pbr_result = vulkan::Attachment::create(
+			context.device,
+			context.allocator,
+			half_extent,
+			HALF_PBR_FORMAT,
+			vk::ImageUsageFlagBits::eStorage
+		);
+		if (!half_pbr_result) return half_pbr_result.error().forward("Create half-res pbr buffer failed");
+
+		auto half_depth_result = vulkan::Attachment::create(
+			context.device,
+			context.allocator,
+			half_extent,
+			HALF_DEPTH_FORMAT,
+			vk::ImageUsageFlagBits::eStorage
+		);
+		if (!half_depth_result)
+			return half_depth_result.error().forward("Create half-res depth buffer failed");
+
+		return HalfDeferredAttachment(
+			extent,
+			half_extent,
+			std::move(*half_albedo_result),
+			std::move(*half_normal_result),
+			std::move(*half_pbr_result),
+			std::move(*half_depth_result)
 		);
 	}
 }

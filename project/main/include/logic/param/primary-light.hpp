@@ -17,6 +17,7 @@ namespace logic
 		float light_yaw_deg = 0.0f, light_pitch_deg = 45.0f;
 		glm::vec3 light_color = glm::vec3(1.0f);
 		float light_intensity = glm::pi<float>();
+		float light_size_deg = 1;
 
 		///
 		/// @brief Configuration UI

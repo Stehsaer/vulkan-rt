@@ -10,6 +10,7 @@
 #include <libassert/assert.hpp>
 #include <utility>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace render
 {
@@ -90,5 +91,86 @@ namespace render
 		DeferredAttachment(DeferredAttachment&&) = default;
 		DeferredAttachment& operator=(const DeferredAttachment&) = delete;
 		DeferredAttachment& operator=(DeferredAttachment&&) = default;
+	};
+
+	///
+	/// @brief Half-resolution deferred attachment
+	///
+	class HalfDeferredAttachment
+	{
+	  public:
+
+		static constexpr auto HALF_ALBEDO_STORAGE_FORMAT = vk::Format::eR8G8B8A8Unorm;  // RGBA8, Unorm,
+		static constexpr auto HALF_DEPTH_FORMAT = vk::Format::eR32Sfloat;               // R32, Float, 4 BPP
+		static constexpr auto HALF_NORMAL_FORMAT = DeferredAttachment::NORMAL_FORMAT;
+		static constexpr auto HALF_PBR_FORMAT = DeferredAttachment::PBR_FORMAT;
+
+		///
+		/// @brief Create a deferred attachment with given extent
+		///
+		/// @param context Vulkan context
+		/// @param extent Attachment extent
+		/// @return Created attachment or error
+		///
+		[[nodiscard]]
+		static std::expected<HalfDeferredAttachment, Error> create(
+			const vulkan::Context& context,
+			glm::u32vec2 extent
+		) noexcept;
+
+		///
+		/// @brief View of the attachment
+		///
+		struct View
+		{
+			glm::u32vec2 full_extent;
+			glm::u32vec2 half_extent;
+			vulkan::AttachmentView albedo, normal, pbr, depth;
+
+			const View* operator->() const noexcept { return this; }
+		};
+
+		operator View() const noexcept
+		{
+			return {
+				.full_extent = full_extent,
+				.half_extent = half_extent,
+				.albedo = albedo,
+				.normal = normal,
+				.pbr = pbr,
+				.depth = depth,
+			};
+		}
+
+		View operator->() const noexcept { return *this; }
+
+	  private:
+
+		glm::u32vec2 full_extent;
+		glm::u32vec2 half_extent;
+		vulkan::Attachment albedo, normal, pbr, depth;
+
+		explicit HalfDeferredAttachment(
+			glm::u32vec2 extent,
+			glm::u32vec2 half_extent,
+			vulkan::Attachment albedo,
+			vulkan::Attachment normal,
+			vulkan::Attachment pbr,
+			vulkan::Attachment depth
+		) :
+			full_extent(extent),
+			half_extent(half_extent),
+			albedo(std::move(albedo)),
+			normal(std::move(normal)),
+			pbr(std::move(pbr)),
+			depth(std::move(depth))
+		{}
+
+	  public:
+
+		HalfDeferredAttachment(const HalfDeferredAttachment&) = delete;
+		HalfDeferredAttachment(HalfDeferredAttachment&&) = default;
+		HalfDeferredAttachment& operator=(const HalfDeferredAttachment&) = delete;
+		HalfDeferredAttachment& operator=(HalfDeferredAttachment&&) = default;
 	};
 }

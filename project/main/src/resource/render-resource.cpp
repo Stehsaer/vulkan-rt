@@ -6,6 +6,7 @@
 #include "render/resource/deferred.hpp"
 #include "render/resource/hdr.hpp"
 #include "render/resource/host.hpp"
+#include "render/resource/shadow.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/interface/context.hpp"
 
@@ -63,13 +64,23 @@ namespace resource
 		auto deferred_result = render::DeferredAttachment::create(context, extent);
 		if (!deferred_result) return deferred_result.error().forward("Create deferred attachments failed");
 
+		auto half_deferred_result = render::HalfDeferredAttachment::create(context, extent);
+		if (!half_deferred_result)
+			return half_deferred_result.error().forward("Create half-res deferred attachments failed");
+
+		auto shadow_result = render::ShadowAttachment::create(context, extent);
+		if (!shadow_result) return shadow_result.error().forward("Create shadow attachment failed");
+
 		auto hdr_result = render::HdrAttachment::create(context, extent);
 		if (!hdr_result) return hdr_result.error().forward("Create HDR attachments failed");
 
 		attachments = Attachments{
 			.deferred = std::move(*deferred_result),
+			.half_deferred = std::move(*half_deferred_result),
+			.shadow = std::move(*shadow_result),
 			.hdr = std::move(*hdr_result),
 		};
+
 		return {};
 	}
 

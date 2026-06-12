@@ -1,4 +1,5 @@
 #include "page/render.hpp"
+#include "common/number-literals.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
 #include "config.hpp"
@@ -6,6 +7,7 @@
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
 #include "render/model/tlas.hpp"
+#include "render/resource/raytrace.hpp"
 #include "render/util/per-render-state.hpp"
 #include "resource/aux-resource.hpp"
 #include "resource/context.hpp"
@@ -21,11 +23,13 @@
 #include <expected>
 #include <format>
 #include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_int2_sized.hpp>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <memory>
 #include <optional>
+#include <random>
 #include <ranges>
 #include <span>
 #include <utility>
@@ -56,6 +60,17 @@ namespace page
 		if (!command_buffers_result) return Error::from(command_buffers_result);
 		auto command_buffers = std::move(*command_buffers_result);
 
+		auto raytrace_res_layout_result = render::RaytraceResourceLayout::create(context->device.get());
+		if (!raytrace_res_layout_result)
+			return raytrace_res_layout_result.error().forward("Create raytrace resource layout failed");
+		auto raytrace_res_layout = std::move(*raytrace_res_layout_result);
+
+		auto raytrace_resource_result =
+			render::RaytraceResource::create(context->device.get(), raytrace_res_layout, model);
+		if (!raytrace_resource_result)
+			return raytrace_resource_result.error().forward("Create raytrace resource failed");
+		auto raytrace_resource = std::move(*raytrace_resource_result);
+
 		auto render_buffers_result =
 			std::views::repeat(resource::RenderResource::create, config::INFLIGHT_FRAMES)
 			| std::views::transform([&context](auto f) { return f(context->device.get()); })
@@ -75,6 +90,7 @@ namespace page
 		auto pipeline_result = resource::Pipeline::create(
 			context->device.get(),
 			material_layout,
+			raytrace_res_layout,
 			context->swapchain->surface_format.format
 		);
 		if (!pipeline_result) return pipeline_result.error().forward("Create pipelines failed");
@@ -121,10 +137,12 @@ namespace page
 			std::move(material_layout),
 			std::move(model),
 			std::move(tlas),
+			std::move(raytrace_res_layout),
+			std::move(raytrace_resource),
+			std::move(aux_resource),
 			std::move(pipeline),
 			std::move(frame_resources),
-			std::move(render_complete_semaphores),
-			std::move(aux_resource)
+			std::move(render_complete_semaphores)
 		);
 	}
 
@@ -300,12 +318,18 @@ namespace page
 			!buffer_update_result)
 			return buffer_update_result.error().forward("Update render buffer failed");
 
+		std::uniform_int_distribution<int32_t> dist(-128_i32, 128_i32);
+		const auto noise_offset = glm::i32vec2(dist(random_source), dist(random_source));
+
 		frame.curr_resource.resource_set.update(
 			context->device.get(),
 			model,
+			tlas,
+			raytrace_resource,
 			frame.curr_resource.render_resource,
 			frame.prev_resource.render_resource,
-			aux_resource
+			aux_resource,
+			noise_offset
 		);
 
 		return Frame{
@@ -323,6 +347,8 @@ namespace page
 	{
 		pipeline.indirect.compute(frame.command_buffer, frame.resource_set.indirect);
 		pipeline.deferred.render(frame.command_buffer, frame.resource_set.deferred);
+		pipeline.downsample.downsample(frame.command_buffer, frame.resource_set.downsample);
+		pipeline.shadow_trace.trace(frame.command_buffer, frame.resource_set.shadow_trace);
 	}
 
 	void RenderPage::render_lighting(const Frame& frame) const noexcept

@@ -3,17 +3,22 @@
 #include "common/util/error.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
+#include "render/model/tlas.hpp"
 #include "render/pipeline/auto-exposure.hpp"
 #include "render/pipeline/composite.hpp"
 #include "render/pipeline/deferred.hpp"
 #include "render/pipeline/direct.hpp"
+#include "render/pipeline/downsample.hpp"
 #include "render/pipeline/indirect.hpp"
+#include "render/pipeline/shadow/raytrace.hpp"
+#include "render/resource/raytrace.hpp"
 #include "resource/aux-resource.hpp"
 #include "resource/render-resource.hpp"
 #include "vulkan/interface/context.hpp"
 
 #include <cstdint>
 #include <expected>
+#include <glm/ext/vector_int2_sized.hpp>
 #include <libassert/assert.hpp>
 #include <ranges>
 #include <utility>
@@ -25,6 +30,7 @@ namespace resource
 	std::expected<Pipeline, Error> Pipeline::create(
 		const vulkan::Context& context,
 		const render::MaterialLayout& material_layout,
+		const render::RaytraceResourceLayout& raytrace_resource_layout,
 		vk::Format composite_format
 	) noexcept
 	{
@@ -37,6 +43,17 @@ namespace resource
 		if (!deferred_pipeline_result)
 			return deferred_pipeline_result.error().forward("Create deferred pipeline failed");
 		auto deferred_pipeline = std::move(*deferred_pipeline_result);
+
+		auto downsample_pipeline_result = render::DownsamplePipeline::create(context);
+		if (!downsample_pipeline_result)
+			return downsample_pipeline_result.error().forward("Create downsample pipeline failed");
+		auto downsample_pipeline = std::move(*downsample_pipeline_result);
+
+		auto shadow_trace_pipeline_result =
+			render::shadow::RaytracePipeline::create(context, material_layout, raytrace_resource_layout);
+		if (!shadow_trace_pipeline_result)
+			return shadow_trace_pipeline_result.error().forward("Create shadow tracing pipeline failed");
+		auto shadow_trace_pipeline = std::move(*shadow_trace_pipeline_result);
 
 		auto direct_lighting_pipeline_result = render::DirectLightingPipeline::create(context);
 		if (!direct_lighting_pipeline_result)
@@ -56,6 +73,8 @@ namespace resource
 		return Pipeline{
 			.indirect = std::move(indirect_pipeline),
 			.deferred = std::move(deferred_pipeline),
+			.downsample = std::move(downsample_pipeline),
+			.shadow_trace = std::move(shadow_trace_pipeline),
 			.direct_lighting = std::move(direct_lighting_pipeline),
 			.auto_exposure = std::move(auto_exposure_pipeline),
 			.composite = std::move(composite_pipeline)
@@ -80,6 +99,20 @@ namespace resource
 				"Create resource sets for deferred pipeline failed"
 			);
 		auto deferred_resource_sets = std::move(*deferred_resource_set_result);
+
+		auto downsample_resource_set_result = downsample.create_resource_sets(context, count);
+		if (!downsample_resource_set_result)
+			return downsample_resource_set_result.error().forward(
+				"Create resource sets for downsample pipeline failed"
+			);
+		auto downsample_resource_sets = std::move(*downsample_resource_set_result);
+
+		auto shadow_trace_resource_set_result = shadow_trace.create_resource_sets(context, count);
+		if (!shadow_trace_resource_set_result)
+			return shadow_trace_resource_set_result.error().forward(
+				"Create resource sets for shadow raytracing pipeline failed"
+			);
+		auto shadow_trace_resource_sets = std::move(*shadow_trace_resource_set_result);
 
 		auto direct_lighting_resource_set_result = direct_lighting.create_resource_sets(context, count);
 		if (!direct_lighting_resource_set_result)
@@ -106,6 +139,8 @@ namespace resource
 				   CTOR_LAMBDA(ResourceSet),
 				   indirect_resource_sets | std::views::as_rvalue,
 				   deferred_resource_sets | std::views::as_rvalue,
+				   downsample_resource_sets | std::views::as_rvalue,
+				   shadow_trace_resource_sets | std::views::as_rvalue,
 				   direct_lighting_resource_sets | std::views::as_rvalue,
 				   auto_exposure_resource_sets | std::views::as_rvalue,
 				   composite_resource_sets | std::views::as_rvalue
@@ -116,9 +151,12 @@ namespace resource
 	void ResourceSet::update(
 		const vulkan::Context& context,
 		const render::Model& model,
+		const render::Tlas& tlas,
+		const render::RaytraceResource& raytrace_res,
 		const resource::RenderResource& curr_resource,
 		const resource::RenderResource& prev_resource,
-		const resource::AuxResource& aux_resource
+		const resource::AuxResource& aux_resource,
+		glm::i32vec2 noise_offset
 	) noexcept
 	{
 		DEBUG_ASSERT(curr_resource.attachments.has_value());
@@ -133,14 +171,30 @@ namespace resource
 			curr_resource.indirect,
 			curr_resource.attachments->deferred,
 			curr_resource.attachments->hdr,
+			curr_resource.param->camera
+		);
+
+		downsample
+			.update(context, curr_resource.attachments->deferred, curr_resource.attachments->half_deferred);
+
+		shadow_trace.update(
+			context,
+			model.material_list,
+			tlas,
+			raytrace_res,
+			curr_resource.attachments->half_deferred,
+			curr_resource.attachments->shadow,
 			curr_resource.param->camera,
-			curr_resource.param->primary_light
+			curr_resource.param->primary_light,
+			aux_resource.noise_view,
+			noise_offset
 		);
 
 		direct_lighting.update(
 			context,
 			curr_resource.attachments->deferred,
 			curr_resource.attachments->hdr,
+			curr_resource.attachments->shadow,
 			curr_resource.param->camera,
 			curr_resource.param->primary_light
 		);

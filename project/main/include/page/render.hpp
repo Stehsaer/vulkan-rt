@@ -10,6 +10,7 @@
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
 #include "render/model/tlas.hpp"
+#include "render/resource/raytrace.hpp"
 #include "render/util/per-render-state.hpp"
 #include "resource/aux-resource.hpp"
 #include "resource/context.hpp"
@@ -26,6 +27,7 @@
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <memory>
 #include <optional>
+#include <random>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -126,10 +128,14 @@ namespace page
 		render::Model model;
 		render::Tlas tlas;
 
+		render::RaytraceResourceLayout raytrace_res_layout;
+		render::RaytraceResource raytrace_resource;
+		resource::AuxResource aux_resource;
+		std::mt19937 random_source;
+
 		resource::Pipeline pipeline;
 		vulkan::Cycle<FrameResource> frame_resources;
 		std::vector<vk::raii::Semaphore> render_complete_semaphores;  // Indexed by swapchain image indices
-		resource::AuxResource aux_resource;
 
 		logic::DrawcallGenerator drawcall_generator;
 		logic::Param param = {};
@@ -181,20 +187,25 @@ namespace page
 			render::MaterialLayout material_layout,
 			render::Model model,
 			render::Tlas tlas,
+			render::RaytraceResourceLayout raytrace_res_layout,
+			render::RaytraceResource raytrace_resource,
+			resource::AuxResource aux_resource,
 			resource::Pipeline pipeline,
 			vulkan::Cycle<FrameResource> frame_resources,
-			std::vector<vk::raii::Semaphore> render_complete_semaphores,
-			resource::AuxResource aux_resource
+			std::vector<vk::raii::Semaphore> render_complete_semaphores
 		) :
 			context(std::move(context)),
 			command_pool(std::move(command_pool)),
 			material_layout(std::move(material_layout)),
 			model(std::move(model)),
 			tlas(std::move(tlas)),
+			raytrace_res_layout(std::move(raytrace_res_layout)),
+			raytrace_resource(std::move(raytrace_resource)),
+			aux_resource(std::move(aux_resource)),
+			random_source(std::random_device()()),
 			pipeline(std::move(pipeline)),
 			frame_resources(std::move(frame_resources)),
-			render_complete_semaphores(std::move(render_complete_semaphores)),
-			aux_resource(std::move(aux_resource))
+			render_complete_semaphores(std::move(render_complete_semaphores))
 		{}
 
 	  public:

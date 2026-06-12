@@ -18,6 +18,9 @@ namespace resource
 		vulkan::Image exposure_mask;             // Exposure mask
 		vk::raii::ImageView exposure_mask_view;  // Image view of exposure mask
 
+		vulkan::Image noise;
+		vk::raii::ImageView noise_view;
+
 		///
 		/// @brief Create auxiliary resource
 		///

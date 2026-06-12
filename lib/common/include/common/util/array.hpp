@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <functional>
 #include <type_traits>
+#include <utility>
 
 namespace util
 {
@@ -74,16 +75,39 @@ namespace util
 			requires std::invocable<F, T>
 		friend constexpr auto operator|(const std::array<T, N>& array, MapArrayFunctor<F> functor)
 		{
-			using ResultType = std::invoke_result_t<F, T>;
+			using ResultType = std::remove_cvref_t<std::invoke_result_t<F, T>>;
 			std::array<ResultType, N> result;
 			for (size_t i = 0; i < N; ++i) result[i] = std::invoke(functor.func, array[i]);
 			return result;
 		}
 	};
 
+	///
+	/// @brief Map an array into another array
+	///
+	/// @tparam F Mapping function type
+	/// @param func Mapping function
+	/// @return Mapped array
+	///
 	template <typename F>
 	constexpr auto map_array(F func)
 	{
 		return MapArrayFunctor<F>{.func = func};
 	}
+
+	struct ArrayToTupleFunctor
+	{
+		template <typename T, size_t N>
+		friend constexpr auto operator|(const std::array<T, N>& array, ArrayToTupleFunctor)
+		{
+			return [&array]<size_t... I>(std::index_sequence<I...>) {
+				return std::make_tuple(array[I]...);
+			}(std::make_index_sequence<N>());
+		}
+	};
+
+	///
+	/// @brief Utility functor converting an array to tuple
+	///
+	static constexpr ArrayToTupleFunctor array_to_tuple = {};
 }

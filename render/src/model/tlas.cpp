@@ -40,7 +40,7 @@ namespace render
 					return vk::AccelerationStructureInstanceKHR{
 						.transform = vulkan::to<vk::TransformMatrixKHR>(transforms[drawcall.node_index]),
 						.instanceCustomIndex = model.mesh_list->mesh_ranges_array[drawcall.mesh_index].offset,
-						.mask = 0,
+						.mask = 0xff,
 						.instanceShaderBindingTableRecordOffset = 0,
 						.flags = {},
 						.accelerationStructureReference = blas_address

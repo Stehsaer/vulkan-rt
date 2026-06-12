@@ -82,7 +82,7 @@ FragmentOutput main_fragment(
 	/*===== Texture Set =====*/
 
 	let primitive_attr = primitive_attributes[vertex.primitive_id];
-	let material_info = material_list.get_material(primitive_attr);
+	let material_info = material_list.get_material(primitive_attr.material_index);
 	let texture_set = material_list.get_texture_set(material_info.texture_index);
 
 	/*===== Albedo =====*/

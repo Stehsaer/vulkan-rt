@@ -24,4 +24,11 @@ public func w_div(v: float4)->float3
 	return v.xyz / v.w;
 }
 
+// Barycentric interpolation
+public func bary_mix<int L>(a: vector<float, L>, b: vector<float, L>, c: vector<float, L>, coord: float3)
+	->vector<float, L>
+{
+	return a * coord.x + b * coord.y + c * coord.z;
+}
+
 
