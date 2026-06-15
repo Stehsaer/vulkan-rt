@@ -10,6 +10,7 @@
 #include "render/model/material.hpp"
 #include "render/model/tlas.hpp"
 #include "render/resource/deferred.hpp"
+#include "render/resource/motion-vector.hpp"
 #include "render/resource/raytrace.hpp"
 #include "render/resource/shadow.hpp"
 #include "shader/shadow/trace.hpp"
@@ -49,6 +50,8 @@ namespace render::shadow
 		>,
 		MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eRaygenKHR>,
 		MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eRaygenKHR>,
+		MonoDescriptorSetSlot<vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eRaygenKHR>,
+		MonoDescriptorSetSlot<vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eRaygenKHR>,
 		MonoDescriptorSetSlot<vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eRaygenKHR>,
 		MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eRaygenKHR>,
 		MonoDescriptorSetSlot<vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eRaygenKHR>
@@ -389,9 +392,9 @@ namespace render::shadow
 
 		/*===== Sampler =====*/
 
-		const auto depth_sampler_info = vk::SamplerCreateInfo{
-			.magFilter = vk::Filter::eNearest,
-			.minFilter = vk::Filter::eNearest,
+		const auto sampler_info = vk::SamplerCreateInfo{
+			.magFilter = vk::Filter::eLinear,
+			.minFilter = vk::Filter::eLinear,
 			.mipmapMode = vk::SamplerMipmapMode::eNearest,
 			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
 			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
@@ -402,32 +405,12 @@ namespace render::shadow
 			.compareEnable = vk::False,
 			.minLod = 0,
 			.maxLod = 0,
-			.unnormalizedCoordinates = vk::False
+			.unnormalizedCoordinates = vk::True
 		};
 
-		auto depth_sampler_result = context.device.createSampler(depth_sampler_info);
-		if (!depth_sampler_result) return Error::from(depth_sampler_result);
-		auto depth_sampler = std::move(*depth_sampler_result);
-
-		const auto noise_sampler_info = vk::SamplerCreateInfo{
-			.magFilter = vk::Filter::eNearest,
-			.minFilter = vk::Filter::eNearest,
-			.mipmapMode = vk::SamplerMipmapMode::eNearest,
-			.addressModeU = vk::SamplerAddressMode::eRepeat,
-			.addressModeV = vk::SamplerAddressMode::eRepeat,
-			.addressModeW = vk::SamplerAddressMode::eRepeat,
-			.mipLodBias = 0,
-			.anisotropyEnable = vk::False,
-			.maxAnisotropy = 0,
-			.compareEnable = vk::False,
-			.minLod = 0,
-			.maxLod = 0,
-			.unnormalizedCoordinates = vk::False
-		};
-
-		auto noise_sampler_result = context.device.createSampler(noise_sampler_info);
-		if (!noise_sampler_result) return Error::from(noise_sampler_result);
-		auto noise_sampler = std::move(*noise_sampler_result);
+		auto sampler_result = context.device.createSampler(sampler_info);
+		if (!sampler_result) return Error::from(sampler_result);
+		auto sampler = std::move(*sampler_result);
 
 		/*===== Finish =====*/
 
@@ -439,8 +422,7 @@ namespace render::shadow
 			raygen_region,
 			miss_region,
 			hit_region,
-			std::move(depth_sampler),
-			std::move(noise_sampler)
+			std::move(sampler)
 		);
 	}
 
@@ -472,8 +454,7 @@ namespace render::shadow
 				   CTOR_LAMBDA(ResourceSet),
 				   std::views::repeat(pool, count),
 				   std::views::as_rvalue(sets),
-				   std::views::repeat(*depth_sampler, count),
-				   std::views::repeat(*noise_sampler, count)
+				   std::views::repeat(*sampler, count)
 			   )
 			| std::ranges::to<std::vector>();
 	}
@@ -554,7 +535,9 @@ namespace render::shadow
 		const Tlas& tlas,
 		const RaytraceResource& raytrace_res,
 		HalfDeferredAttachment::View gbuffer,
+		MotionVectorAttachment::View motion_vector,
 		ShadowAttachment::View attachment,
+		ShadowAttachment::View prev_attachment,
 		vulkan::ElementBufferRef<Camera> camera,
 		vulkan::ElementBufferRef<DirectLight> direct_light,
 		vk::ImageView noise_tex,
@@ -581,9 +564,21 @@ namespace render::shadow
 		};
 
 		const auto depth_tex_info = vk::DescriptorImageInfo{
-			.sampler = depth_sampler,
+			.sampler = sampler,
 			.imageView = gbuffer.depth.view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+		};
+
+		const auto noise_tex_info = vk::DescriptorImageInfo{
+			.sampler = sampler,
+			.imageView = noise_tex,
+			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
+		};
+
+		const auto motion_vector_tex_info = vk::DescriptorImageInfo{
+			.sampler = sampler,
+			.imageView = motion_vector.motion_vector.view,
+			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
 		};
 
 		const auto shadow_tex_info = vk::DescriptorImageInfo{
@@ -592,9 +587,9 @@ namespace render::shadow
 			.imageLayout = vk::ImageLayout::eGeneral
 		};
 
-		const auto noise_tex_info = vk::DescriptorImageInfo{
-			.sampler = noise_sampler,
-			.imageView = noise_tex,
+		const auto prev_shadow_tex_info = vk::DescriptorImageInfo{
+			.sampler = sampler,
+			.imageView = prev_attachment.shadow.view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
 		};
 
@@ -604,8 +599,10 @@ namespace render::shadow
 			direct_light_buffer_info,
 			camera_buffer_info,
 			depth_tex_info,
+			noise_tex_info,
+			motion_vector_tex_info,
 			shadow_tex_info,
-			noise_tex_info
+			prev_shadow_tex_info
 		);
 
 		context.device.updateDescriptorSets(write_infos, {});

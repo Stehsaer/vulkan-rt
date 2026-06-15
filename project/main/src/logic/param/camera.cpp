@@ -64,10 +64,14 @@ namespace logic
 		const auto prev_camera_pos = this->prev_camera_pos.value_or(camera_pos);
 		this->prev_camera_pos = camera_pos;
 
+		const auto inv_view_proj_matrix = glm::inverse(view_proj_matrix);
+		const auto back_projection_matrix = prev_view_proj_matrix * inv_view_proj_matrix;
+
 		return {
-			.inv_view_projection = glm::inverse(view_proj_matrix),
+			.inv_view_projection = inv_view_proj_matrix,
 			.prev_view_projection = prev_view_proj_matrix,
 			.view_projection = view_proj_matrix,
+			.back_projection = back_projection_matrix,
 			.camera_pos = camera_pos,
 			.prev_camera_pos = prev_camera_pos,
 		};

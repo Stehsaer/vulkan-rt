@@ -17,6 +17,7 @@
 #include "vulkan/container/host/cycle.hpp"
 #include "vulkan/numeric/base-level.hpp"
 #include "vulkan/numeric/glm.hpp"
+#include "vulkan/util/command-runner.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <cstdint>
@@ -35,6 +36,7 @@
 #include <utility>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
 namespace page
@@ -213,16 +215,32 @@ namespace page
 		{
 			if (const auto result = context->device->waitIdle(); !result) return Error::from(result);
 
-			// NOTE: recreating every set is intended
-			for (auto& resource : frame_resources.iterate())
-			{
-				auto render_target_result = resource.render_resource.resize_attachments(
-					context->device.get(),
-					swapchain_frame.extent
-				);
-				if (!render_target_result)
-					return render_target_result.error().forward("Create render target failed");
-			}
+			auto command_runner_result = vulkan::CommandRunner::create(context->device.get());
+			if (!command_runner_result)
+				return command_runner_result.error().forward("Create command runner failed");
+			auto command_runner = std::move(*command_runner_result);
+
+			const auto recreate_result = command_runner.run(
+				context->device.get(),
+				[this, &swapchain_frame](const vk::raii::CommandBuffer& command_buffer)
+					-> std::expected<void, Error> {
+					// NOTE: recreating every set is intended
+					for (auto& resource : frame_resources.iterate())
+					{
+						auto render_target_result = resource.render_resource.resize_attachments(
+							context->device.get(),
+							command_buffer,
+							swapchain_frame.extent
+						);
+						if (!render_target_result)
+							return render_target_result.error().forward("Create render target failed");
+					}
+
+					return {};
+				}
+			);
+
+			if (!recreate_result) return recreate_result.error();
 		}
 
 		return FrameAcquireResult{
@@ -318,7 +336,7 @@ namespace page
 			!buffer_update_result)
 			return buffer_update_result.error().forward("Update render buffer failed");
 
-		std::uniform_int_distribution<int32_t> dist(-128_i32, 128_i32);
+		std::uniform_int_distribution<int32_t> dist(0_i32, 127_i32);
 		const auto noise_offset = glm::i32vec2(dist(random_source), dist(random_source));
 
 		frame.curr_resource.resource_set.update(
@@ -348,6 +366,7 @@ namespace page
 		pipeline.indirect.compute(frame.command_buffer, frame.resource_set.indirect);
 		pipeline.deferred.render(frame.command_buffer, frame.resource_set.deferred);
 		pipeline.downsample.downsample(frame.command_buffer, frame.resource_set.downsample);
+		pipeline.motion_vector.compute(frame.command_buffer, frame.resource_set.motion_vector);
 		pipeline.shadow_trace.trace(frame.command_buffer, frame.resource_set.shadow_trace);
 	}
 

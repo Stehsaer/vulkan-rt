@@ -8,11 +8,13 @@
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <utility>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace render
 {
 	std::expected<DeferredAttachment, Error> DeferredAttachment::create(
 		const vulkan::Context& context,
+		const vk::raii::CommandBuffer& command_buffer,
 		glm::u32vec2 extent
 	) noexcept
 	{
@@ -31,6 +33,11 @@ namespace render
 			vulkan::Attachment::create(context.device, context.allocator, extent, DEPTH_FORMAT);
 		if (!depth_result) return depth_result.error().forward("Create depth buffer failed");
 
+		albedo_result->clear_color_float(command_buffer);
+		normal_result->clear_color_uint(command_buffer);
+		pbr_result->clear_color_float(command_buffer);
+		depth_result->clear_depth_stencil(command_buffer);
+
 		return DeferredAttachment(
 			extent,
 			std::move(*albedo_result),
@@ -42,6 +49,7 @@ namespace render
 
 	std::expected<HalfDeferredAttachment, Error> HalfDeferredAttachment::create(
 		const vulkan::Context& context,
+		const vk::raii::CommandBuffer& command_buffer,
 		glm::u32vec2 extent
 	) noexcept
 	{
@@ -85,6 +93,11 @@ namespace render
 		);
 		if (!half_depth_result)
 			return half_depth_result.error().forward("Create half-res depth buffer failed");
+
+		half_albedo_result->clear_color_float(command_buffer);
+		half_normal_result->clear_color_uint(command_buffer);
+		half_pbr_result->clear_color_float(command_buffer);
+		half_depth_result->clear_color_float(command_buffer);
 
 		return HalfDeferredAttachment(
 			extent,

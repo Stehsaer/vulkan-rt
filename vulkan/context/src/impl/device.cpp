@@ -61,6 +61,7 @@ namespace vulkan::impl
 		CHECK_FIELD(available, result, textureCompressionBC);
 		CHECK_FIELD(available, result, pipelineStatisticsQuery);
 		CHECK_FIELD(available, result, multiDrawIndirect);
+		CHECK_FIELD(available, result, shaderInt16);
 
 		return result;
 	}

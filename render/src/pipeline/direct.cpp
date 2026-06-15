@@ -178,7 +178,6 @@ namespace render
 			.minFilter = vk::Filter::eNearest,
 			.mipmapMode = vk::SamplerMipmapMode::eNearest,
 
-			// NOTE: use repeat to flip image vertically
 			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
 			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
 			.addressModeW = vk::SamplerAddressMode::eClampToEdge,
@@ -191,11 +190,29 @@ namespace render
 		if (!sampler_result) return Error::from(sampler_result);
 		auto sampler = std::move(*sampler_result);
 
+		constexpr auto shadow_sampler_create_info = vk::SamplerCreateInfo{
+			.magFilter = vk::Filter::eLinear,
+			.minFilter = vk::Filter::eLinear,
+			.mipmapMode = vk::SamplerMipmapMode::eNearest,
+
+			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
+			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
+			.addressModeW = vk::SamplerAddressMode::eClampToEdge,
+			.mipLodBias = 0.0f,
+			.minLod = 0.0f,
+			.maxLod = 0.0f,
+		};
+
+		auto shadow_sampler_result = context.device.createSampler(shadow_sampler_create_info);
+		if (!shadow_sampler_result) return Error::from(shadow_sampler_result);
+		auto shadow_sampler = std::move(*shadow_sampler_result);
+
 		return DirectLightingPipeline(
 			std::move(descriptor_set_layout),
 			std::move(pipeline_layout),
 			std::move(pipeline),
-			std::move(sampler)
+			std::move(sampler),
+			std::move(shadow_sampler)
 		);
 	}
 
@@ -224,7 +241,8 @@ namespace render
 				   CTOR_LAMBDA(ResourceSet),
 				   std::views::repeat(descriptor_pool),
 				   sets | std::views::as_rvalue,
-				   std::views::repeat(*sampler)
+				   std::views::repeat(*sampler),
+				   std::views::repeat(*shadow_sampler)
 			   )
 			| std::ranges::to<std::vector>();
 	}
@@ -296,7 +314,7 @@ namespace render
 		};
 
 		const auto shadow_tex_info = vk::DescriptorImageInfo{
-			.sampler = sampler,
+			.sampler = shadow_sampler,
 			.imageView = shadow.shadow.view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		};

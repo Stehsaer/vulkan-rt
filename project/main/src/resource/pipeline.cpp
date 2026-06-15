@@ -10,6 +10,7 @@
 #include "render/pipeline/direct.hpp"
 #include "render/pipeline/downsample.hpp"
 #include "render/pipeline/indirect.hpp"
+#include "render/pipeline/motion-vector.hpp"
 #include "render/pipeline/shadow/raytrace.hpp"
 #include "render/resource/raytrace.hpp"
 #include "resource/aux-resource.hpp"
@@ -49,6 +50,11 @@ namespace resource
 			return downsample_pipeline_result.error().forward("Create downsample pipeline failed");
 		auto downsample_pipeline = std::move(*downsample_pipeline_result);
 
+		auto motion_vector_pipeline_result = render::MotionVectorPipeline::create(context);
+		if (!motion_vector_pipeline_result)
+			return motion_vector_pipeline_result.error().forward("Create motion vector pipeline failed");
+		auto motion_vector_pipeline = std::move(*motion_vector_pipeline_result);
+
 		auto shadow_trace_pipeline_result =
 			render::shadow::RaytracePipeline::create(context, material_layout, raytrace_resource_layout);
 		if (!shadow_trace_pipeline_result)
@@ -74,6 +80,7 @@ namespace resource
 			.indirect = std::move(indirect_pipeline),
 			.deferred = std::move(deferred_pipeline),
 			.downsample = std::move(downsample_pipeline),
+			.motion_vector = std::move(motion_vector_pipeline),
 			.shadow_trace = std::move(shadow_trace_pipeline),
 			.direct_lighting = std::move(direct_lighting_pipeline),
 			.auto_exposure = std::move(auto_exposure_pipeline),
@@ -106,6 +113,13 @@ namespace resource
 				"Create resource sets for downsample pipeline failed"
 			);
 		auto downsample_resource_sets = std::move(*downsample_resource_set_result);
+
+		auto motion_vector_resource_set_result = motion_vector.create_resource_sets(context, count);
+		if (!motion_vector_resource_set_result)
+			return motion_vector_resource_set_result.error().forward(
+				"Create resource sets for motion vector pipeline failed"
+			);
+		auto motion_vector_resource_sets = std::move(*motion_vector_resource_set_result);
 
 		auto shadow_trace_resource_set_result = shadow_trace.create_resource_sets(context, count);
 		if (!shadow_trace_resource_set_result)
@@ -140,6 +154,7 @@ namespace resource
 				   indirect_resource_sets | std::views::as_rvalue,
 				   deferred_resource_sets | std::views::as_rvalue,
 				   downsample_resource_sets | std::views::as_rvalue,
+				   motion_vector_resource_sets | std::views::as_rvalue,
 				   shadow_trace_resource_sets | std::views::as_rvalue,
 				   direct_lighting_resource_sets | std::views::as_rvalue,
 				   auto_exposure_resource_sets | std::views::as_rvalue,
@@ -177,13 +192,23 @@ namespace resource
 		downsample
 			.update(context, curr_resource.attachments->deferred, curr_resource.attachments->half_deferred);
 
+		motion_vector.update(
+			context,
+			curr_resource.attachments->motion_vector,
+			curr_resource.attachments->half_deferred,
+			prev_resource.attachments->half_deferred,
+			curr_resource.param->camera
+		);
+
 		shadow_trace.update(
 			context,
 			model.material_list,
 			tlas,
 			raytrace_res,
 			curr_resource.attachments->half_deferred,
+			curr_resource.attachments->motion_vector,
 			curr_resource.attachments->shadow,
+			prev_resource.attachments->shadow,
 			curr_resource.param->camera,
 			curr_resource.param->primary_light,
 			aux_resource.noise_view,

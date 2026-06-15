@@ -16,6 +16,7 @@ namespace render
 		glm::mat4 inv_view_projection;
 		glm::mat4 prev_view_projection;
 		glm::mat4 view_projection;
+		glm::mat4 back_projection;
 		glm::vec3 camera_pos;
 		glm::vec3 prev_camera_pos;
 	};

@@ -6,6 +6,7 @@
 #include "render/resource/deferred.hpp"
 #include "render/resource/hdr.hpp"
 #include "render/resource/host.hpp"
+#include "render/resource/motion-vector.hpp"
 #include "render/resource/shadow.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/interface/context.hpp"
@@ -58,26 +59,32 @@ namespace resource
 
 	std::expected<void, Error> RenderResource::resize_attachments(
 		const vulkan::Context& context,
+		const vk::raii::CommandBuffer& command_buffer,
 		glm::u32vec2 extent
 	) noexcept
 	{
-		auto deferred_result = render::DeferredAttachment::create(context, extent);
+		auto deferred_result = render::DeferredAttachment::create(context, command_buffer, extent);
 		if (!deferred_result) return deferred_result.error().forward("Create deferred attachments failed");
 
-		auto half_deferred_result = render::HalfDeferredAttachment::create(context, extent);
+		auto half_deferred_result = render::HalfDeferredAttachment::create(context, command_buffer, extent);
 		if (!half_deferred_result)
 			return half_deferred_result.error().forward("Create half-res deferred attachments failed");
 
-		auto shadow_result = render::ShadowAttachment::create(context, extent);
+		auto shadow_result = render::ShadowAttachment::create(context, command_buffer, extent);
 		if (!shadow_result) return shadow_result.error().forward("Create shadow attachment failed");
 
-		auto hdr_result = render::HdrAttachment::create(context, extent);
+		auto motion_vector_result = render::MotionVectorAttachment::create(context, command_buffer, extent);
+		if (!motion_vector_result)
+			return motion_vector_result.error().forward("Create motion vector attachment failed");
+
+		auto hdr_result = render::HdrAttachment::create(context, command_buffer, extent);
 		if (!hdr_result) return hdr_result.error().forward("Create HDR attachments failed");
 
 		attachments = Attachments{
 			.deferred = std::move(*deferred_result),
 			.half_deferred = std::move(*half_deferred_result),
 			.shadow = std::move(*shadow_result),
+			.motion_vector = std::move(*motion_vector_result),
 			.hdr = std::move(*hdr_result),
 		};
 

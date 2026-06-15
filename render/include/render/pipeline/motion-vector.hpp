@@ -1,16 +1,17 @@
 #pragma once
 
+#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "render/interface/camera.hpp"
-#include "render/interface/direct-light.hpp"
 #include "render/resource/deferred.hpp"
-#include "render/resource/hdr.hpp"
-#include "render/resource/shadow.hpp"
+#include "render/resource/motion-vector.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
+#include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 
 #include <cstdint>
 #include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -21,25 +22,22 @@
 namespace render
 {
 	///
-	/// @brief Direct-light pipeline
-	/// @details
-	/// - Takes the deferred attachments and calculate lighting
-	/// - Lighting result is added to the HDR attachment
+	/// @brief Motion vector generation pipeline
 	///
-	class DirectLightingPipeline
+	class MotionVectorPipeline
 	{
 	  public:
 
 		class ResourceSet;
 
 		///
-		/// @brief Create a direct lighting pipeline
+		/// @brief Create a motion-vector pipeline
 		///
 		/// @param context Vulkan context
 		/// @return Created pipeline or error
 		///
 		[[nodiscard]]
-		static std::expected<DirectLightingPipeline, Error> create(const vulkan::Context& context) noexcept;
+		static std::expected<MotionVectorPipeline, Error> create(const vulkan::Context& context) noexcept;
 
 		///
 		/// @brief Create a given number of resource sets
@@ -55,52 +53,56 @@ namespace render
 		) const noexcept;
 
 		///
-		/// @brief Perform lighting
-		/// @note The procedure is designed to operate in an externally-managed dynamic rendering session. It
-		/// do neither begin or end the dynamic rendering session, nor perform any synchronization.
+		/// @brief Compute and generate motion vector
 		///
 		/// @param command_buffer Command buffer
-		/// @param resource_set Resource set
+		/// @param resource_set Resource set to compute with
 		///
-		void render(
+		void compute(
 			const vk::raii::CommandBuffer& command_buffer,
 			const ResourceSet& resource_set
 		) const noexcept;
 
 	  private:
 
-		vk::raii::DescriptorSetLayout descriptor_set_layout;
+		struct PushConstant
+		{
+			glm::u32vec2 half_size;
+			glm::u32vec2 full_size;
+		};
+
+		static constexpr auto BLOCK_SIZE = 16_u32;
+
+		vk::raii::DescriptorSetLayout set_layout;
 		vk::raii::PipelineLayout pipeline_layout;
 		vk::raii::Pipeline pipeline;
-		vk::raii::Sampler sampler;
-		vk::raii::Sampler shadow_sampler;
 
-		explicit DirectLightingPipeline(
-			vk::raii::DescriptorSetLayout descriptor_set_layout,
+		vk::raii::Sampler sampler;
+
+		explicit MotionVectorPipeline(
+			vk::raii::DescriptorSetLayout set_layout,
 			vk::raii::PipelineLayout pipeline_layout,
 			vk::raii::Pipeline pipeline,
-			vk::raii::Sampler sampler,
-			vk::raii::Sampler shadow_sampler
+			vk::raii::Sampler sampler
 		) :
-			descriptor_set_layout(std::move(descriptor_set_layout)),
+			set_layout(std::move(set_layout)),
 			pipeline_layout(std::move(pipeline_layout)),
 			pipeline(std::move(pipeline)),
-			sampler(std::move(sampler)),
-			shadow_sampler(std::move(shadow_sampler))
+			sampler(std::move(sampler))
 		{}
 
 	  public:
 
-		DirectLightingPipeline(const DirectLightingPipeline&) = delete;
-		DirectLightingPipeline(DirectLightingPipeline&&) = default;
-		DirectLightingPipeline& operator=(const DirectLightingPipeline&) = delete;
-		DirectLightingPipeline& operator=(DirectLightingPipeline&&) = default;
+		MotionVectorPipeline(const MotionVectorPipeline&) = delete;
+		MotionVectorPipeline(MotionVectorPipeline&&) = default;
+		MotionVectorPipeline& operator=(const MotionVectorPipeline&) = delete;
+		MotionVectorPipeline& operator=(MotionVectorPipeline&&) = default;
 	};
 
 	///
-	/// @brief Resource set for direct lighting pipeline
+	/// @brief Resource set for motion vector pipeline
 	///
-	class DirectLightingPipeline::ResourceSet
+	class MotionVectorPipeline::ResourceSet
 	{
 	  public:
 
@@ -108,19 +110,17 @@ namespace render
 		/// @brief Update resource set
 		///
 		/// @param context Vulkan context
-		/// @param deferred Deferred attachment
-		/// @param hdr HDR attachment
-		/// @param shadow Shadow attachment
+		/// @param attachment Motion vector attachment
+		/// @param gbuffer Gbuffer attachment
+		/// @param prev_gbuffer Previous-frame gbuffer
 		/// @param camera Camera parameter buffer
-		/// @param direct_light Direct light buffer
 		///
 		void update(
 			const vulkan::Context& context,
-			DeferredAttachment::View deferred,
-			HdrAttachment::View hdr,
-			ShadowAttachment::View shadow,
-			vulkan::ElementBufferRef<Camera> camera,
-			vulkan::ElementBufferRef<DirectLight> direct_light
+			MotionVectorAttachment::View attachment,
+			HalfDeferredAttachment::View gbuffer,
+			HalfDeferredAttachment::View prev_gbuffer,
+			vulkan::ElementBufferRef<Camera> camera
 		) noexcept;
 
 	  private:
@@ -129,30 +129,29 @@ namespace render
 		vk::raii::DescriptorSet set;
 
 		vk::Sampler sampler;
-		vk::Sampler shadow_sampler;
 
 		struct Resource
 		{
-			HdrAttachment::View hdr;
+			glm::u32vec2 full_size;
+			glm::u32vec2 half_size;
+			vulkan::AttachmentView motion_vector;
 		};
 
 		std::optional<Resource> resource = std::nullopt;
 
-		const Resource* operator->() const noexcept { return resource.operator->(); }
+		auto operator->() const noexcept { return resource.operator->(); }
 
 		explicit ResourceSet(
 			std::shared_ptr<vk::raii::DescriptorPool> pool,
 			vk::raii::DescriptorSet set,
-			vk::Sampler sampler,
-			vk::Sampler shadow_sampler
+			vk::Sampler sampler
 		) :
 			pool(std::move(pool)),
 			set(std::move(set)),
-			sampler(sampler),
-			shadow_sampler(shadow_sampler)
+			sampler(sampler)
 		{}
 
-		friend class DirectLightingPipeline;
+		friend MotionVectorPipeline;
 
 	  public:
 

@@ -7,24 +7,20 @@
 
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
-#include <libassert/assert.hpp>
 #include <utility>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace render
 {
-	///
-	/// @brief Shadow attachment
-	///
-	class ShadowAttachment
+	class MotionVectorAttachment
 	{
 	  public:
 
-		static constexpr auto SHADOW_FORMAT = vk::Format::eR16Unorm;
+		static constexpr auto MOTION_VECTOR_FORMAT = vk::Format::eR16G16Sfloat;
 
 		///
-		/// @brief Create a shadow attachment
+		/// @brief Create a motion vector attachment
 		///
 		/// @param context Vulkan context
 		/// @param command_buffer Command buffer for clearing images
@@ -32,7 +28,7 @@ namespace render
 		/// @return Created attachment or error
 		///
 		[[nodiscard]]
-		static std::expected<ShadowAttachment, Error> create(
+		static std::expected<MotionVectorAttachment, Error> create(
 			const vulkan::Context& context,
 			const vk::raii::CommandBuffer& command_buffer,
 			glm::u32vec2 full_extent
@@ -42,14 +38,18 @@ namespace render
 		{
 			glm::u32vec2 half_extent;
 			glm::u32vec2 full_extent;
-			vulkan::AttachmentView shadow;
+			vulkan::AttachmentView motion_vector;
 
 			auto operator->() const noexcept { return this; }
 		};
 
 		operator View() const noexcept
 		{
-			return {.half_extent = half_extent, .full_extent = full_extent, .shadow = shadow};
+			return {
+				.half_extent = half_extent,
+				.full_extent = full_extent,
+				.motion_vector = motion_vector,
+			};
 		}
 
 		View operator->() const noexcept { return *this; }
@@ -58,23 +58,23 @@ namespace render
 
 		glm::u32vec2 half_extent;
 		glm::u32vec2 full_extent;
-		vulkan::Attachment shadow;
+		vulkan::Attachment motion_vector;
 
-		explicit ShadowAttachment(
+		explicit MotionVectorAttachment(
 			glm::u32vec2 half_extent,
 			glm::u32vec2 full_extent,
-			vulkan::Attachment shadow
+			vulkan::Attachment motion_vector
 		) :
 			half_extent(half_extent),
 			full_extent(full_extent),
-			shadow(std::move(shadow))
+			motion_vector(std::move(motion_vector))
 		{}
 
 	  public:
 
-		ShadowAttachment(const ShadowAttachment&) = delete;
-		ShadowAttachment(ShadowAttachment&&) = default;
-		ShadowAttachment& operator=(const ShadowAttachment&) = delete;
-		ShadowAttachment& operator=(ShadowAttachment&&) = default;
+		MotionVectorAttachment(const MotionVectorAttachment&) = delete;
+		MotionVectorAttachment(MotionVectorAttachment&&) = default;
+		MotionVectorAttachment& operator=(const MotionVectorAttachment&) = delete;
+		MotionVectorAttachment& operator=(MotionVectorAttachment&&) = default;
 	};
 }

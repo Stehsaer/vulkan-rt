@@ -3,7 +3,9 @@
 #include "render/interface/camera.hpp"
 #include "scene/camera.hpp"
 
+#include <glm/ext/matrix_double4x4.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_double3.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <optional>
@@ -32,8 +34,8 @@ namespace logic
 
 		/*===== States =====*/
 
-		std::optional<glm::mat4> prev_view_proj_matrix = std::nullopt;
-		std::optional<glm::vec3> prev_camera_pos = std::nullopt;
+		std::optional<glm::dmat4> prev_view_proj_matrix = std::nullopt;
+		std::optional<glm::dvec3> prev_camera_pos = std::nullopt;
 
 		std::optional<scene::camera::CenterView> curr_view = std::nullopt;
 		double smooth_factor = 10;

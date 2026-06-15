@@ -10,6 +10,7 @@
 #include <libassert/assert.hpp>
 #include <utility>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace render
 {
@@ -27,12 +28,14 @@ namespace render
 		/// @brief Create a deferred attachment with given extent
 		///
 		/// @param context Vulkan context
+		/// @param command_buffer Command buffer for clearing images
 		/// @param extent Attachment extent
 		/// @return Created attachment or error
 		///
 		[[nodiscard]]
 		static std::expected<HdrAttachment, Error> create(
 			const vulkan::Context& context,
+			const vk::raii::CommandBuffer& command_buffer,
 			glm::u32vec2 extent
 		) noexcept;
 

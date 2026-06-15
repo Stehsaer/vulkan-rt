@@ -1,4 +1,4 @@
-#include "render/resource/shadow.hpp"
+#include "render/resource/motion-vector.hpp"
 #include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "vulkan/container/device/attachment.hpp"
@@ -12,7 +12,7 @@
 
 namespace render
 {
-	std::expected<ShadowAttachment, Error> ShadowAttachment::create(
+	std::expected<MotionVectorAttachment, Error> MotionVectorAttachment::create(
 		const vulkan::Context& context,
 		const vk::raii::CommandBuffer& command_buffer,
 		glm::u32vec2 full_extent
@@ -20,17 +20,18 @@ namespace render
 	{
 		const auto half_extent = (full_extent + 1_u32) / 2_u32;
 
-		auto shadow_result = vulkan::Attachment::create(
+		auto motion_vector_result = vulkan::Attachment::create(
 			context.device,
 			context.allocator,
 			half_extent,
-			SHADOW_FORMAT,
+			MOTION_VECTOR_FORMAT,
 			vk::ImageUsageFlagBits::eStorage
 		);
-		if (!shadow_result) return shadow_result.error().forward("Create shadow attachment failed");
+		if (!motion_vector_result)
+			return motion_vector_result.error().forward("Create motion vector attachment failed");
 
-		shadow_result->clear_color_float(command_buffer);
+		motion_vector_result->clear_color_float(command_buffer);
 
-		return ShadowAttachment(half_extent, full_extent, std::move(*shadow_result));
+		return MotionVectorAttachment(half_extent, full_extent, std::move(*motion_vector_result));
 	}
 }

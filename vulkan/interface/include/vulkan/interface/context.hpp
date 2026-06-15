@@ -32,6 +32,7 @@ namespace vulkan
 	/// - BC textures
 	/// - Pipeline statistics
 	/// - Multi draw indirect
+	/// - Shader 16-bit integer support
 	///
 	/// #### Vulkan 1.1
 	/// - Shader draw parameters (required by slang)

@@ -6,6 +6,7 @@
 #include "render/model/material.hpp"
 #include "render/model/tlas.hpp"
 #include "render/resource/deferred.hpp"
+#include "render/resource/motion-vector.hpp"
 #include "render/resource/raytrace.hpp"
 #include "render/resource/shadow.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
@@ -91,8 +92,7 @@ namespace render::shadow
 		vk::StridedDeviceAddressRegionKHR miss_region;
 		vk::StridedDeviceAddressRegionKHR hitgroup_region;
 
-		vk::raii::Sampler depth_sampler;
-		vk::raii::Sampler noise_sampler;
+		vk::raii::Sampler sampler;
 
 		static std::expected<vk::raii::PipelineLayout, Error> create_pipeline_layout(
 			const vulkan::Context& context,
@@ -109,8 +109,7 @@ namespace render::shadow
 			vk::StridedDeviceAddressRegionKHR raygen_region,
 			vk::StridedDeviceAddressRegionKHR miss_region,
 			vk::StridedDeviceAddressRegionKHR hitgroup_region,
-			vk::raii::Sampler depth_sampler,
-			vk::raii::Sampler noise_sampler
+			vk::raii::Sampler sampler
 		) :
 			input_layout(std::move(input_layout)),
 			pipeline_layout(std::move(pipeline_layout)),
@@ -119,8 +118,7 @@ namespace render::shadow
 			raygen_region(raygen_region),
 			miss_region(miss_region),
 			hitgroup_region(hitgroup_region),
-			depth_sampler(std::move(depth_sampler)),
-			noise_sampler(std::move(noise_sampler))
+			sampler(std::move(sampler))
 		{}
 
 	  public:
@@ -158,7 +156,9 @@ namespace render::shadow
 			const Tlas& tlas,
 			const RaytraceResource& raytrace_res,
 			HalfDeferredAttachment::View gbuffer,
+			MotionVectorAttachment::View motion_vector,
 			ShadowAttachment::View attachment,
+			ShadowAttachment::View prev_attachment,
 			vulkan::ElementBufferRef<Camera> camera,
 			vulkan::ElementBufferRef<DirectLight> direct_light,
 			vk::ImageView noise_tex,
@@ -169,8 +169,7 @@ namespace render::shadow
 
 		std::shared_ptr<vk::raii::DescriptorPool> pool;
 		vk::raii::DescriptorSet input_set;
-		vk::Sampler depth_sampler;
-		vk::Sampler noise_sampler;
+		vk::Sampler sampler;
 
 		struct Resource
 		{
@@ -192,13 +191,11 @@ namespace render::shadow
 		ResourceSet(
 			std::shared_ptr<vk::raii::DescriptorPool> pool,
 			vk::raii::DescriptorSet input_set,
-			vk::Sampler depth_sampler,
-			vk::Sampler noise_sampler
+			vk::Sampler depth_sampler
 		) :
 			pool(std::move(pool)),
 			input_set(std::move(input_set)),
-			depth_sampler(depth_sampler),
-			noise_sampler(noise_sampler)
+			sampler(depth_sampler)
 		{}
 
 	  public:

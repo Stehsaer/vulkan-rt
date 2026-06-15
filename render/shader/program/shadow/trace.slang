@@ -14,14 +14,16 @@ layout(set = 2, binding = 0) RaytracingAccelerationStructure tlas;
 layout(set = 2, binding = 1) ConstantBuffer<DirectLight> direct_light;
 layout(set = 2, binding = 2) ConstantBuffer<Camera> camera;
 layout(set = 2, binding = 3) Sampler2D<float> depth_tex;
-layout(set = 2, binding = 4) RWTexture2D<float> shadow_tex;
-layout(set = 2, binding = 5) Sampler2D<float4> noise_tex;
+layout(set = 2, binding = 4) Sampler2D<float4> noise_tex;
+layout(set = 2, binding = 5) Sampler2D<float2> motion_vector_tex;
+layout(set = 2, binding = 6) RWTexture2D<float> shadow_tex;
+layout(set = 2, binding = 7) Sampler2D<float> prev_shadow_tex;
 
-static const float TMIN_BIAS_BASE = 0.001;
-static const float DYNAMIC_BIAS_FACTOR = 0.001;
-static const uint NOISE_TEX_SIZE = 128;
-
-static const float LOD_LEVEL = 2;
+static constexpr let TMIN_BIAS_BASE = 0.001;
+static constexpr let DYNAMIC_BIAS_FACTOR = 0.001;
+static constexpr let NOISE_TEX_SIZE = 128;
+static constexpr let MIX = 0.03;
+static constexpr let LOD_LEVEL = 2.0;
 
 struct HitPayload
 {
@@ -63,7 +65,6 @@ void raygen_main()
 
 	let world_pos = w_div(mul(camera.inv_view_projection, float4(texcoord_to_ndc(texcoord), depth, 1.0)));
 	let distance = distance(camera.camera_pos, world_pos);
-
 	let bias = TMIN_BIAS_BASE + DYNAMIC_BIAS_FACTOR * pow(distance, 1.5);
 	let raydesc = RayDesc(world_pos, bias, get_light_direction(noise), 1e10);
 
@@ -81,7 +82,20 @@ void raygen_main()
 		payload
 	);
 
-	shadow_tex.Store(pixcoord, select(payload.hit, 0.0, 1.0));
+	let motion_vector = motion_vector_tex.Load(int3(pixcoord, 0));
+	let curr_shadow = select(payload.hit, 0.0, 1.0);
+
+	[[branch]]
+	if (motion_vector.x > 32768.0)
+	{
+		shadow_tex.Store(pixcoord, curr_shadow);
+	}
+	else
+	{
+		let prev_shadow = prev_shadow_tex.SampleLevelZero(pixcoord + 0.5 + motion_vector.xy);
+		let mixed_shadow = lerp(prev_shadow, curr_shadow, MIX);
+		shadow_tex.Store(pixcoord, mixed_shadow);
+	}
 }
 
 [[shader("anyhit")]]
