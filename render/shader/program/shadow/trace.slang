@@ -22,7 +22,8 @@ layout(set = 2, binding = 7) Sampler2D<float> prev_shadow_tex;
 static constexpr let TMIN_BIAS_BASE = 0.001;
 static constexpr let DYNAMIC_BIAS_FACTOR = 0.001;
 static constexpr let NOISE_TEX_SIZE = 128;
-static constexpr let MIX = 0.03;
+static constexpr let STATIC_MIX = 0.03;
+static constexpr let DYNAMIC_MIX = 0.20;
 static constexpr let LOD_LEVEL = 2.0;
 
 struct HitPayload
@@ -92,8 +93,10 @@ void raygen_main()
 	}
 	else
 	{
-		let prev_shadow = prev_shadow_tex.SampleLevelZero(pixcoord + 0.5 + motion_vector.xy);
-		let mixed_shadow = lerp(prev_shadow, curr_shadow, MIX);
+		let motion_strength = length(motion_vector);
+		let mix_factor = lerp(STATIC_MIX, DYNAMIC_MIX, saturate(motion_strength * 20));
+		let prev_shadow = prev_shadow_tex.SampleLevelZero(pixcoord + 0.5 + motion_vector);
+		let mixed_shadow = lerp(prev_shadow, curr_shadow, mix_factor);
 		shadow_tex.Store(pixcoord, mixed_shadow);
 	}
 }
