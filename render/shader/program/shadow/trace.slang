@@ -19,8 +19,7 @@ layout(set = 2, binding = 5) Sampler2D<float2> motion_vector_tex;
 layout(set = 2, binding = 6) RWTexture2D<float> shadow_tex;
 layout(set = 2, binding = 7) Sampler2D<float> prev_shadow_tex;
 
-static constexpr let TMIN_BIAS_BASE = 0.001;
-static constexpr let DYNAMIC_BIAS_FACTOR = 0.001;
+static constexpr let DEPTH_BIAS_ULP = 1024;
 static constexpr let NOISE_TEX_SIZE = 128;
 static constexpr let STATIC_MIX = 0.03;
 static constexpr let DYNAMIC_MIX = 0.20;
@@ -55,7 +54,7 @@ func get_light_direction(noise: float4)->float3
 void raygen_main()
 {
 	let pixcoord = DispatchRaysIndex().xy;
-	let texcoord = float2(pixcoord * 2) / float2(constant.full_size);
+	let texcoord = float2(pixcoord * 2 + 0.5) / float2(constant.full_size);
 
 	let depth = depth_tex.Load(int3(pixcoord, 0));
 
@@ -64,10 +63,10 @@ void raygen_main()
 
 	let noise = noise_tex.Load(int3((pixcoord + constant.noise_offset) % NOISE_TEX_SIZE, 0));
 
-	let world_pos = w_div(mul(camera.inv_view_projection, float4(texcoord_to_ndc(texcoord), depth, 1.0)));
-	let distance = distance(camera.camera_pos, world_pos);
-	let bias = TMIN_BIAS_BASE + DYNAMIC_BIAS_FACTOR * pow(distance, 1.5);
-	let raydesc = RayDesc(world_pos, bias, get_light_direction(noise), 1e10);
+	let biased_depth = bit_cast<float>(bit_cast<uint>(depth) + DEPTH_BIAS_ULP);
+	let ndc = float4(texcoord_to_ndc(texcoord), biased_depth, 1.0);
+	let world_pos = w_div(mul(camera.inv_view_projection, ndc));
+	let raydesc = RayDesc(world_pos, 0, get_light_direction(noise), 1e10);
 
 	var payload = HitPayload(true);
 	TraceRay(
@@ -87,18 +86,21 @@ void raygen_main()
 	let curr_shadow = select(payload.hit, 0.0, 1.0);
 
 	[[branch]]
-	if (motion_vector.x > 32768.0)
+	if (motion_vector.x > 32768.0)  // Occluded, store directly
 	{
 		shadow_tex.Store(pixcoord, curr_shadow);
+		return;
 	}
-	else
-	{
-		let motion_strength = length(motion_vector);
-		let mix_factor = lerp(STATIC_MIX, DYNAMIC_MIX, saturate(motion_strength * 20));
-		let prev_shadow = prev_shadow_tex.SampleLevelZero(pixcoord + 0.5 + motion_vector);
-		let mixed_shadow = lerp(prev_shadow, curr_shadow, mix_factor);
-		shadow_tex.Store(pixcoord, mixed_shadow);
-	}
+
+	let prev_shadow = prev_shadow_tex.SampleLevelZero(pixcoord + 0.5 + motion_vector);
+
+	// Lower history weight according to motion vector strength
+	// Reduce incorrect blurring during camera motion
+	let motion_strength = length(motion_vector);
+	let mix_factor = lerp(STATIC_MIX, DYNAMIC_MIX, saturate(motion_strength * 20));
+	let mixed_shadow = lerp(prev_shadow, curr_shadow, mix_factor);
+
+	shadow_tex.Store(pixcoord, mixed_shadow);
 }
 
 [[shader("anyhit")]]
