@@ -9,6 +9,7 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "common/util/error.hpp"
+#include "render/interface/camera.hpp"
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/model/model.hpp"
 #include "render/resource/host.hpp"
@@ -103,12 +104,14 @@ namespace render
 		///
 		/// @param context Vulkan context
 		/// @param model Model instance
+		/// @param camera Camera buffer
 		/// @param drawcall_resource Host drawcall resource
 		/// @param indirect_resource Indirect drawcall resource
 		///
 		void update(
 			const vulkan::Context& context,
 			const Model& model,
+			vulkan::ElementBufferRef<Camera> camera,
 			const HostDrawcallResource& drawcall_resource,
 			const IndirectResource& indirect_resource
 		) noexcept;

@@ -1,10 +1,12 @@
 #include "render/pipeline/indirect.hpp"
 #include "common/util/array.hpp"
 #include "common/util/error.hpp"
+#include "render/interface/camera.hpp"
 #include "render/model/model.hpp"
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "shader/indirect.hpp"
+#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/pool-size.hpp"
 #include "vulkan/util/shader.hpp"
@@ -54,11 +56,19 @@ namespace render
 			.stageFlags = vk::ShaderStageFlagBits::eCompute,
 		};
 
+		constexpr auto camera_binding = vk::DescriptorSetLayoutBinding{
+			.binding = 4,
+			.descriptorType = vk::DescriptorType::eUniformBuffer,
+			.descriptorCount = 1,
+			.stageFlags = vk::ShaderStageFlagBits::eCompute,
+		};
+
 		return std::to_array({
 			indirect_entries_binding,
 			drawcalls_binding,
 			node_transforms_binding,
 			primitive_attrs_binding,
+			camera_binding,
 		});
 	}
 
@@ -237,6 +247,7 @@ namespace render
 	void IndirectPipeline::ResourceSet::update(
 		const vulkan::Context& context,
 		const Model& model,
+		vulkan::ElementBufferRef<Camera> camera,
 		const HostDrawcallResource& drawcall_resource,
 		const IndirectResource& indirect_resource
 	) noexcept
@@ -273,6 +284,9 @@ namespace render
 				.range = vk::WholeSize
 			};
 
+			const auto camera_buffer_info =
+				vk::DescriptorBufferInfo{.buffer = camera, .offset = 0, .range = vk::WholeSize};
+
 			const auto indirect_write_descriptor_set = vk::WriteDescriptorSet{
 				.dstSet = descriptor_set,
 				.dstBinding = 0,
@@ -305,11 +319,20 @@ namespace render
 				.pBufferInfo = &primitive_attr_buffer_info
 			};
 
+			const auto camera_descriptor_set = vk::WriteDescriptorSet{
+				.dstSet = descriptor_set,
+				.dstBinding = 4,
+				.descriptorCount = 1,
+				.descriptorType = vk::DescriptorType::eUniformBuffer,
+				.pBufferInfo = &camera_buffer_info
+			};
+
 			const auto write_descriptor_sets = std::to_array({
 				indirect_write_descriptor_set,
 				primitive_drawcall_descriptor_set,
 				transform_descriptor_set,
 				primitive_attr_descriptor_set,
+				camera_descriptor_set,
 			});
 
 			context.device.updateDescriptorSets(write_descriptor_sets, {});

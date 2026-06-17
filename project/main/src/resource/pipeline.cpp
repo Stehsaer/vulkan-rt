@@ -124,7 +124,13 @@ namespace resource
 		DEBUG_ASSERT(curr_resource.attachments.has_value());
 		DEBUG_ASSERT(prev_resource.attachments.has_value());
 
-		indirect.update(context, model, curr_resource.drawcall, curr_resource.indirect);
+		indirect.update(
+			context,
+			model,
+			curr_resource.param->camera,
+			curr_resource.drawcall,
+			curr_resource.indirect
+		);
 
 		deferred.update(
 			context,
