@@ -63,7 +63,7 @@ struct FragmentOutput
 	float4 albedo;
 
 	[[vk::location(1)]]
-	uint32_t normal;
+	float2 normal;
 
 	[[vk::location(2)]]
 	float2 pbr;
@@ -112,7 +112,6 @@ FragmentOutput main_fragment(
 	if (double_sided) normal = select(is_front_face, normal, -normal);
 
 	let encoded_normal = oct_encode(normal);
-	let packed_normal = packSnorm2x16(encoded_normal);
 
 	/*===== Roughness & Metallic =====*/
 
@@ -126,7 +125,7 @@ FragmentOutput main_fragment(
 
 	/*===== Final =====*/
 
-	return FragmentOutput(float4(albedo.rgb, 1.0), packed_normal, roughness_metallic, float4(emission, 0.0));
+	return FragmentOutput(float4(albedo.rgb, 1.0), encoded_normal, roughness_metallic, float4(emission, 0.0));
 }
 
 

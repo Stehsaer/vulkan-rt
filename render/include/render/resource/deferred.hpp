@@ -24,7 +24,7 @@ namespace render
 	  public:
 
 		static constexpr auto ALBEDO_FORMAT = vk::Format::eR8G8B8A8Srgb;  // RGBA8, Srgb, 4 BPP
-		static constexpr auto NORMAL_FORMAT = vk::Format::eR32Uint;       // R32, Uint, 4 BPP
+		static constexpr auto NORMAL_FORMAT = vk::Format::eR16G16Snorm;   // RG16, Snorm, 4 BPP
 		static constexpr auto PBR_FORMAT = vk::Format::eR8G8Unorm;        // RG8, Unorm, 2 BPP
 		static constexpr auto DEPTH_FORMAT = vk::Format::eD32Sfloat;      // D32, Float, 4 BPP
 
