@@ -26,7 +26,7 @@ namespace raytrace
 
 		func get_primitive_attr()->model::PrimitiveAttribute
 		{
-			let primitive_base_idx = InstanceIndex();
+			let primitive_base_idx = InstanceID();
 			let geometry_idx = GeometryIndex();
 
 			return primitive_attributes[primitive_base_idx + geometry_idx];
