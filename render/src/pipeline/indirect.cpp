@@ -232,6 +232,8 @@ namespace render
 				.dstStageMask =
 					vk::PipelineStageFlagBits2::eDrawIndirect | vk::PipelineStageFlagBits2::eVertexShader,
 				.dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead | vk::AccessFlagBits2::eShaderRead,
+				.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+				.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 				.buffer = buffer,
 				.offset = 0,
 				.size = vk::WholeSize

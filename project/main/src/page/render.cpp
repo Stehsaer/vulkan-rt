@@ -357,6 +357,8 @@ namespace page
 			.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
 			.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 			.image = frame.render_resource.attachments->hdr->attachment.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
@@ -380,6 +382,8 @@ namespace page
 			.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 			.image = frame.swapchain.attachment.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
@@ -424,6 +428,8 @@ namespace page
 			.dstAccessMask = vk::AccessFlagBits2::eNone,
 			.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.newLayout = vk::ImageLayout::ePresentSrcKHR,
+			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 			.image = frame.swapchain.attachment.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
