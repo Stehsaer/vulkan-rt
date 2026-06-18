@@ -27,18 +27,24 @@ namespace pbr
 
 	func mask_shadowing(vdot: float, alpha: float)->float
 	{
-		let nominator = lerp(0.0001, 2.0, vdot);
+		let nominator = max(vdot * 2.0, 0.0001);
 		let alpha2 = alpha * alpha;
 		let denominator = vdot + sqrt(alpha2 + (1.0 - alpha2) * vdot * vdot);
 
 		return nominator / denominator;
 	}
 
+	func pow5(x: float)->float
+	{
+		let x2 = x * x;
+		return x2 * x2 * x;
+	}
+
 	public func gltf(light: DirectionalLight, material: Material, view_dir: float3)->float3
 	{
 		let halfway_dir = normalize(light.direction + view_dir);
 
-		let n_dot_v = max(0.0, abs(dot(view_dir, material.normal)));
+		let n_dot_v = abs(dot(view_dir, material.normal));
 		let n_dot_l = max(0.0, dot(material.normal, light.direction));
 		let n_dot_h = max(0.0, dot(material.normal, halfway_dir));
 		let v_dot_h = max(0.0, dot(view_dir, halfway_dir));
@@ -48,9 +54,9 @@ namespace pbr
 		let fd90 = 0.5 + 2.0 * v_dot_h * v_dot_h * material.roughness;
 		let alpha = material.roughness * material.roughness;
 
-		let F = f0 + (1.0 - f0) * pow(1.0 - v_dot_h, 5.0);
-		let light_scatter = lerp(1.0, fd90, pow(1.0 - n_dot_l, 5.0));
-		let view_scatter = lerp(1.0, fd90, pow(1.0 - n_dot_v, 5.0));
+		let F = f0 + (1.0 - f0) * pow5(1.0 - v_dot_h);
+		let light_scatter = lerp(1.0, fd90, pow5(1.0 - n_dot_l));
+		let view_scatter = lerp(1.0, fd90, pow5(1.0 - n_dot_v));
 
 		let f_diffuse = light_scatter * view_scatter * (1.0 / float.getPi()) * c_diff;
 		let f_specular = F

@@ -102,6 +102,8 @@ namespace vulkan::impl
 					.dstAccessMask = vk::AccessFlagBits2::eTransferRead,
 					.oldLayout = src_image_layout,
 					.newLayout = vk::ImageLayout::eTransferSrcOptimal,
+					.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+					.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 					.image = src_image,
 					.subresourceRange = subresource_range
 				};
@@ -113,6 +115,8 @@ namespace vulkan::impl
 					.dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
 					.oldLayout = vk::ImageLayout::eUndefined,
 					.newLayout = vk::ImageLayout::eTransferDstOptimal,
+					.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+					.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 					.image = transfer_resource.blit_dst_image,
 					.subresourceRange = subresource_range
 				};
@@ -153,6 +157,8 @@ namespace vulkan::impl
 					.dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
 					.oldLayout = vk::ImageLayout::eTransferSrcOptimal,
 					.newLayout = src_image_layout,
+					.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+					.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 					.image = src_image,
 					.subresourceRange = subresource_range
 				};
@@ -163,6 +169,8 @@ namespace vulkan::impl
 					.dstAccessMask = vk::AccessFlagBits2::eTransferRead,
 					.oldLayout = vk::ImageLayout::eTransferDstOptimal,
 					.newLayout = vk::ImageLayout::eTransferSrcOptimal,
+					.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+					.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 					.image = transfer_resource.blit_dst_image,
 					.subresourceRange = subresource_range
 				};

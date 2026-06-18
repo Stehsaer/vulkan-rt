@@ -1,12 +1,12 @@
 import sv.compute;
 
 layout(set = 0, binding = 0) Sampler2D<float4> src_albedo_tex;
-layout(set = 0, binding = 1) Sampler2D<uint> src_normal_tex;
+layout(set = 0, binding = 1) Sampler2D<float2> src_normal_tex;
 layout(set = 0, binding = 2) Sampler2D<float2> src_pbr_tex;
 layout(set = 0, binding = 3) Sampler2D<float> src_depth_tex;  // Unnormalized coord
 
 layout(set = 0, binding = 4) RWTexture2D<float4> dst_albedo_tex;
-layout(set = 0, binding = 5) RWTexture2D<uint> dst_normal_tex;
+layout(set = 0, binding = 5) RWTexture2D<float2> dst_normal_tex;
 layout(set = 0, binding = 6) RWTexture2D<float2> dst_pbr_tex;
 layout(set = 0, binding = 7) RWTexture2D<float> dst_depth_tex;
 

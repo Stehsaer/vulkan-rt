@@ -380,6 +380,8 @@ namespace render
 				| vk::AccessFlagBits2::eDepthStencilAttachmentRead,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 			.image = resource_set.resource->attachment.depth.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eDepth)
 		};
@@ -393,6 +395,8 @@ namespace render
 					.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
 					.oldLayout = vk::ImageLayout::eUndefined,
 					.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+					.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+					.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 					.image = attachment.image,
 					.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 				};
@@ -504,6 +508,8 @@ namespace render
 					  .dstAccessMask = vk::AccessFlagBits2::eShaderRead,
 					  .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
 					  .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+					  .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+					  .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 					  .image = attachment.image,
 					  .subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 				  };
@@ -516,6 +522,8 @@ namespace render
 			.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
 			.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 			.image = resource_set->attachment.hdr.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
@@ -530,6 +538,8 @@ namespace render
 			.dstAccessMask = vk::AccessFlagBits2::eShaderRead,
 			.oldLayout = vk::ImageLayout::eDepthAttachmentOptimal,
 			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 			.image = resource_set.resource->attachment.depth.image,
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eDepth)
 		};

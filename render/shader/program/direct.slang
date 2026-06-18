@@ -7,7 +7,7 @@ import algorithm.octahedral;
 import algorithm.coord;
 
 layout(set = 0, binding = 0) Sampler2D<float4> albedo_tex;
-layout(set = 0, binding = 1) Sampler2D<uint32_t> normal_tex;
+layout(set = 0, binding = 1) Sampler2D<float2> normal_tex;
 layout(set = 0, binding = 2) Sampler2D<float2> pbr_tex;
 layout(set = 0, binding = 3) Sampler2D<float> depth_tex;
 layout(set = 0, binding = 4) Sampler2D<float> shadow_tex;
@@ -26,14 +26,13 @@ float4 main(float2 texcoord, float4 fragcoord: SV_Position)
 	[[branch]]
 	if (albedo.a < 0.5) discard;
 
-	let packed_normal = normal_tex.SampleLevelZero(texcoord);
+	let encoded_normal = normal_tex.SampleLevelZero(texcoord);
 	let roughness_metallic = pbr_tex.SampleLevelZero(texcoord);
 	let depth = depth_tex.SampleLevelZero(texcoord);
 	let shadow = shadow_tex.SampleLevelZero(texcoord);
 
-	/*===== Normal Unpack =====*/
+	/*===== Normal Decode =====*/
 
-	let encoded_normal = unpackSnorm2x16ToFloat(packed_normal);
 	let normal = oct_decode(encoded_normal);
 
 	/*===== Position =====*/

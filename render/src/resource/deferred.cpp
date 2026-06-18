@@ -34,7 +34,7 @@ namespace render
 		if (!depth_result) return depth_result.error().forward("Create depth buffer failed");
 
 		albedo_result->clear_color_float(command_buffer);
-		normal_result->clear_color_uint(command_buffer);
+		normal_result->clear_color_float(command_buffer);
 		pbr_result->clear_color_float(command_buffer);
 		depth_result->clear_depth_stencil(command_buffer);
 
@@ -95,7 +95,7 @@ namespace render
 			return half_depth_result.error().forward("Create half-res depth buffer failed");
 
 		half_albedo_result->clear_color_float(command_buffer);
-		half_normal_result->clear_color_uint(command_buffer);
+		half_normal_result->clear_color_float(command_buffer);
 		half_pbr_result->clear_color_float(command_buffer);
 		half_depth_result->clear_color_float(command_buffer);
 
