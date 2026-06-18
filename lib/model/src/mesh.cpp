@@ -1,4 +1,5 @@
 #include "model/mesh.hpp"
+#include "common/util/array.hpp"
 #include "common/util/error.hpp"
 
 #include <algorithm>
@@ -29,44 +30,18 @@ namespace model
 	{
 		const auto edge1 = triangle[1].position - triangle[0].position;
 		const auto edge2 = triangle[2].position - triangle[0].position;
-		const auto normal = glm::normalize(glm::cross(edge1, edge2));
+		auto normal = glm::normalize(glm::cross(edge1, edge2));
 
 		if (glm::any(glm::isinf(normal)) || glm::any(glm::isnan(normal))) [[unlikely]]
-			return {
-				NormalOnlyVertex{
-								 .position = triangle[0].position,
-								 .texcoord = triangle[0].texcoord,
-								 .normal = glm::vec3(0.0f),
-								 },
-				NormalOnlyVertex{
-								 .position = triangle[1].position,
-								 .texcoord = triangle[1].texcoord,
-								 .normal = glm::vec3(0.0f),
-								 },
-				NormalOnlyVertex{
-								 .position = triangle[2].position,
-								 .texcoord = triangle[2].texcoord,
-								 .normal = glm::vec3(0.0f),
-								 }
-			};
+			normal = glm::vec3(0.0f);
 
-		return {
-			NormalOnlyVertex{
-							 .position = triangle[0].position,
-							 .texcoord = triangle[0].texcoord,
-							 .normal = normal
-			},
-			NormalOnlyVertex{
-							 .position = triangle[1].position,
-							 .texcoord = triangle[1].texcoord,
-							 .normal = normal
-			},
-			NormalOnlyVertex{
-							 .position = triangle[2].position,
-							 .texcoord = triangle[2].texcoord,
-							 .normal = normal
-			}
-		};
+		return triangle | ::util::map_array([&normal](const auto& vertex) {
+				   return NormalOnlyVertex{
+					   .position = vertex.position,
+					   .texcoord = vertex.texcoord,
+					   .normal = normal
+				   };
+			   });
 	}
 
 	std::array<FullVertex, 3> NormalOnlyVertex::construct_tangent(
@@ -92,50 +67,27 @@ namespace model
 		const glm::vec3 right_handed_bitangent = glm::cross(normal, tangent);
 		const float handedness = glm::dot(right_handed_bitangent, bitangent) < 0.0f ? -1.0f : 1.0f;
 
-		const glm::vec4 encoded_tangent = glm::vec4(tangent, handedness);
+		glm::vec4 encoded_tangent = glm::vec4(tangent, handedness);
 
 		if (glm::any(glm::isinf(tangent)) || glm::any(glm::isnan(tangent))) [[unlikely]]
-			return {
-				FullVertex{
-						   .position = triangle[0].position,
-						   .texcoord = triangle[0].texcoord,
-						   .normal = triangle[0].normal,
-						   .tangent = glm::vec4(0.0f),
-						   },
-				FullVertex{
-						   .position = triangle[1].position,
-						   .texcoord = triangle[1].texcoord,
-						   .normal = triangle[1].normal,
-						   .tangent = glm::vec4(0.0f),
-						   },
-				FullVertex{
-						   .position = triangle[2].position,
-						   .texcoord = triangle[2].texcoord,
-						   .normal = triangle[2].normal,
-						   .tangent = glm::vec4(0.0f),
-						   }
-			};
+		{
+			encoded_tangent = glm::vec4(
+				glm::cross(
+					triangle[0].normal,
+					triangle[0].normal.y > 0.8 ? glm::vec3(1.0, 0.0, 0.0) : glm::vec3(0.0, 1.0, 0.0)
+				),
+				1.0
+			);
+		}
 
-		return {
-			FullVertex{
-					   .position = triangle[0].position,
-					   .texcoord = triangle[0].texcoord,
-					   .normal = triangle[0].normal,
-					   .tangent = encoded_tangent,
-					   },
-			FullVertex{
-					   .position = triangle[1].position,
-					   .texcoord = triangle[1].texcoord,
-					   .normal = triangle[1].normal,
-					   .tangent = encoded_tangent,
-					   },
-			FullVertex{
-					   .position = triangle[2].position,
-					   .texcoord = triangle[2].texcoord,
-					   .normal = triangle[2].normal,
-					   .tangent = encoded_tangent,
-					   }
-		};
+		return triangle | ::util::map_array([&encoded_tangent](const auto& vertex) {
+				   return FullVertex{
+					   .position = vertex.position,
+					   .texcoord = vertex.texcoord,
+					   .normal = vertex.normal,
+					   .tangent = encoded_tangent
+				   };
+			   });
 	}
 
 	std::expected<Geometry, Error> Geometry::create(
