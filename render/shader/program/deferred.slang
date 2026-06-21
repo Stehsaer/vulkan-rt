@@ -66,9 +66,12 @@ struct FragmentOutput
 	float2 normal;
 
 	[[vk::location(2)]]
-	float2 pbr;
+	float2 geom_normal;
 
 	[[vk::location(3)]]
+	float2 pbr;
+
+	[[vk::location(4)]]
 	float4 hdr_emission;
 };
 
@@ -107,11 +110,17 @@ FragmentOutput main_fragment(
 		vertex_normal
 	);
 	var normal = normalize(mul(local_normal, tbn_matrix));
+	var geom_normal = vertex_normal;
 
 	[[branch]]
-	if (double_sided) normal = select(is_front_face, normal, -normal);
+	if (double_sided)
+	{
+		normal = select(is_front_face, normal, -normal);
+		geom_normal = select(is_front_face, geom_normal, -geom_normal);
+	}
 
 	let encoded_normal = oct_encode(normal);
+	let encoded_geom_normal = oct_encode(geom_normal);
 
 	/*===== Roughness & Metallic =====*/
 
@@ -125,7 +134,13 @@ FragmentOutput main_fragment(
 
 	/*===== Final =====*/
 
-	return FragmentOutput(float4(albedo.rgb, 1.0), encoded_normal, roughness_metallic, float4(emission, 0.0));
+	return FragmentOutput(
+		float4(albedo.rgb, 1.0),
+		encoded_normal,
+		encoded_geom_normal,
+		roughness_metallic,
+		float4(emission, 0.0)
+	);
 }
 
 

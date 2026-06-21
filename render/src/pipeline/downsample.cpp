@@ -45,6 +45,12 @@ namespace render
 				vk::DescriptorType::eCombinedImageSampler,
 				vk::ShaderStageFlagBits::eCompute
 			>,
+			vulkan::MonoDescriptorSetSlot<
+				vk::DescriptorType::eCombinedImageSampler,
+				vk::ShaderStageFlagBits::eCompute
+			>,
+			vulkan::
+				MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
 			vulkan::
 				MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
 			vulkan::
@@ -200,6 +206,7 @@ namespace render
 		const auto attachments = std::to_array({
 			resource_set.attachment->albedo,
 			resource_set.attachment->normal,
+			resource_set.attachment->geom_normal,
 			resource_set.attachment->pbr,
 			resource_set.attachment->depth,
 		});
@@ -276,6 +283,7 @@ namespace render
 		const auto full_tex = std::to_array<vk::ImageView>({
 			deferred.albedo.view,
 			deferred.normal.view,
+			deferred.geom_normal.view,
 			deferred.pbr.view,
 			deferred.depth.view,
 		});
@@ -283,6 +291,7 @@ namespace render
 		const auto half_tex = std::to_array<vk::ImageView>({
 			halfres_deferred.albedo.view,
 			halfres_deferred.normal.view,
+			halfres_deferred.geom_normal.view,
 			halfres_deferred.pbr.view,
 			halfres_deferred.depth.view,
 		});

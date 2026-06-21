@@ -10,7 +10,7 @@ layout(set = 0, binding = 0) Sampler2D<float4> albedo_tex;
 layout(set = 0, binding = 1) Sampler2D<float2> normal_tex;
 layout(set = 0, binding = 2) Sampler2D<float2> pbr_tex;
 layout(set = 0, binding = 3) Sampler2D<float> depth_tex;
-layout(set = 0, binding = 4) Sampler2D<float> shadow_tex;
+layout(set = 0, binding = 4) Sampler2D<float2> shadow_tex;
 layout(set = 0, binding = 5) ConstantBuffer<Camera> camera;
 layout(set = 0, binding = 6) ConstantBuffer<DirectLight> light;
 
@@ -29,7 +29,7 @@ float4 main(float2 texcoord, float4 fragcoord: SV_Position)
 	let encoded_normal = normal_tex.SampleLevelZero(texcoord);
 	let roughness_metallic = pbr_tex.SampleLevelZero(texcoord);
 	let depth = depth_tex.SampleLevelZero(texcoord);
-	let shadow = shadow_tex.SampleLevelZero(texcoord);
+	let shadow = shadow_tex.SampleLevelZero(texcoord).r;
 
 	/*===== Normal Decode =====*/
 
@@ -44,13 +44,16 @@ float4 main(float2 texcoord, float4 fragcoord: SV_Position)
 
 	/*===== Lighting Compute =====*/
 
-	let material = pbr::Material(normal, albedo.rgb, roughness_metallic.g, roughness_metallic.r);
+	let material =
+		pbr::Material(normal, albedo.rgb, lerp(0.04, 1.0, roughness_metallic.r), roughness_metallic.g);
 	let light = pbr::DirectionalLight(light.direction, light.light);
 
 	let ambient_color = albedo.rgb * AMBIENT * (1.0 - lerp(0.04, albedo.rgb, roughness_metallic.g));
 	let color = pbr::gltf(light, material, view_dir);
 
-	return float4(color * shadow + ambient_color, 1.0);
+	let cut_shadow = select(shadow < 0.001, 0.0, shadow);
+
+	return float4(color * cut_shadow + ambient_color, 1.0);
 }
 
 

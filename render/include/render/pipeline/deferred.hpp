@@ -35,12 +35,13 @@ namespace render
 	///
 	/// ### Color attachments
 	///
-	/// | Location | Description | R            | G         | B        | A        |
-	/// | :------: | :---------: | :----------: | :-------: | :------: | :------: |
-	/// | 0        | Albedo      | Albedo R     | Albedo G  | Albedo B | Sky Flag |
-	/// | 1        | Normal      | Packed Norm. | -         | -        | -        |
-	/// | 2        | PBR         | Roughness    | Metalness | -        | -        |
-	/// | 3        | HDR Output  | HDR R        | HDR G     | HDR B    | Alpha    |
+	/// | Location | Description  | R         | G         | B        | A        |
+	/// | :------: | :----------: | :-------: | :-------: | :------: | :------: |
+	/// | 0        | Albedo       | Albedo R  | Albedo G  | Albedo B | Sky Flag |
+	/// | 1        | Normal       | Oct. X    | Oct. Y    | -        | -        |
+	/// | 2        | Geom. Normal | Oct. X    | Oct. Y    | -        | -        |
+	/// | 3        | PBR          | Roughness | Metalness | -        | -        |
+	/// | 4        | HDR Output   | HDR R     | HDR G     | HDR B    | Alpha    |
 	///
 	/// @note Synchronization scheme used by this pipeline expects next usage of the HDR attachment is color
 	/// attachment (which is very likely to be lighting pass)
@@ -165,7 +166,7 @@ namespace render
 		struct Attachment
 		{
 			glm::u32vec2 extent;
-			vulkan::AttachmentView albedo, normal, pbr, depth, hdr;
+			vulkan::AttachmentView albedo, normal, geom_normal, pbr, depth, hdr;
 		};
 
 		// External resources

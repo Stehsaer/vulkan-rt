@@ -72,6 +72,7 @@ namespace logic
 			.prev_view_projection = prev_view_proj_matrix,
 			.view_projection = view_proj_matrix,
 			.back_projection = back_projection_matrix,
+			.view = view_matrix,
 			.camera_pos = camera_pos,
 			.prev_camera_pos = prev_camera_pos,
 		};

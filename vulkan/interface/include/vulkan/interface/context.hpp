@@ -33,6 +33,7 @@ namespace vulkan
 	/// - Pipeline statistics
 	/// - Multi draw indirect
 	/// - Shader 16-bit integer support
+	/// - Extended image gather
 	///
 	/// #### Vulkan 1.1
 	/// - Shader draw parameters (required by slang)

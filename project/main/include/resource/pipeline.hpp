@@ -13,7 +13,8 @@
 #include "render/pipeline/downsample.hpp"
 #include "render/pipeline/indirect.hpp"
 #include "render/pipeline/motion-vector.hpp"
-#include "render/pipeline/shadow/raytrace.hpp"
+#include "render/pipeline/shadow/denoise.hpp"
+#include "render/pipeline/shadow/trace.hpp"
 #include "render/resource/raytrace.hpp"
 #include "vulkan/interface/context.hpp"
 
@@ -37,6 +38,7 @@ namespace resource
 		render::DownsamplePipeline downsample;
 		render::MotionVectorPipeline motion_vector;
 		render::shadow::RaytracePipeline shadow_trace;
+		render::shadow::DenoisePipeline shadow_denoise;
 		render::DirectLightingPipeline direct_lighting;
 		render::AutoExposurePipeline auto_exposure;
 		render::CompositePipeline composite;
@@ -81,6 +83,7 @@ namespace resource
 		render::DownsamplePipeline::ResourceSet downsample;
 		render::MotionVectorPipeline::ResourceSet motion_vector;
 		render::shadow::RaytracePipeline::ResourceSet shadow_trace;
+		render::shadow::DenoisePipeline::ResourceSet shadow_denoise;
 		render::DirectLightingPipeline::ResourceSet direct_lighting;
 		render::AutoExposurePipeline::ResourceSet auto_exposure;
 		render::CompositePipeline::ResourceSet composite;

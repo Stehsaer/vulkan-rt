@@ -7,6 +7,7 @@ public struct Camera
 	public float4x4 prev_view_projection;
 	public float4x4 view_projection;
 	public float4x4 back_projection;
+	public float4x4 view;
 	public float3 camera_pos;
 	public float3 prev_camera_pos;
 };

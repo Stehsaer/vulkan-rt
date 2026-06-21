@@ -16,13 +16,13 @@ layout(set = 2, binding = 2) ConstantBuffer<Camera> camera;
 layout(set = 2, binding = 3) Sampler2D<float> depth_tex;
 layout(set = 2, binding = 4) Sampler2D<float4> noise_tex;
 layout(set = 2, binding = 5) Sampler2D<float2> motion_vector_tex;
-layout(set = 2, binding = 6) RWTexture2D<float> shadow_tex;
-layout(set = 2, binding = 7) Sampler2D<float> prev_shadow_tex;
+layout(set = 2, binding = 6) RWTexture2D<float2> shadow_tex;
+layout(set = 2, binding = 7) Sampler2D<float2> prev_shadow_tex;
 
 static constexpr let DEPTH_BIAS_ULP = 1024;
 static constexpr let NOISE_TEX_SIZE = 128;
-static constexpr let STATIC_MIX = 0.03;
-static constexpr let DYNAMIC_MIX = 0.20;
+static constexpr let STATIC_MIX = 0.02;
+static constexpr let DYNAMIC_MIX = 0.2;
 static constexpr let LOD_LEVEL = 2.0;
 
 struct HitPayload
@@ -92,15 +92,18 @@ void raygen_main()
 		return;
 	}
 
-	let prev_shadow = prev_shadow_tex.SampleLevelZero(pixcoord + 0.5 + motion_vector);
+	let prev = prev_shadow_tex.SampleLevelZero(pixcoord + 0.5 + motion_vector);
+	let prev_shadow = prev.x;
+	let prev_variance = prev.y / 4;
 
 	// Lower history weight according to motion vector strength
 	// Reduce incorrect blurring during camera motion
 	let motion_strength = length(motion_vector);
 	let mix_factor = lerp(STATIC_MIX, DYNAMIC_MIX, saturate(motion_strength * 20));
-	let mixed_shadow = lerp(prev_shadow, curr_shadow, mix_factor);
+	let shadow = lerp(prev_shadow, curr_shadow, mix_factor);
+	let shadow_variance = shadow * (1.0 - shadow);
 
-	shadow_tex.Store(pixcoord, mixed_shadow);
+	shadow_tex.Store(pixcoord, float2(shadow, shadow_variance * 4));
 }
 
 [[shader("anyhit")]]

@@ -1,4 +1,4 @@
-#include "render/pipeline/shadow/raytrace.hpp"
+#include "render/pipeline/shadow/trace.hpp"
 #include "common/json.hpp"
 #include "common/number-literals.hpp"
 #include "common/util/align.hpp"
@@ -583,13 +583,13 @@ namespace render::shadow
 
 		const auto shadow_tex_info = vk::DescriptorImageInfo{
 			.sampler = nullptr,
-			.imageView = attachment.shadow.view,
+			.imageView = attachment.init_sample.view,
 			.imageLayout = vk::ImageLayout::eGeneral
 		};
 
 		const auto prev_shadow_tex_info = vk::DescriptorImageInfo{
 			.sampler = sampler,
-			.imageView = prev_attachment.shadow.view,
+			.imageView = prev_attachment.init_sample.view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
 		};
 
@@ -611,7 +611,7 @@ namespace render::shadow
 			.full_extent = attachment.full_extent,
 			.half_extent = attachment.half_extent,
 			.noise_offset = noise_offset,
-			.shadow_tex = attachment.shadow,
+			.shadow_tex = attachment.init_sample,
 			.material_set = material.get_descriptor_set(),
 			.raytrace_res_set = raytrace_res->mesh_resource
 		};

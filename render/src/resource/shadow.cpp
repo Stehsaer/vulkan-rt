@@ -20,17 +20,44 @@ namespace render
 	{
 		const auto half_extent = (full_extent + 1_u32) / 2_u32;
 
-		auto shadow_result = vulkan::Attachment::create(
+		auto init_sample_result = vulkan::Attachment::create(
 			context.device,
 			context.allocator,
 			half_extent,
 			SHADOW_FORMAT,
 			vk::ImageUsageFlagBits::eStorage
 		);
-		if (!shadow_result) return shadow_result.error().forward("Create shadow attachment failed");
+		if (!init_sample_result)
+			return init_sample_result.error().forward("Create shadow attachment (init-sample) failed");
 
-		shadow_result->clear_color_float(command_buffer);
+		auto denoise_imm_result = vulkan::Attachment::create(
+			context.device,
+			context.allocator,
+			half_extent,
+			SHADOW_FORMAT,
+			vk::ImageUsageFlagBits::eStorage
+		);
+		if (!denoise_imm_result)
+			return denoise_imm_result.error().forward("Create shadow attachment (imm) failed");
 
-		return ShadowAttachment(half_extent, full_extent, std::move(*shadow_result));
+		auto denoise_final_result = vulkan::Attachment::create(
+			context.device,
+			context.allocator,
+			half_extent,
+			SHADOW_FORMAT,
+			vk::ImageUsageFlagBits::eStorage
+		);
+		if (!denoise_final_result)
+			return denoise_final_result.error().forward("Create shadow attachment (final) failed");
+
+		init_sample_result->clear_color_float(command_buffer);
+
+		return ShadowAttachment(
+			half_extent,
+			full_extent,
+			std::move(*init_sample_result),
+			std::move(*denoise_imm_result),
+			std::move(*denoise_final_result)
+		);
 	}
 }

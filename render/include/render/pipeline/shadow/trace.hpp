@@ -29,7 +29,9 @@ namespace render::shadow
 {
 	///
 	/// @brief Shadow raytracing pipeline
-	/// @details Use raytracing to get shadow visibility at half resolution
+	/// @details
+	/// - Use raytracing to get shadow visibility at half resolution
+	/// - Perform temporal accumulation
 	///
 	class RaytracePipeline
 	{

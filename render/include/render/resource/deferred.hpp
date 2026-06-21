@@ -17,7 +17,7 @@ namespace render
 	///
 	/// @brief Attachment for deferred rendering
 	/// @details
-	/// - Each pixel takes 14 bytes of storage
+	/// - Each pixel takes 18 bytes of storage
 	/// - See deferred pipeline for detailed layout
 	///
 	class DeferredAttachment
@@ -50,7 +50,7 @@ namespace render
 		struct View
 		{
 			glm::u32vec2 extent;
-			vulkan::AttachmentView albedo, normal, pbr, depth;
+			vulkan::AttachmentView albedo, normal, geom_normal, pbr, depth;
 
 			const View* operator->() const noexcept { return this; }
 		};
@@ -61,6 +61,7 @@ namespace render
 				.extent = extent,
 				.albedo = albedo,
 				.normal = normal,
+				.geom_normal = geom_normal,
 				.pbr = pbr,
 				.depth = depth,
 			};
@@ -71,18 +72,20 @@ namespace render
 	  private:
 
 		glm::u32vec2 extent;
-		vulkan::Attachment albedo, normal, pbr, depth;
+		vulkan::Attachment albedo, normal, geom_normal, pbr, depth;
 
 		explicit DeferredAttachment(
 			glm::u32vec2 extent,
 			vulkan::Attachment albedo,
 			vulkan::Attachment normal,
+			vulkan::Attachment geom_normal,
 			vulkan::Attachment pbr,
 			vulkan::Attachment depth
 		) :
 			extent(extent),
 			albedo(std::move(albedo)),
 			normal(std::move(normal)),
+			geom_normal(std::move(geom_normal)),
 			pbr(std::move(pbr)),
 			depth(std::move(depth))
 		{}
@@ -129,7 +132,7 @@ namespace render
 		{
 			glm::u32vec2 full_extent;
 			glm::u32vec2 half_extent;
-			vulkan::AttachmentView albedo, normal, pbr, depth;
+			vulkan::AttachmentView albedo, normal, geom_normal, pbr, depth;
 
 			const View* operator->() const noexcept { return this; }
 		};
@@ -141,6 +144,7 @@ namespace render
 				.half_extent = half_extent,
 				.albedo = albedo,
 				.normal = normal,
+				.geom_normal = geom_normal,
 				.pbr = pbr,
 				.depth = depth,
 			};
@@ -152,13 +156,14 @@ namespace render
 
 		glm::u32vec2 full_extent;
 		glm::u32vec2 half_extent;
-		vulkan::Attachment albedo, normal, pbr, depth;
+		vulkan::Attachment albedo, normal, geom_normal, pbr, depth;
 
 		explicit HalfDeferredAttachment(
 			glm::u32vec2 extent,
 			glm::u32vec2 half_extent,
 			vulkan::Attachment albedo,
 			vulkan::Attachment normal,
+			vulkan::Attachment geom_normal,
 			vulkan::Attachment pbr,
 			vulkan::Attachment depth
 		) :
@@ -166,6 +171,7 @@ namespace render
 			half_extent(half_extent),
 			albedo(std::move(albedo)),
 			normal(std::move(normal)),
+			geom_normal(std::move(geom_normal)),
 			pbr(std::move(pbr)),
 			depth(std::move(depth))
 		{}

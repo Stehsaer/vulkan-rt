@@ -11,7 +11,8 @@
 #include "render/pipeline/downsample.hpp"
 #include "render/pipeline/indirect.hpp"
 #include "render/pipeline/motion-vector.hpp"
-#include "render/pipeline/shadow/raytrace.hpp"
+#include "render/pipeline/shadow/denoise.hpp"
+#include "render/pipeline/shadow/trace.hpp"
 #include "render/resource/raytrace.hpp"
 #include "resource/aux-resource.hpp"
 #include "resource/render-resource.hpp"
@@ -61,6 +62,11 @@ namespace resource
 			return shadow_trace_pipeline_result.error().forward("Create shadow tracing pipeline failed");
 		auto shadow_trace_pipeline = std::move(*shadow_trace_pipeline_result);
 
+		auto shadow_denoise_pipeline_result = render::shadow::DenoisePipeline::create(context);
+		if (!shadow_denoise_pipeline_result)
+			return shadow_denoise_pipeline_result.error().forward("Create shadow denoise pipeline failed");
+		auto shadow_denoise_pipeline = std::move(*shadow_denoise_pipeline_result);
+
 		auto direct_lighting_pipeline_result = render::DirectLightingPipeline::create(context);
 		if (!direct_lighting_pipeline_result)
 			return direct_lighting_pipeline_result.error().forward("Create direct lighting pipeline failed");
@@ -82,6 +88,7 @@ namespace resource
 			.downsample = std::move(downsample_pipeline),
 			.motion_vector = std::move(motion_vector_pipeline),
 			.shadow_trace = std::move(shadow_trace_pipeline),
+			.shadow_denoise = std::move(shadow_denoise_pipeline),
 			.direct_lighting = std::move(direct_lighting_pipeline),
 			.auto_exposure = std::move(auto_exposure_pipeline),
 			.composite = std::move(composite_pipeline)
@@ -128,6 +135,13 @@ namespace resource
 			);
 		auto shadow_trace_resource_sets = std::move(*shadow_trace_resource_set_result);
 
+		auto shadow_denoise_resource_set_result = shadow_denoise.create_resource_sets(context, count);
+		if (!shadow_denoise_resource_set_result)
+			return shadow_denoise_resource_set_result.error().forward(
+				"Create resource sets for shadow denoise pipeline failed"
+			);
+		auto shadow_denoise_resource_sets = std::move(*shadow_denoise_resource_set_result);
+
 		auto direct_lighting_resource_set_result = direct_lighting.create_resource_sets(context, count);
 		if (!direct_lighting_resource_set_result)
 			return direct_lighting_resource_set_result.error().forward(
@@ -156,6 +170,7 @@ namespace resource
 				   downsample_resource_sets | std::views::as_rvalue,
 				   motion_vector_resource_sets | std::views::as_rvalue,
 				   shadow_trace_resource_sets | std::views::as_rvalue,
+				   shadow_denoise_resource_sets | std::views::as_rvalue,
 				   direct_lighting_resource_sets | std::views::as_rvalue,
 				   auto_exposure_resource_sets | std::views::as_rvalue,
 				   composite_resource_sets | std::views::as_rvalue
@@ -219,6 +234,13 @@ namespace resource
 			curr_resource.param->primary_light,
 			aux_resource.noise_view,
 			noise_offset
+		);
+
+		shadow_denoise.update(
+			context,
+			curr_resource.param->camera,
+			curr_resource.attachments->half_deferred,
+			curr_resource.attachments->shadow
 		);
 
 		direct_lighting.update(
