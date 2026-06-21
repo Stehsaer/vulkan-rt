@@ -32,7 +32,7 @@ static constexpr let GAUS_WEIGHT : float[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 16.0
 // Sigmas, taken from SVGF paper (Section 4.4)
 static constexpr let SIGMA_Z = 1.0;
 static constexpr let SIGMA_N = 128.0;
-static constexpr let SIGMA_L = 3.0;
+static constexpr let SIGMA_L = 4.0;
 static constexpr let EPS = 1e-3;
 
 [[shader("compute"), numthreads(16, 16, 1)]]
@@ -82,7 +82,7 @@ func main(sv: compute::ShaderVar)
 		/ 4.0
 		/ 9.0;
 	let sqrt_ref_var = sqrt(ref_var);
-	let lum_weight_denom = SIGMA_L * sqrt_ref_var * param.stride + EPS;
+	let lum_weight_denom = SIGMA_L * sqrt_ref_var + EPS;
 
 	/*===== Filtering =====*/
 
