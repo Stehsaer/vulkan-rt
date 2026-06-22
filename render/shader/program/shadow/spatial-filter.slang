@@ -2,6 +2,7 @@ import algorithm.coord;
 import algorithm.id_swizzle;
 import algorithm.octahedral;
 import interop.camera;
+import internal.shadow;
 import sv.compute;
 
 struct Param
@@ -15,8 +16,8 @@ struct Param
 // - Nearest filter
 // - Clamp to edge
 
-Sampler2D<float2> input_tex;     // Input image,  where: R = luminance, G = variance * 4
-RWTexture2D<float2> output_tex;  // Output image, where: R = luminance, G = variance * 4
+Sampler2D<float2> input_tex;     // Input image,  where: R = luminance, G = variance * VARIANCE_STORAGE_RATIO
+RWTexture2D<float2> output_tex;  // Output image, where: R = luminance, G = variance * VARIANCE_STORAGE_RATIO
 Sampler2D<float> depth_tex;      // Depth reference image
 Sampler2D<float2> normal_tex;    // Normal reference image, octahedral encoded
 ConstantBuffer<Camera> camera;
@@ -79,7 +80,7 @@ func main(sv: compute::ShaderVar)
 		 + dot(input_tex.GatherGreen(pixcoord_center, int2(-1, 0), int2(1, 0), int2(0, -1), int2(0, 1)), 1.0)
 			 * GAUS_WEIGHT[1]
 		 + ref_input.g)
-		/ 4.0
+		/ VARIANCE_STORAGE_RATIO
 		/ 9.0;
 	let sqrt_ref_var = sqrt(ref_var);
 	let lum_weight_denom = SIGMA_L * sqrt_ref_var + EPS;

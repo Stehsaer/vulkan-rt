@@ -3,6 +3,7 @@ import raytrace;
 
 import interop.direct_light;
 import interop.camera;
+import internal.shadow;
 import algorithm.coord;
 import algorithm.octahedral;
 import algorithm.tbn;
@@ -21,9 +22,6 @@ layout(set = 2, binding = 7) Sampler2D<float2> prev_shadow_tex;
 
 static constexpr let DEPTH_BIAS_ULP = 1024;
 static constexpr let NOISE_TEX_SIZE = 128;
-static constexpr let STATIC_MIX = 0.02;
-static constexpr let DYNAMIC_MIX = 0.08;
-static constexpr let LOD_LEVEL = 2.0;
 
 struct HitPayload
 {
@@ -147,7 +145,7 @@ void raygen_main()
 	let curr_shadow = trace_ray(pixcoord, texcoord, depth);
 	let result = temporal_denoise(pixcoord, curr_shadow);
 
-	shadow_tex.Store(pixcoord, result * float2(1.0, 4.0));
+	shadow_tex.Store(pixcoord, result * float2(1.0, VARIANCE_STORAGE_RATIO));
 }
 
 [[shader("anyhit")]]
