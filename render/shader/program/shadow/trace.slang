@@ -15,7 +15,7 @@ layout(set = 2, binding = 0) RaytracingAccelerationStructure tlas;
 layout(set = 2, binding = 1) ConstantBuffer<DirectLight> direct_light;
 layout(set = 2, binding = 2) ConstantBuffer<Camera> camera;
 layout(set = 2, binding = 3) Sampler2D<float> depth_tex;
-layout(set = 2, binding = 4) Sampler2D<float4> noise_tex;
+layout(set = 2, binding = 4) Sampler3D<float2> noise_tex;
 layout(set = 2, binding = 5) Sampler2D<float2> motion_vector_tex;
 layout(set = 2, binding = 6) RWTexture2D<float2> shadow_tex;
 layout(set = 2, binding = 7) Sampler2D<float2> prev_shadow_tex;
@@ -31,13 +31,13 @@ struct HitPayload
 struct PushConstant
 {
 	uint32_t2 full_size;
-	int32_t2 noise_offset;
+	uint32_t noise_frame;
 };
 
 [[vk::push_constant]]
 PushConstant constant;
 
-func get_light_direction(noise: float4)->float3
+func get_light_direction(noise: float2)->float3
 {
 	let tbn = find_tbn_matrix(direct_light.direction, float3(1.0, 0.0, 0.0), float3(0.0, 0.0, 1.0));
 
@@ -50,7 +50,7 @@ func get_light_direction(noise: float4)->float3
 
 func trace_ray(pixcoord: uint2, texcoord: float2, depth: float)->float
 {
-	let noise = noise_tex.Load(int3((pixcoord + constant.noise_offset) % NOISE_TEX_SIZE, 0));
+	let noise = noise_tex.Load(int4(pixcoord % NOISE_TEX_SIZE, constant.noise_frame, 0));
 
 	let biased_depth = bit_cast<float>(bit_cast<uint>(depth) + DEPTH_BIAS_ULP);
 	let ndc = float4(texcoord_to_ndc(texcoord), biased_depth, 1.0);

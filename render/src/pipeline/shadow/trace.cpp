@@ -508,7 +508,7 @@ namespace render::shadow
 			0,
 			PushConstant{
 				.full_size = resource->full_extent,
-				.noise_offset = resource->noise_offset,
+				.noise_frame = resource->noise_frame,
 			}
 		);
 
@@ -541,7 +541,7 @@ namespace render::shadow
 		vulkan::ElementBufferRef<Camera> camera,
 		vulkan::ElementBufferRef<DirectLight> direct_light,
 		vk::ImageView noise_tex,
-		glm::i32vec2 noise_offset
+		uint32_t noise_frame
 	) noexcept
 	{
 		DEBUG_ASSERT(gbuffer->half_extent == attachment->half_extent);
@@ -610,7 +610,7 @@ namespace render::shadow
 		resource = Resource{
 			.full_extent = attachment.full_extent,
 			.half_extent = attachment.half_extent,
-			.noise_offset = noise_offset,
+			.noise_frame = noise_frame,
 			.shadow_tex = attachment.init_sample,
 			.material_set = material.get_descriptor_set(),
 			.raytrace_res_set = raytrace_res->mesh_resource

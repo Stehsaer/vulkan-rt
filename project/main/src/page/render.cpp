@@ -1,5 +1,4 @@
 #include "page/render.hpp"
-#include "common/number-literals.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
 #include "config.hpp"
@@ -30,7 +29,6 @@
 #include <imgui_impl_sdl3.h>
 #include <memory>
 #include <optional>
-#include <random>
 #include <ranges>
 #include <span>
 #include <utility>
@@ -336,9 +334,6 @@ namespace page
 			!buffer_update_result)
 			return buffer_update_result.error().forward("Update render buffer failed");
 
-		std::uniform_int_distribution<int32_t> dist(0_i32, 127_i32);
-		const auto noise_offset = glm::i32vec2(dist(random_source), dist(random_source));
-
 		frame.curr_resource.resource_set.update(
 			context->device.get(),
 			model,
@@ -347,8 +342,10 @@ namespace page
 			frame.curr_resource.render_resource,
 			frame.prev_resource.render_resource,
 			aux_resource,
-			noise_offset
+			frames % 64
 		);
+
+		frames++;
 
 		return Frame{
 			.command_buffer = frame.curr_resource.command_buffer,

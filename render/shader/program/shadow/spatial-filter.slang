@@ -28,7 +28,7 @@ Param param;
 static constexpr let RADIUS = 2;
 
 // Gaussian positional weight
-static constexpr let GAUS_WEIGHT : float[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 16.0 };
+static constexpr let GAUS_WEIGHT : float[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 10.0 };
 
 // Sigmas, taken from SVGF paper (Section 4.4)
 static constexpr let SIGMA_Z = 1.0;

@@ -21,13 +21,13 @@
 #include "vulkan/container/host/cycle.hpp"
 #include "vulkan/context/swapchain.hpp"
 
+#include <cstddef>
 #include <expected>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <memory>
 #include <optional>
-#include <random>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -131,7 +131,7 @@ namespace page
 		render::RaytraceResourceLayout raytrace_res_layout;
 		render::RaytraceResource raytrace_resource;
 		resource::AuxResource aux_resource;
-		std::mt19937 random_source;
+		size_t frames = 0;
 
 		resource::Pipeline pipeline;
 		vulkan::Cycle<FrameResource> frame_resources;
@@ -202,7 +202,6 @@ namespace page
 			raytrace_res_layout(std::move(raytrace_res_layout)),
 			raytrace_resource(std::move(raytrace_resource)),
 			aux_resource(std::move(aux_resource)),
-			random_source(std::random_device()()),
 			pipeline(std::move(pipeline)),
 			frame_resources(std::move(frame_resources)),
 			render_complete_semaphores(std::move(render_complete_semaphores))

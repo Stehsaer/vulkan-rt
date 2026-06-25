@@ -51,7 +51,7 @@ float4 main(float2 texcoord, float4 fragcoord: SV_Position)
 	let ambient_color = albedo.rgb * AMBIENT * (1.0 - lerp(0.04, albedo.rgb, roughness_metallic.g));
 	let color = pbr::gltf(light, material, view_dir);
 
-	let cut_shadow = select(shadow < 0.001, 0.0, shadow);
+	let cut_shadow = select(shadow < 0.0005, 0.0, shadow);
 
 	return float4(color * cut_shadow + ambient_color, 1.0);
 }

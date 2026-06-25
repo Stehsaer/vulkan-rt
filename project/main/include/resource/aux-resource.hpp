@@ -3,6 +3,7 @@
 #include "common/util/error.hpp"
 #include "vulkan/alloc/image.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/stbn.hpp"
 
 #include <expected>
 #include <vulkan/vulkan_raii.hpp>
@@ -18,8 +19,7 @@ namespace resource
 		vulkan::Image exposure_mask;             // Exposure mask
 		vk::raii::ImageView exposure_mask_view;  // Image view of exposure mask
 
-		vulkan::Image noise;
-		vk::raii::ImageView noise_view;
+		vulkan::STBN stbn_noise;
 
 		///
 		/// @brief Create auxiliary resource

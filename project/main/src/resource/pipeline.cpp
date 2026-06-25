@@ -186,7 +186,7 @@ namespace resource
 		const resource::RenderResource& curr_resource,
 		const resource::RenderResource& prev_resource,
 		const resource::AuxResource& aux_resource,
-		glm::i32vec2 noise_offset
+		uint32_t noise_frame
 	) noexcept
 	{
 		DEBUG_ASSERT(curr_resource.attachments.has_value());
@@ -232,8 +232,8 @@ namespace resource
 			prev_resource.attachments->shadow,
 			curr_resource.param->camera,
 			curr_resource.param->primary_light,
-			aux_resource.noise_view,
-			noise_offset
+			aux_resource.stbn_noise.view,
+			noise_frame
 		);
 
 		shadow_denoise.update(

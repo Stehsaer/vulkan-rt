@@ -21,3 +21,4 @@ target("lib.image")
 	add_packages("stb_dxt", "bc7enc", "libwebp")
 
 	add_files("asset/blue-noise.png", {rules = "utils.bin2obj"})
+	add_files("asset/stbn.bin", {rules = "utils.bin2obj"})
