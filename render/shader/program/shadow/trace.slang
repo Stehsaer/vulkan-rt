@@ -41,7 +41,7 @@ func get_light_direction(noise: float4)->float3
 {
 	let tbn = find_tbn_matrix(direct_light.direction, float3(1.0, 0.0, 0.0), float3(0.0, 0.0, 1.0));
 
-	let r = sin(noise.x) * direct_light.sin_half_angle;
+	let r = sqrt(noise.x) * direct_light.sin_half_angle;
 	let phi = noise.y * float.getPi() * 2;
 	let dir = float2(sin(phi), cos(phi));
 
