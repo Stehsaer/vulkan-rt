@@ -16,6 +16,11 @@ static const float BRIGHT_CLAMP_THRES = 0.98;
 static const float DARK_WEIGHT = 0.3;
 static const float BRIGHT_WEIGHT = 1.0;
 
+func sanitize(value: float)->float
+{
+	return select(isnan(value) || isinf(value), 0.0, value);
+}
+
 [[shader("compute"), numthreads(32, 1, 1), WaveSize(32)]]
 func main(sv: compute::ShaderVar)
 {
@@ -72,13 +77,13 @@ func main(sv: compute::ShaderVar)
 	[[branch]]
 	if (WaveIsFirstLane())
 	{
-		let curr_mid_luminance = global_value_sum / global_weight_sum;
-		let last_mid_luminance = last_frame.mid_luminance;
+		let curr_mid_luminance = sanitize(global_value_sum / global_weight_sum);
+		let last_mid_luminance = sanitize(last_frame.mid_luminance);
 		let mix_ratio = exp(-exposure_param.adaptation_rate * exposure_param.delta_time);
 		let lerp_mid_luminance = lerp(curr_mid_luminance, last_mid_luminance, mix_ratio);
 
 		current_frame.mid_luminance = lerp_mid_luminance;
-		exposure_result.luminance_mult = 0.18 / lerp_mid_luminance * exposure_param.exposure_mult;
+		exposure_result.luminance_mult = sanitize(0.18 / lerp_mid_luminance) * exposure_param.exposure_mult;
 	}
 }
 
