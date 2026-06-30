@@ -335,9 +335,8 @@ namespace page
 		const auto hdr_attachment_info = vk::RenderingAttachmentInfo{
 			.imageView = frame.render_resource.attachments->hdr->attachment.view,
 			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-			.loadOp = vk::AttachmentLoadOp::eClear,
+			.loadOp = vk::AttachmentLoadOp::eLoad,
 			.storeOp = vk::AttachmentStoreOp::eStore,
-			.clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f)
 		};
 
 		const auto rendering_info =
