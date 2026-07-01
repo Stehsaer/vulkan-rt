@@ -75,10 +75,7 @@ func main(sv: compute::ShaderVar)
 
 	let ref_var =
 		(dot(input_tex.GatherGreen(pixcoord_center, int2(-1, -1), int2(-1, 1), int2(1, -1), int2(1, 1)), 1.0)
-			 * GAUS_WEIGHT[1]
-			 * GAUS_WEIGHT[1]
 		 + dot(input_tex.GatherGreen(pixcoord_center, int2(-1, 0), int2(1, 0), int2(0, -1), int2(0, 1)), 1.0)
-			 * GAUS_WEIGHT[1]
 		 + ref_input.g)
 		/ VARIANCE_STORAGE_RATIO
 		/ 9.0;
