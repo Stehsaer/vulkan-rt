@@ -31,7 +31,7 @@ struct HitPayload
 struct PushConstant
 {
 	uint32_t2 full_size;
-	uint32_t noise_frame;
+	uint32_t frame_index;
 };
 
 [[vk::push_constant]]
@@ -50,7 +50,8 @@ func get_light_direction(noise: float2)->float3
 
 func trace_ray(pixcoord: uint2, texcoord: float2, depth: float)->float
 {
-	let noise = noise_tex.Load(int4(pixcoord % NOISE_TEX_SIZE, constant.noise_frame, 0));
+	let offset = constant.frame_index / 64 * uint2(7, 9) % NOISE_TEX_SIZE;
+	let noise = noise_tex.Load(int4((pixcoord + offset) % NOISE_TEX_SIZE, constant.frame_index % 64, 0));
 
 	let biased_depth = bit_cast<float>(bit_cast<uint>(depth) + DEPTH_BIAS_ULP);
 	let ndc = float4(texcoord_to_ndc(texcoord), biased_depth, 1.0);

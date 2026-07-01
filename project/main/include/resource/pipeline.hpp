@@ -106,7 +106,7 @@ namespace resource
 			const resource::RenderResource& curr_resource,
 			const resource::RenderResource& prev_resource,
 			const resource::AuxResource& aux_resource,
-			uint32_t noise_frame
+			uint32_t frame_index
 		) noexcept;
 	};
 }

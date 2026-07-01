@@ -80,7 +80,7 @@ namespace render::shadow
 		struct PushConstant
 		{
 			glm::u32vec2 full_size;
-			uint32_t noise_frame;
+			uint32_t frame_index;
 		};
 
 		vk::raii::DescriptorSetLayout input_layout;
@@ -164,7 +164,7 @@ namespace render::shadow
 			vulkan::ElementBufferRef<Camera> camera,
 			vulkan::ElementBufferRef<DirectLight> direct_light,
 			vk::ImageView noise_tex,
-			uint32_t noise_frame
+			uint32_t frame_index
 		) noexcept;
 
 	  private:
@@ -177,7 +177,7 @@ namespace render::shadow
 		{
 			glm::u32vec2 full_extent;
 			glm::u32vec2 half_extent;
-			uint32_t noise_frame;
+			uint32_t frame_index;
 
 			vulkan::AttachmentView shadow_tex;
 

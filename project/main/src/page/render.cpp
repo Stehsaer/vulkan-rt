@@ -342,7 +342,7 @@ namespace page
 			frame.curr_resource.render_resource,
 			frame.prev_resource.render_resource,
 			aux_resource,
-			frames % 64
+			frames
 		);
 
 		frames++;
