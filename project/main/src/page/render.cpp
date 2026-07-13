@@ -365,7 +365,12 @@ namespace page
 		pipeline.downsample.downsample(frame.command_buffer, frame.resource_set.downsample);
 		pipeline.motion_vector.compute(frame.command_buffer, frame.resource_set.motion_vector);
 		pipeline.shadow_trace.trace(frame.command_buffer, frame.resource_set.shadow_trace);
-		pipeline.shadow_denoise.denoise(frame.command_buffer, frame.resource_set.shadow_denoise);
+		pipeline.shadow_spatial_variance
+			.generate(frame.command_buffer, frame.resource_set.shadow_spatial_variance);
+		pipeline.shadow_temporal_denoise
+			.denoise(frame.command_buffer, frame.resource_set.shadow_temporal_denoise);
+		pipeline.shadow_spatial_denoise
+			.denoise(frame.command_buffer, frame.resource_set.shadow_spatial_denoise);
 	}
 
 	void RenderPage::render_lighting(const Frame& frame) const noexcept

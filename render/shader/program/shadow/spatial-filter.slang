@@ -1,3 +1,5 @@
+/*===== IMPORT =====*/
+
 import algorithm.coord;
 import algorithm.id_swizzle;
 import algorithm.octahedral;
@@ -5,11 +7,15 @@ import interop.camera;
 import internal.shadow;
 import sv.compute;
 
+/*===== STRUCT =====*/
+
 struct Param
 {
 	uint32_t2 half_extent;
 	uint32_t stride;
 };
+
+/*===== I/O =====*/
 
 // IMPORTANT: All samplers use:
 // - Unnormalized coordinates
@@ -25,9 +31,9 @@ ConstantBuffer<Camera> camera;
 [[vk::push_constant]]
 Param param;
 
-static constexpr let RADIUS = 2;
+/*===== CONSTANT =====*/
 
-// Gaussian positional weight
+static constexpr let RADIUS = 2;
 static constexpr let GAUS_WEIGHT : float[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 10.0 };
 
 // Sigmas, taken from SVGF paper (Section 4.4)
@@ -35,6 +41,9 @@ static constexpr let SIGMA_Z = 1.0;
 static constexpr let SIGMA_N = 128.0;
 static constexpr let SIGMA_L = 4.0;
 static constexpr let EPS = 1e-3;
+
+/*===== PROGRAM =====*/
+// SVGF-based spatial filtering pass
 
 [[shader("compute"), numthreads(16, 16, 1)]]
 func main(sv: compute::ShaderVar)

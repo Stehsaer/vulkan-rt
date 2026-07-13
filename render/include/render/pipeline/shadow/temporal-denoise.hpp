@@ -2,14 +2,11 @@
 
 #include "common/number-literals.hpp"
 #include "common/util/error.hpp"
-#include "render/interface/camera.hpp"
-#include "render/resource/deferred.hpp"
+#include "render/resource/motion-vector.hpp"
 #include "render/resource/shadow.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 
-#include <array>
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
@@ -23,32 +20,45 @@
 namespace render::shadow
 {
 	///
-	/// @brief Shadow denoising pipeline
+	/// @brief Temporal accumulation/denoise pipeline
 	///
+	/// @details
+	/// Reprojects history frame and accumulates. History frame is clamped using spatial mean and variance
+	/// from @ref SpatialVariancePipeline.
 	///
-	class DenoisePipeline
+	/// #### Input
+	///
+	/// - Initial sampled visibility
+	/// - History frame
+	/// - Spatial mean
+	/// - Spatial stddev
+	/// - Motion vector
+	///
+	/// #### Output
+	///
+	/// - New history frame (for use in next frame)
+	/// - Denoise texture (Alice)
+	///
+	class TemporalDenoisePipeline
 	{
 	  public:
-
-		static constexpr auto FILTER_PASSES = 3zu;
-		static_assert(FILTER_PASSES % 2 == 1);  // Odd number of passes are required
 
 		class ResourceSet;
 
 		///
-		/// @brief Create the denoising pipeline
+		/// @brief Create temporal denoising pipeline
 		///
 		/// @param context Vulkan context
 		/// @return Created pipeline or error
 		///
 		[[nodiscard]]
-		static std::expected<DenoisePipeline, Error> create(const vulkan::Context& context) noexcept;
+		static std::expected<TemporalDenoisePipeline, Error> create(const vulkan::Context& context) noexcept;
 
 		///
 		/// @brief Create a given number of resource sets
 		///
 		/// @param context Vulkan context
-		/// @param count Number of resource set to create
+		/// @param count Number of resource sets to create
 		/// @return Created resource sets or error
 		///
 		[[nodiscard]]
@@ -58,7 +68,7 @@ namespace render::shadow
 		) const noexcept;
 
 		///
-		/// @brief Run the denoise passes
+		/// @brief Run denoise pass
 		///
 		/// @param command_buffer Command buffer
 		/// @param resource_set Resource set to use
@@ -72,25 +82,19 @@ namespace render::shadow
 
 		static constexpr auto BLOCK_SIZE = 16_u32;
 
-		struct PushConstant
-		{
-			glm::u32vec2 half_size;
-			uint32_t stride;
-		};
-
-		vk::raii::DescriptorSetLayout input_layout;
+		vk::raii::DescriptorSetLayout set_layout;
 		vk::raii::PipelineLayout pipeline_layout;
 		vk::raii::Pipeline pipeline;
 
 		vk::raii::Sampler sampler;
 
-		explicit DenoisePipeline(
-			vk::raii::DescriptorSetLayout input_layout,
+		explicit TemporalDenoisePipeline(
+			vk::raii::DescriptorSetLayout set_layout,
 			vk::raii::PipelineLayout pipeline_layout,
 			vk::raii::Pipeline pipeline,
 			vk::raii::Sampler sampler
 		) :
-			input_layout(std::move(input_layout)),
+			set_layout(std::move(set_layout)),
 			pipeline_layout(std::move(pipeline_layout)),
 			pipeline(std::move(pipeline)),
 			sampler(std::move(sampler))
@@ -98,16 +102,13 @@ namespace render::shadow
 
 	  public:
 
-		DenoisePipeline(const DenoisePipeline&) = delete;
-		DenoisePipeline(DenoisePipeline&&) = default;
-		DenoisePipeline& operator=(const DenoisePipeline&) = delete;
-		DenoisePipeline& operator=(DenoisePipeline&&) = default;
+		TemporalDenoisePipeline(const TemporalDenoisePipeline&) = delete;
+		TemporalDenoisePipeline(TemporalDenoisePipeline&&) = default;
+		TemporalDenoisePipeline& operator=(const TemporalDenoisePipeline&) = delete;
+		TemporalDenoisePipeline& operator=(TemporalDenoisePipeline&&) = default;
 	};
 
-	///
-	/// @brief Resource set for denoise pipeline
-	///
-	class DenoisePipeline::ResourceSet
+	class TemporalDenoisePipeline::ResourceSet
 	{
 	  public:
 
@@ -115,46 +116,45 @@ namespace render::shadow
 		/// @brief Update resource set
 		///
 		/// @param context Vulkan context
-		/// @param camera Camera
-		/// @param half_gbuffer Half-res gbuffer attachments
-		/// @param shadow Shadow attachments
+		/// @param shadow Shadow attachment
+		/// @param prev_shadow Previous-frame shadow attachment
+		/// @param motion_vector Motion-vector attachment
 		///
 		void update(
 			const vulkan::Context& context,
-			vulkan::ElementBufferRef<Camera> camera,
-			HalfDeferredAttachment::View half_gbuffer,
-			ShadowAttachment::View shadow
+			ShadowAttachment::View shadow,
+			ShadowAttachment::View prev_shadow,
+			MotionVectorAttachment::View motion_vector
 		) noexcept;
 
 	  private:
 
 		std::shared_ptr<vk::raii::DescriptorPool> pool;
-		std::array<std::unique_ptr<vk::raii::DescriptorSet>, FILTER_PASSES> sets;
+		vk::raii::DescriptorSet set;
 		vk::Sampler sampler;
 
 		struct Resource
 		{
 			glm::u32vec2 half_extent;
-			vulkan::AttachmentView init_sample;
-			vulkan::AttachmentView denoise_imm;
-			vulkan::AttachmentView denoise_final;
+			vulkan::AttachmentView curr_history;
+			vulkan::AttachmentView denoise_alice;
 		};
 
 		std::optional<Resource> resource = std::nullopt;
 
 		auto operator->() const noexcept { return resource.operator->(); }
 
-		friend DenoisePipeline;
-
-		explicit ResourceSet(
+		ResourceSet(
 			std::shared_ptr<vk::raii::DescriptorPool> pool,
-			std::array<std::unique_ptr<vk::raii::DescriptorSet>, FILTER_PASSES> sets,
+			vk::raii::DescriptorSet set,
 			vk::Sampler sampler
 		) :
 			pool(std::move(pool)),
-			sets(std::move(sets)),
+			set(std::move(set)),
 			sampler(sampler)
 		{}
+
+		friend class TemporalDenoisePipeline;
 
 	  public:
 

@@ -1,4 +1,4 @@
-#include "render/pipeline/shadow/denoise.hpp"
+#include "render/pipeline/shadow/spatial-denoise.hpp"
 #include "common/number-literals.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
@@ -27,24 +27,31 @@
 
 namespace render::shadow
 {
-	using Layout = vulkan::MonoDescriptorSetLayout<
-		vulkan::MonoDescriptorSetSlot<
-			vk::DescriptorType::eCombinedImageSampler,
-			vk::ShaderStageFlagBits::eCompute
-		>,
-		vulkan::MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
-		vulkan::MonoDescriptorSetSlot<
-			vk::DescriptorType::eCombinedImageSampler,
-			vk::ShaderStageFlagBits::eCompute
-		>,
-		vulkan::MonoDescriptorSetSlot<
-			vk::DescriptorType::eCombinedImageSampler,
-			vk::ShaderStageFlagBits::eCompute
-		>,
-		vulkan::MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eCompute>
-	>;
+	namespace
+	{
+		using Layout = vulkan::MonoDescriptorSetLayout<
+			vulkan::MonoDescriptorSetSlot<
+				vk::DescriptorType::eCombinedImageSampler,
+				vk::ShaderStageFlagBits::eCompute
+			>,
+			vulkan::
+				MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
+			vulkan::MonoDescriptorSetSlot<
+				vk::DescriptorType::eCombinedImageSampler,
+				vk::ShaderStageFlagBits::eCompute
+			>,
+			vulkan::MonoDescriptorSetSlot<
+				vk::DescriptorType::eCombinedImageSampler,
+				vk::ShaderStageFlagBits::eCompute
+			>,
+			vulkan::
+				MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eCompute>
+		>;
+	}
 
-	std::expected<DenoisePipeline, Error> DenoisePipeline::create(const vulkan::Context& context) noexcept
+	std::expected<SpatialDenoisePipeline, Error> SpatialDenoisePipeline::create(
+		const vulkan::Context& context
+	) noexcept
 	{
 		/*===== Descriptor Set Layout =====*/
 
@@ -113,7 +120,7 @@ namespace render::shadow
 		if (!sampler_result) return Error::from(sampler_result);
 		auto sampler = std::move(*sampler_result);
 
-		return DenoisePipeline(
+		return SpatialDenoisePipeline(
 			std::move(input_layout),
 			std::move(pipeline_layout),
 			std::move(pipeline),
@@ -121,10 +128,8 @@ namespace render::shadow
 		);
 	}
 
-	std::expected<std::vector<DenoisePipeline::ResourceSet>, Error> DenoisePipeline::create_resource_sets(
-		const vulkan::Context& context,
-		uint32_t count
-	) const noexcept
+	std::expected<std::vector<SpatialDenoisePipeline::ResourceSet>, Error> SpatialDenoisePipeline::
+		create_resource_sets(const vulkan::Context& context, uint32_t count) const noexcept
 	{
 		static constexpr auto BINDINGS = Layout::get_bindings();
 		const auto pool_sizes = vulkan::calc_pool_sizes(BINDINGS, count * FILTER_PASSES);
@@ -168,7 +173,7 @@ namespace render::shadow
 			| std::ranges::to<std::vector>();
 	}
 
-	void DenoisePipeline::denoise(
+	void SpatialDenoisePipeline::denoise(
 		const vk::raii::CommandBuffer& command_buffer,
 		const ResourceSet& resource_set
 	) const noexcept
@@ -179,7 +184,7 @@ namespace render::shadow
 
 		for (const auto [iter, set] : std::views::enumerate(resource_set.sets))
 		{
-			const auto output_image = iter % 2 == 0 ? resource_set->denoise_final : resource_set->denoise_imm;
+			const auto output_image = iter % 2 == 0 ? resource_set->denoise_bob : resource_set->denoise_alice;
 
 			const auto output_image_pre_barrier = vk::ImageMemoryBarrier2{
 				.srcStageMask = {},
@@ -234,7 +239,7 @@ namespace render::shadow
 		}
 	}
 
-	void DenoisePipeline::ResourceSet::update(
+	void SpatialDenoisePipeline::ResourceSet::update(
 		const vulkan::Context& context,
 		vulkan::ElementBufferRef<Camera> camera,
 		HalfDeferredAttachment::View half_gbuffer,
@@ -244,33 +249,27 @@ namespace render::shadow
 		DEBUG_ASSERT(half_gbuffer.half_extent == shadow.half_extent);
 		DEBUG_ASSERT(half_gbuffer.full_extent == shadow.full_extent);
 
-		const auto init_sample_info_sampled = vk::DescriptorImageInfo{
+		const auto denoise_alice_info_sampled = vk::DescriptorImageInfo{
 			.sampler = sampler,
-			.imageView = shadow.init_sample.view,
+			.imageView = shadow.denoise_alice.view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		};
 
-		const auto denoise_imm_info_sampled = vk::DescriptorImageInfo{
+		const auto denoise_bob_info_sampled = vk::DescriptorImageInfo{
 			.sampler = sampler,
-			.imageView = shadow.denoise_imm.view,
+			.imageView = shadow.denoise_bob.view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		};
 
-		const auto denoise_final_info_sampled = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = shadow.denoise_final.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		};
-
-		const auto denoise_imm_info_storage = vk::DescriptorImageInfo{
+		const auto denoise_alice_info_storage = vk::DescriptorImageInfo{
 			.sampler = nullptr,
-			.imageView = shadow.denoise_imm.view,
+			.imageView = shadow.denoise_alice.view,
 			.imageLayout = vk::ImageLayout::eGeneral,
 		};
 
-		const auto denoise_final_info_storage = vk::DescriptorImageInfo{
+		const auto denoise_bob_info_storage = vk::DescriptorImageInfo{
 			.sampler = nullptr,
-			.imageView = shadow.denoise_final.view,
+			.imageView = shadow.denoise_bob.view,
 			.imageLayout = vk::ImageLayout::eGeneral,
 		};
 
@@ -294,12 +293,8 @@ namespace render::shadow
 
 		for (const auto [iter, set] : sets | std::views::as_const | std::views::enumerate)
 		{
-			const auto input_info = [&] {
-				if (iter == 0) return init_sample_info_sampled;
-				return iter % 2 == 0 ? denoise_imm_info_sampled : denoise_final_info_sampled;
-			}();
-
-			const auto output_info = iter % 2 == 0 ? denoise_final_info_storage : denoise_imm_info_storage;
+			const auto input_info = iter % 2 == 0 ? denoise_alice_info_sampled : denoise_bob_info_sampled;
+			const auto output_info = iter % 2 == 0 ? denoise_bob_info_storage : denoise_alice_info_storage;
 
 			const auto write_sets = Layout::get_write_infos(
 				*set,
@@ -315,9 +310,8 @@ namespace render::shadow
 
 		resource = Resource{
 			.half_extent = shadow.half_extent,
-			.init_sample = shadow.init_sample,
-			.denoise_imm = shadow.denoise_imm,
-			.denoise_final = shadow.denoise_final,
+			.denoise_alice = shadow.denoise_alice,
+			.denoise_bob = shadow.denoise_bob,
 		};
 	}
 }

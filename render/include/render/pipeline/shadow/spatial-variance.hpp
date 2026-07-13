@@ -1,0 +1,184 @@
+#pragma once
+
+#include "common/number-literals.hpp"
+#include "common/util/error.hpp"
+#include "render/interface/camera.hpp"
+#include "render/resource/deferred.hpp"
+#include "render/resource/shadow.hpp"
+#include "vulkan/alloc/buffer-ref.hpp"
+#include "vulkan/interface/attachment.hpp"
+#include "vulkan/interface/context.hpp"
+
+#include <cstdint>
+#include <expected>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
+
+namespace render::shadow
+{
+	///
+	/// @brief Spatial variance compute pipeline
+	///
+	/// @details
+	/// Computes spatial mean and stddev (guided by half-res GBuffer) on current frame. Stddev is further
+	/// filtered to stay conservative.
+	///
+	/// #### Input
+	/// - Half-resolution gbuffer
+	/// - Initial sampled visibility
+	///
+	/// #### Output
+	/// - Spatial mean
+	/// - Spatial stddev
+	///
+	class SpatialVariancePipeline
+	{
+	  public:
+
+		class ResourceSet;
+
+		///
+		/// @brief Create the pipeline instance
+		///
+		/// @param context Vulkan context
+		/// @return Created pipeline or error
+		///
+		[[nodiscard]]
+		static std::expected<SpatialVariancePipeline, Error> create(const vulkan::Context& context) noexcept;
+
+		///
+		/// @brief Create a given number of resource sets
+		///
+		/// @param context Vulkan context
+		/// @param count Number of resource set to create
+		/// @return Created resource sets or error
+		///
+		[[nodiscard]]
+		std::expected<std::vector<ResourceSet>, Error> create_resource_sets(
+			const vulkan::Context& context,
+			uint32_t count
+		) const noexcept;
+
+		///
+		/// @brief Generate spatial variance
+		///
+		/// @param command_buffer Command buffer
+		/// @param resource_set Resource set to use
+		///
+		void generate(
+			const vk::raii::CommandBuffer& command_buffer,
+			const ResourceSet& resource_set
+		) const noexcept;
+
+	  private:
+
+		static constexpr auto BLOCK_SIZE = 16_u32;
+
+		vk::raii::DescriptorSetLayout compute_set_layout;
+		vk::raii::PipelineLayout compute_pipeline_layout;
+		vk::raii::Pipeline compute_pipeline;
+
+		vk::raii::DescriptorSetLayout filter_set_layout;
+		vk::raii::PipelineLayout filter_pipeline_layout;
+		vk::raii::Pipeline filter_pipeline;
+
+		vk::raii::Sampler sampler;
+
+		explicit SpatialVariancePipeline(
+			vk::raii::DescriptorSetLayout compute_set_layout,
+			vk::raii::PipelineLayout compute_pipeline_layout,
+			vk::raii::Pipeline compute_pipeline,
+			vk::raii::DescriptorSetLayout filter_set_layout,
+			vk::raii::PipelineLayout filter_pipeline_layout,
+			vk::raii::Pipeline filter_pipeline,
+			vk::raii::Sampler sampler
+		) :
+			compute_set_layout(std::move(compute_set_layout)),
+			compute_pipeline_layout(std::move(compute_pipeline_layout)),
+			compute_pipeline(std::move(compute_pipeline)),
+			filter_set_layout(std::move(filter_set_layout)),
+			filter_pipeline_layout(std::move(filter_pipeline_layout)),
+			filter_pipeline(std::move(filter_pipeline)),
+			sampler(std::move(sampler))
+		{}
+
+		// Compute subpass
+		void compute(
+			const vk::raii::CommandBuffer& command_buffer,
+			const ResourceSet& resource_set
+		) const noexcept;
+
+		// Filter subpass
+		void filter(
+			const vk::raii::CommandBuffer& command_buffer,
+			const ResourceSet& resource_set
+		) const noexcept;
+
+	  public:
+
+		SpatialVariancePipeline(const SpatialVariancePipeline&) = delete;
+		SpatialVariancePipeline(SpatialVariancePipeline&&) = default;
+		SpatialVariancePipeline& operator=(const SpatialVariancePipeline&) = delete;
+		SpatialVariancePipeline& operator=(SpatialVariancePipeline&&) = default;
+	};
+
+	///
+	/// @brief Resource set for spatial variance pipeline
+	///
+	class SpatialVariancePipeline::ResourceSet
+	{
+	  public:
+
+		void update(
+			const vulkan::Context& context,
+			HalfDeferredAttachment::View half_deferred,
+			ShadowAttachment::View shadow,
+			vulkan::ElementBufferRef<Camera> camera
+		) noexcept;
+
+	  private:
+
+		std::shared_ptr<vk::raii::DescriptorPool> pool;
+		vk::raii::DescriptorSet compute_set;
+		vk::raii::DescriptorSet filter_set;
+		vk::Sampler sampler;
+
+		struct Resource
+		{
+			glm::u32vec2 half_extent;
+			vulkan::AttachmentView spatial_mean;
+			vulkan::AttachmentView spatial_stddev;
+			vulkan::AttachmentView filtered_spatial_stddev;
+		};
+
+		std::optional<Resource> resource = std::nullopt;
+
+		auto operator->() const noexcept { return resource.operator->(); }
+
+		ResourceSet(
+			std::shared_ptr<vk::raii::DescriptorPool> pool,
+			vk::raii::DescriptorSet compute_set,
+			vk::raii::DescriptorSet filter_set,
+			vk::Sampler sampler
+		) :
+			pool(std::move(pool)),
+			compute_set(std::move(compute_set)),
+			filter_set(std::move(filter_set)),
+			sampler(sampler)
+		{}
+
+		friend SpatialVariancePipeline;
+
+	  public:
+
+		ResourceSet(const ResourceSet&) = delete;
+		ResourceSet(ResourceSet&&) = default;
+		ResourceSet& operator=(const ResourceSet&) = delete;
+		ResourceSet& operator=(ResourceSet&&) = default;
+	};
+}

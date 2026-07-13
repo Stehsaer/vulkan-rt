@@ -6,7 +6,6 @@
 #include "render/model/material.hpp"
 #include "render/model/tlas.hpp"
 #include "render/resource/deferred.hpp"
-#include "render/resource/motion-vector.hpp"
 #include "render/resource/raytrace.hpp"
 #include "render/resource/shadow.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
@@ -29,9 +28,15 @@ namespace render::shadow
 {
 	///
 	/// @brief Shadow raytracing pipeline
+	///
 	/// @details
-	/// - Use raytracing to get shadow visibility at half resolution
-	/// - Perform temporal accumulation
+	/// Uses HW raytracing to shoot rays at the primary light and get bianry visibility.
+	///
+	/// #### Input
+	/// - Half-resolution gbuffer
+	///
+	/// #### Output
+	/// - Initial sample
 	///
 	class RaytracePipeline
 	{
@@ -149,7 +154,7 @@ namespace render::shadow
 		/// @param attachment Shadow attachment
 		/// @param camera Camera parameter buffer
 		/// @param direct_light Direct-light parameter buffer
-		/// @param noise_tex Noise texture image view
+		/// @param noise_tex Noise texture image view, must have size of `128x128x64`
 		/// @param noise_offset Offset for noise texture, which is supposed to be random across frames
 		///
 		void update(
@@ -158,9 +163,7 @@ namespace render::shadow
 			const Tlas& tlas,
 			const RaytraceResource& raytrace_res,
 			HalfDeferredAttachment::View gbuffer,
-			MotionVectorAttachment::View motion_vector,
 			ShadowAttachment::View attachment,
-			ShadowAttachment::View prev_attachment,
 			vulkan::ElementBufferRef<Camera> camera,
 			vulkan::ElementBufferRef<DirectLight> direct_light,
 			vk::ImageView noise_tex,

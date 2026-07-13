@@ -10,7 +10,6 @@
 #include "render/model/material.hpp"
 #include "render/model/tlas.hpp"
 #include "render/resource/deferred.hpp"
-#include "render/resource/motion-vector.hpp"
 #include "render/resource/raytrace.hpp"
 #include "render/resource/shadow.hpp"
 #include "shader/shadow/trace.hpp"
@@ -40,22 +39,29 @@
 
 namespace render::shadow
 {
-	using vulkan::MonoDescriptorSetLayout;
-	using vulkan::MonoDescriptorSetSlot;
+	namespace
+	{
+		using vulkan::MonoDescriptorSetLayout;
+		using vulkan::MonoDescriptorSetSlot;
 
-	using InputLayout = MonoDescriptorSetLayout<
-		MonoDescriptorSetSlot<
-			vk::DescriptorType::eAccelerationStructureKHR,
-			vk::ShaderStageFlagBits::eRaygenKHR
-		>,
-		MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eRaygenKHR>,
-		MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eRaygenKHR>,
-		MonoDescriptorSetSlot<vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eRaygenKHR>,
-		MonoDescriptorSetSlot<vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eRaygenKHR>,
-		MonoDescriptorSetSlot<vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eRaygenKHR>,
-		MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eRaygenKHR>,
-		MonoDescriptorSetSlot<vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eRaygenKHR>
-	>;
+		using InputLayout = MonoDescriptorSetLayout<
+			MonoDescriptorSetSlot<
+				vk::DescriptorType::eAccelerationStructureKHR,
+				vk::ShaderStageFlagBits::eRaygenKHR
+			>,
+			MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eRaygenKHR>,
+			MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eRaygenKHR>,
+			MonoDescriptorSetSlot<
+				vk::DescriptorType::eCombinedImageSampler,
+				vk::ShaderStageFlagBits::eRaygenKHR
+			>,
+			MonoDescriptorSetSlot<
+				vk::DescriptorType::eCombinedImageSampler,
+				vk::ShaderStageFlagBits::eRaygenKHR
+			>,
+			MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eRaygenKHR>
+		>;
+	}
 
 	std::expected<vk::raii::PipelineLayout, Error> RaytracePipeline::create_pipeline_layout(
 		const vulkan::Context& context,
@@ -535,9 +541,7 @@ namespace render::shadow
 		const Tlas& tlas,
 		const RaytraceResource& raytrace_res,
 		HalfDeferredAttachment::View gbuffer,
-		MotionVectorAttachment::View motion_vector,
 		ShadowAttachment::View attachment,
-		ShadowAttachment::View prev_attachment,
 		vulkan::ElementBufferRef<Camera> camera,
 		vulkan::ElementBufferRef<DirectLight> direct_light,
 		vk::ImageView noise_tex,
@@ -575,22 +579,10 @@ namespace render::shadow
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
 		};
 
-		const auto motion_vector_tex_info = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = motion_vector.motion_vector.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-		};
-
 		const auto shadow_tex_info = vk::DescriptorImageInfo{
 			.sampler = nullptr,
 			.imageView = attachment.init_sample.view,
 			.imageLayout = vk::ImageLayout::eGeneral
-		};
-
-		const auto prev_shadow_tex_info = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = prev_attachment.init_sample.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
 		};
 
 		const auto write_infos = InputLayout::get_write_infos(
@@ -600,9 +592,7 @@ namespace render::shadow
 			camera_buffer_info,
 			depth_tex_info,
 			noise_tex_info,
-			motion_vector_tex_info,
-			shadow_tex_info,
-			prev_shadow_tex_info
+			shadow_tex_info
 		);
 
 		context.device.updateDescriptorSets(write_infos, {});
