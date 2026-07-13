@@ -132,7 +132,7 @@ end
 
 -- Compile file into SPIR-V
 function _compile_spv(tools, files, debug, include_dirs)
-	local optimization_flags = debug and {"-O0", "-g3"} or {"-O3"}
+	local optimization_flags = debug and {"-O0", "-g3"} or {"-O3", "-g3"}
 	local compile_flags = {
 		"-target", "spirv",
 		"-profile", "spirv_1_4+all",
