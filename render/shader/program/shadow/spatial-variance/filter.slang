@@ -25,14 +25,14 @@ uint32_t2 half_extent;
 
 /*===== CONSTANT =====*/
 
-static constexpr let EPS = 1e-3;
-static constexpr let RADIUS = 2;
-static constexpr let STRIDE = 4;
-static constexpr let GAUS_WEIGHT : float[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 10.0 };
+static const let EPS = 1e-3;
+static const let RADIUS = 1;
+static const let STRIDE = 4;
+static const let GAUS_WEIGHT : float[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 10.0 };
 
 // Sigmas, taken from SVGF paper (Section 4.4)
-static constexpr let SIGMA_Z = 1.0;
-static constexpr let SIGMA_N = 128.0;
+static const let SIGMA_Z = 1.0;
+static const let SIGMA_N = 128.0;
 
 /*===== PROGRAM =====*/
 // Compute power-mean of neighbor spatial variance where higher variance has higher weight

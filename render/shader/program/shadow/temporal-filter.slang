@@ -24,14 +24,14 @@ uint32_t2 half_extent;
 
 /*===== CONSTANT =====*/
 
-static constexpr let CLAMP_SIGMA = 2.0;
-static constexpr let REDUCE_SIGMA = 1.5;
-static constexpr let SIGMA_OFFSET = 0.01;
+static const let CLAMP_SIGMA = 2.0;
+static const let REDUCE_SIGMA = 1.0;
+static const let SIGMA_OFFSET = 0.03;
 
-static constexpr let STATIC_MIX = 0.01;
-static constexpr let DYNAMIC_MIX = 0.08;
+static const let STATIC_MIX = 0.01;
+static const let DYNAMIC_MIX = 0.08;
 
-static constexpr let MOTION_LENGTH_MUL = 20.0;
+static const let MOTION_LENGTH_MUL = 20.0;
 
 /*===== Steps =====*/
 

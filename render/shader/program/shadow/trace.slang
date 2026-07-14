@@ -45,9 +45,9 @@ PushConstant constant;
 
 /*===== CONSTANT =====*/
 
-static constexpr let DEPTH_BIAS_ULP = 1024;
-static constexpr let NOISE_TEX_SIZE = 128;
-static constexpr let LOD_LEVEL = 2.0;
+static const let DEPTH_BIAS_ULP = 1024;
+static const let NOISE_TEX_SIZE = 128;
+static const let LOD_LEVEL = 2.0;
 
 /*===== UTILITY =====*/
 

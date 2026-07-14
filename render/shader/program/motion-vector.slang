@@ -21,8 +21,8 @@ struct PushConstant
 [[vk::push_constant]]
 PushConstant constant;
 
-static constexpr let INVALID_VALUE = 65000.0;
-static constexpr let DEPTH_EPSILON = 0.005;
+static const let INVALID_VALUE = 65000.0;
+static const let DEPTH_EPSILON = 0.005;
 
 [[numthreads(16, 16, 1)]]
 [[shader("compute")]]

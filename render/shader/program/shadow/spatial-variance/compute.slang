@@ -26,16 +26,16 @@ uint32_t2 half_extent;
 
 /*===== CONSTANT =====*/
 
-static constexpr let EPS = 1e-3;
-static constexpr let RADIUS = 2;
+static const let EPS = 1e-3;
+static const let RADIUS = 2;
 
 // Sigmas, taken from SVGF paper (Section 4.4)
-static constexpr let SIGMA_Z = 1.0;
-static constexpr let SIGMA_N = 128.0;
+static const let SIGMA_Z = 1.0;
+static const let SIGMA_N = 128.0;
 
 // Variance boost
-static constexpr let VARIANCE_BOOST_END = 4.0;
-static constexpr let VARIANCE_BOOST_START = 6.0;
+static const let VARIANCE_BOOST_END = 4.0;
+static const let VARIANCE_BOOST_START = 6.0;
 
 /*===== PROGRAM =====*/
 // Compute local mean and variance in a given radius on current frame
@@ -73,11 +73,11 @@ func main(sv: compute::ShaderVar)
 			let encoded_normal = normal_tex.SampleLevelZero(coord);
 			let depth = depth_tex.SampleLevelZero(coord);
 			let sample = input_tex.SampleLevelZero(coord);
-			let normal = oct_decode(encoded_normal);
 
-			let normal_weight = pow(max(0.0, dot(normal, ref_normal)), SIGMA_N);
 			let depth_weight =
 				exp(-distance(depth, ref_depth) / (SIGMA_Z * dot(depth_gradient, float2(x, -y)) + EPS));
+			let normal = oct_decode(encoded_normal);
+			let normal_weight = pow128(max(0.0, dot(normal, ref_normal)));
 			let weight = normal_weight * depth_weight;
 
 			total_weight += weight;

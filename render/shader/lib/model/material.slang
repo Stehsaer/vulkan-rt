@@ -40,19 +40,18 @@ namespace model
 
 		// Get material info for a primitive
 		// - `primitive_attr`: Primitive attribute of the primitive
+		[[ForceInline]]
 		public func get_material(material_index: uint32_t)->MaterialInfo
 		{
-			let material_index = select(
-				material_index == PrimitiveAttribute.DEFAULT_MATERIAL,
-				0,
-				material_index + 1
-			);
+			let material_index =
+				select(material_index == PrimitiveAttribute.DEFAULT_MATERIAL, 0, material_index + 1);
 
 			return info[material_index];
 		}
 
 		// Get texture set for a material
 		// - `index`: Texture index of the material
+		[[ForceInline]]
 		public func get_texture_set(index: TextureIndex)->TextureSet
 		{
 			TextureSet set;

@@ -33,14 +33,14 @@ Param param;
 
 /*===== CONSTANT =====*/
 
-static constexpr let RADIUS = 2;
-static constexpr let GAUS_WEIGHT : float[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 10.0 };
+static const let RADIUS = 2;
+static const let GAUS_WEIGHT : float[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 10.0 };
 
 // Sigmas, taken from SVGF paper (Section 4.4)
-static constexpr let SIGMA_Z = 1.0;
-static constexpr let SIGMA_N = 128.0;
-static constexpr let SIGMA_L = 4.0;
-static constexpr let EPS = 1e-3;
+static const let SIGMA_Z = 1.0;
+static const let SIGMA_N = 128.0;
+static const let SIGMA_L = 4.0;
+static const let EPS = 1e-3;
 
 /*===== PROGRAM =====*/
 // SVGF-based spatial filtering pass
@@ -57,6 +57,8 @@ func main(sv: compute::ShaderVar)
 	/*===== Sample Reference =====*/
 
 	let ref_depth = depth_tex.SampleLevelZero(pixcoord_center);
+	let ref_input = input_tex.SampleLevelZero(pixcoord_center);
+	let encoded_ref_normal = normal_tex.SampleLevelZero(pixcoord_center);
 
 	[[branch]]
 	if (ref_depth == 0)
@@ -64,9 +66,6 @@ func main(sv: compute::ShaderVar)
 		output_tex.Store(pixcoord, float2(0.0, 0.0));
 		return;
 	}
-
-	let ref_normal = oct_decode(normal_tex.SampleLevelZero(pixcoord_center));
-	let ref_input = input_tex.SampleLevelZero(pixcoord_center);
 
 	let max_lum = WaveActiveMax(ref_input.x);
 	let min_lum = WaveActiveMin(ref_input.x);
@@ -77,6 +76,7 @@ func main(sv: compute::ShaderVar)
 		return;
 	}
 
+	let ref_normal = oct_decode(encoded_ref_normal);
 	let view_normal = mul(camera.view, float4(ref_normal, 0.0)).xy;
 	let depth_gradient = view_normal / sqrt(1.0 - view_normal * view_normal);
 
@@ -98,7 +98,6 @@ func main(sv: compute::ShaderVar)
 
 	for (int y = -RADIUS; y <= RADIUS; y++)
 	{
-		[[unroll]]
 		for (int x = -RADIUS; x <= RADIUS; x++)
 		{
 			let target_coord = pixcoord_center + float2(x, y) * param.stride;
@@ -107,18 +106,19 @@ func main(sv: compute::ShaderVar)
 			let target_depth = depth_tex.SampleLevelZero(target_coord);
 			let target_input = input_tex.SampleLevelZero(target_coord);
 
+			let pos_weight = GAUS_WEIGHT[abs(x)] * GAUS_WEIGHT[abs(y)];
+
+			let depth_weight_power =
+				abs(target_depth - ref_depth) / (SIGMA_Z * dot(depth_gradient, float2(x, -y)) + EPS);
+			let lum_weight_power = abs(target_input.r - ref_input.r) / lum_weight_denom;
+
+			let depth_lum_weight = exp(-depth_weight_power - lum_weight_power);
+
 			let target_normal = oct_decode(target_encoded_normal);
+			let normal_weight = pow128(max(0.0, dot(target_normal, ref_normal)));
 
-			var weight = GAUS_WEIGHT[abs(x)] * GAUS_WEIGHT[abs(y)];            // Gaussian weight
-			weight *= pow(max(0.0, dot(target_normal, ref_normal)), SIGMA_N);  // Normal weight
-
-			// Depth weight & Luminance weight
-			weight *=
-				exp(-distance(target_depth, ref_depth) / (SIGMA_Z * dot(depth_gradient, float2(x, -y)) + EPS)
-					- distance(target_input.r, ref_input.r) / lum_weight_denom);
-
-			// Depth mask weight
-			weight *= select(target_depth == 0.0, 0.0, 1.0);
+			let weight =
+				pos_weight * normal_weight * depth_lum_weight * select(target_depth == 0.0, 0.0, 1.0);
 
 			weight_sum += weight;
 			output_sum += target_input * float2(weight, weight * weight);

@@ -132,7 +132,13 @@ end
 
 -- Compile file into SPIR-V
 function _compile_spv(tools, files, debug, include_dirs)
-	local optimization_flags = debug and {"-O0", "-g3"} or {"-O3", "-g3"}
+	local generic_opt_flags = debug and {"-O0", "-g3"} or {"-O3", "-g3"}
+
+	local fine_opt_flags = debug and {} or {
+		"-fp-mode", "fast",
+		"-Xspirv-opt", "-O"
+	}
+
 	local compile_flags = {
 		"-target", "spirv",
 		"-profile", "spirv_1_4+all",
@@ -151,7 +157,8 @@ function _compile_spv(tools, files, debug, include_dirs)
 
 	os.vrunv(tools.slangc, table.join(
 		compile_flags, 
-		optimization_flags, 
+		generic_opt_flags,
+		fine_opt_flags,
 		include_flags, 
 		{
 			"-o", files.spv,
