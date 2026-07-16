@@ -4,6 +4,7 @@
 #include "common/util/error.hpp"
 #include "common/util/tagged-type.hpp"
 #include "model/material.hpp"
+#include "model/texture.hpp"
 #include "render/model/texture-list.hpp"
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/interface/context.hpp"
@@ -58,12 +59,22 @@ namespace render
 	};
 
 	///
+	/// @brief Sample mode of corresponding textures in `TextureIndex`
+	/// @note Only albedo's sample mode information is needed currently
+	///
+	struct TextureSampleMode
+	{
+		model::SampleMode albedo;
+	};
+
+	///
 	/// @brief Material info, stores contiguously in the info buffer
 	///
 	///
 	struct MaterialInfo
 	{
 		TextureIndex texture_index;
+		TextureSampleMode sample_mode;
 		model::Material::Param param;
 	};
 

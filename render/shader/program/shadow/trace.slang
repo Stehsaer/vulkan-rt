@@ -47,7 +47,7 @@ PushConstant constant;
 
 static const let DEPTH_BIAS_ULP = 1024;
 static const let NOISE_TEX_SIZE = 128;
-static const let LOD_LEVEL = 2.0;
+static const let LINEAR_LOD_LEVEL = 2.0;
 
 /*===== UTILITY =====*/
 
@@ -116,8 +116,13 @@ void anyhit_main(inout HitPayload payload, BuiltInTriangleIntersectionAttributes
 	let material_info = scene_material.get_material(hit_info.material_index);
 	let albedo_tex = scene_material.textures[material_info.texture_index.albedo];
 	let alpha_cutoff = material_info.param.alpha_cutoff;
+
+	// Use mipmap 0 for nearest filtered albedo
+	let mipmap_level =
+		select(material_info.sample_mode.albedo.mag_filter == model::Filter::Nearest, 0.0, LINEAR_LOD_LEVEL);
+
 	let alpha =
-		albedo_tex.SampleLevel(hit_info.texcoord, LOD_LEVEL).a * material_info.param.base_color_factor.a;
+		albedo_tex.SampleLevel(hit_info.texcoord, mipmap_level).a * material_info.param.base_color_factor.a;
 
 	if (alpha_cutoff > alpha)
 		IgnoreHit();

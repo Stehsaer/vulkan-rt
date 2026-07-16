@@ -2,6 +2,32 @@ implementing model;
 
 namespace model
 {
+	public enum Filter : uint32_t
+	{
+		Nearest = 0,
+		Linear = 1,
+	};
+
+	public enum Wrap : uint32_t
+	{
+		Repeat = 0,
+		MirroredRepeat = 1,
+		ClampToEdge = 2,
+	};
+
+	// Sample mode for a texture
+	public struct SampleMode
+	{
+		public Filter min_filter;
+		public Filter mag_filter;
+		public Filter mipmap_filter;
+
+		public Wrap wrap_u;
+		public Wrap wrap_v;
+
+		public float max_mipmap_level;
+	};
+
 	// Material parameters for a material
 	public struct MaterialParam
 	{
@@ -19,6 +45,12 @@ namespace model
 		public uint32_t albedo, emissive, orm, normal;
 	};
 
+	// Texture sample mode contains corresponding sample mode for each texture in `TextureIndex`
+	public struct TextureSampleMode
+	{
+		public SampleMode albedo;
+	};
+
 	// Texture set for a materials, containing samplers for each texture
 	public struct TextureSet
 	{
@@ -28,8 +60,9 @@ namespace model
 	// Material info for a material, containing texture index and material parameters
 	public struct MaterialInfo
 	{
-		public TextureIndex texture_index;  // Texture index for the material
-		public MaterialParam param;         // Parameters for the material
+		public TextureIndex texture_index;     // Texture index for the material
+		public TextureSampleMode sample_mode;  // Texture sample modes for the textures
+		public MaterialParam param;            // Parameters for the material
 	};
 
 	// Material list, containing entire material system
