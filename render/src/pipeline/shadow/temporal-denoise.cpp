@@ -4,7 +4,7 @@
 #include "common/util/error.hpp"
 #include "render/resource/motion-vector.hpp"
 #include "render/resource/shadow.hpp"
-#include "shader/shadow/temporal-filter.hpp"
+#include "shader/shadow/temporal-denoise.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
 #include "vulkan/numeric/pool-size.hpp"
@@ -80,7 +80,7 @@ namespace render::shadow
 		if (!pipeline_layout_result) return Error::from(pipeline_layout_result);
 		auto pipeline_layout = std::move(*pipeline_layout_result);
 
-		auto shader_module_result = vulkan::create_shader(context.device, shader::shadow::temporal_filter);
+		auto shader_module_result = vulkan::create_shader(context.device, shader::shadow::temporal_denoise);
 		if (!shader_module_result)
 			return shader_module_result.error().forward("Create compute shader module failed");
 		auto shader_module = std::move(*shader_module_result);

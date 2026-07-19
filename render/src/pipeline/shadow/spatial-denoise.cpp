@@ -5,7 +5,7 @@
 #include "render/interface/camera.hpp"
 #include "render/resource/deferred.hpp"
 #include "render/resource/shadow.hpp"
-#include "shader/shadow/spatial-filter.hpp"
+#include "shader/shadow/spatial-denoise.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
@@ -78,7 +78,7 @@ namespace render::shadow
 
 		/*===== Shader =====*/
 
-		auto shader_module_result = vulkan::create_shader(context.device, shader::shadow::spatial_filter);
+		auto shader_module_result = vulkan::create_shader(context.device, shader::shadow::spatial_denoise);
 		if (!shader_module_result) return shader_module_result.error().forward("Create shader module failed");
 		auto shader_module = std::move(*shader_module_result);
 
