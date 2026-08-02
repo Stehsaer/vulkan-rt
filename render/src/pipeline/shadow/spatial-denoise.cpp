@@ -275,7 +275,7 @@ namespace render::shadow
 
 		const auto normal_tex_info = vk::DescriptorImageInfo{
 			.sampler = sampler,
-			.imageView = half_gbuffer.geom_normal.view,
+			.imageView = half_gbuffer.smooth_normal.view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		};
 

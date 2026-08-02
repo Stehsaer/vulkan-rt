@@ -38,7 +38,7 @@ func main(sv: compute::ShaderVar)
 	let drawcall = drawcalls[idx];
 
 	let node_transform = node_transforms[drawcall.node_index];
-	let local_to_clip = mul(camera.view_projection, node_transform);
+	let local_to_clip = mul(camera.view_proj, node_transform);
 	let primitive_attr = primitive_attrs[drawcall.primitive_index];
 	let is_visible = visible(local_to_clip, primitive_attr.aabb_min, primitive_attr.aabb_max);
 

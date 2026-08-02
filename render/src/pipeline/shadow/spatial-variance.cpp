@@ -92,7 +92,7 @@ namespace render::shadow
 		const auto push_constant_range = vk::PushConstantRange{
 			.stageFlags = vk::ShaderStageFlagBits::eCompute,
 			.offset = 0,
-			.size = sizeof(glm::u32vec2),
+			.size = sizeof(Extent),
 		};
 
 		const auto compute_set_layouts = std::to_array({*compute_set_layout});
@@ -286,11 +286,14 @@ namespace render::shadow
 				{resource_set.compute_set},
 				{}
 			);
-			command_buffer.pushConstants<glm::u32vec2>(
+			command_buffer.pushConstants<Extent>(
 				compute_pipeline_layout,
 				vk::ShaderStageFlagBits::eCompute,
 				0,
-				resource_set->half_extent
+				Extent{
+					.half = resource_set->half_extent,
+					.full = resource_set->full_extent,
+				}
 			);
 			command_buffer.dispatch(dispatch_size.x, dispatch_size.y, 1);
 		}
@@ -370,11 +373,14 @@ namespace render::shadow
 			{resource_set.filter_set},
 			{}
 		);
-		command_buffer.pushConstants<glm::u32vec2>(
+		command_buffer.pushConstants<Extent>(
 			filter_pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
-			resource_set->half_extent
+			Extent{
+				.half = resource_set->half_extent,
+				.full = resource_set->full_extent,
+			}
 		);
 		command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(pre_barrier));
 		command_buffer.dispatch(dispatch_size.x, dispatch_size.y, 1);
@@ -468,6 +474,7 @@ namespace render::shadow
 
 		resource = Resource{
 			.half_extent = shadow.half_extent,
+			.full_extent = shadow.full_extent,
 			.spatial_mean = shadow.spatial_mean,
 			.spatial_stddev = shadow.spatial_stddev,
 			.filtered_spatial_stddev = shadow.filtered_spatial_stddev,

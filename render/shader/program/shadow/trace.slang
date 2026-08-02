@@ -68,7 +68,7 @@ func trace_ray(pixcoord: uint2, texcoord: float2, depth: float)->float
 	let noise = noise_tex.Load(int4((pixcoord + offset) % NOISE_TEX_SIZE, constant.frame_index % 64, 0));
 	let biased_depth = bit_cast<float>(bit_cast<uint>(depth) + DEPTH_BIAS_ULP);
 	let ndc = float4(texcoord_to_ndc(texcoord), biased_depth, 1.0);
-	let world_pos = w_div(mul(camera.inv_view_projection, ndc));
+	let world_pos = w_div(mul(camera.inv_view_proj, ndc));
 	let raydesc = RayDesc(world_pos, 0, get_light_direction(noise), 1e10);
 
 	var payload = HitPayload(true);

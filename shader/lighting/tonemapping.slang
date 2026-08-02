@@ -95,7 +95,7 @@ namespace tonemapping
 		let co = mul(agx_mat_inv, agx_impl::agx_curve3(ct));
 
 		if (output_linear)
-			return agx_impl::from_linear(co);
+			return agx_impl::to_linear(co);
 		else
 			return co;
 	}

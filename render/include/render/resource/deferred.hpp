@@ -50,7 +50,7 @@ namespace render
 		struct View
 		{
 			glm::u32vec2 extent;
-			vulkan::AttachmentView albedo, normal, geom_normal, pbr, depth;
+			vulkan::AttachmentView albedo, normal, geom_normal, smooth_normal, pbr, depth;
 
 			const View* operator->() const noexcept { return this; }
 		};
@@ -62,6 +62,7 @@ namespace render
 				.albedo = albedo,
 				.normal = normal,
 				.geom_normal = geom_normal,
+				.smooth_normal = smooth_normal,
 				.pbr = pbr,
 				.depth = depth,
 			};
@@ -72,13 +73,14 @@ namespace render
 	  private:
 
 		glm::u32vec2 extent;
-		vulkan::Attachment albedo, normal, geom_normal, pbr, depth;
+		vulkan::Attachment albedo, normal, geom_normal, smooth_normal, pbr, depth;
 
 		explicit DeferredAttachment(
 			glm::u32vec2 extent,
 			vulkan::Attachment albedo,
 			vulkan::Attachment normal,
 			vulkan::Attachment geom_normal,
+			vulkan::Attachment smooth_normal,
 			vulkan::Attachment pbr,
 			vulkan::Attachment depth
 		) :
@@ -86,6 +88,7 @@ namespace render
 			albedo(std::move(albedo)),
 			normal(std::move(normal)),
 			geom_normal(std::move(geom_normal)),
+			smooth_normal(std::move(smooth_normal)),
 			pbr(std::move(pbr)),
 			depth(std::move(depth))
 		{}
@@ -132,7 +135,7 @@ namespace render
 		{
 			glm::u32vec2 full_extent;
 			glm::u32vec2 half_extent;
-			vulkan::AttachmentView albedo, normal, geom_normal, pbr, depth;
+			vulkan::AttachmentView albedo, normal, geom_normal, smooth_normal, pbr, depth;
 
 			const View* operator->() const noexcept { return this; }
 		};
@@ -145,6 +148,7 @@ namespace render
 				.albedo = albedo,
 				.normal = normal,
 				.geom_normal = geom_normal,
+				.smooth_normal = smooth_normal,
 				.pbr = pbr,
 				.depth = depth,
 			};
@@ -156,7 +160,7 @@ namespace render
 
 		glm::u32vec2 full_extent;
 		glm::u32vec2 half_extent;
-		vulkan::Attachment albedo, normal, geom_normal, pbr, depth;
+		vulkan::Attachment albedo, normal, geom_normal, smooth_normal, pbr, depth;
 
 		explicit HalfDeferredAttachment(
 			glm::u32vec2 extent,
@@ -164,6 +168,7 @@ namespace render
 			vulkan::Attachment albedo,
 			vulkan::Attachment normal,
 			vulkan::Attachment geom_normal,
+			vulkan::Attachment smooth_normal,
 			vulkan::Attachment pbr,
 			vulkan::Attachment depth
 		) :
@@ -172,6 +177,7 @@ namespace render
 			albedo(std::move(albedo)),
 			normal(std::move(normal)),
 			geom_normal(std::move(geom_normal)),
+			smooth_normal(std::move(smooth_normal)),
 			pbr(std::move(pbr)),
 			depth(std::move(depth))
 		{}

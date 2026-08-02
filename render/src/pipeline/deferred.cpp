@@ -209,6 +209,7 @@ namespace render
 			attachment_blend_state,
 			attachment_blend_state,
 			attachment_blend_state,
+			attachment_blend_state,
 		});
 		const auto color_blend_info =
 			vk::PipelineColorBlendStateCreateInfo().setAttachments(color_attachment_blend_states);
@@ -219,8 +220,9 @@ namespace render
 			DeferredAttachment::ALBEDO_FORMAT,  // Location 0
 			DeferredAttachment::NORMAL_FORMAT,  // Location 1
 			DeferredAttachment::NORMAL_FORMAT,  // Location 2
-			DeferredAttachment::PBR_FORMAT,     // Location 3
-			HdrAttachment::HDR_FORMAT,          // Location 4
+			DeferredAttachment::NORMAL_FORMAT,  // Location 3
+			DeferredAttachment::PBR_FORMAT,     // Location 4
+			HdrAttachment::HDR_FORMAT,          // Location 5
 		});
 
 		const auto pipeline_rendering_create_info =
@@ -367,6 +369,7 @@ namespace render
 			resource_set.resource->attachment.albedo,
 			resource_set.resource->attachment.normal,
 			resource_set.resource->attachment.geom_normal,
+			resource_set.resource->attachment.smooth_normal,
 			resource_set.resource->attachment.pbr,
 			resource_set.resource->attachment.hdr,
 		});
@@ -498,6 +501,7 @@ namespace render
 			resource_set.resource->attachment.albedo,
 			resource_set.resource->attachment.normal,
 			resource_set.resource->attachment.geom_normal,
+			resource_set.resource->attachment.smooth_normal,
 			resource_set.resource->attachment.pbr,
 		});
 
@@ -618,6 +622,7 @@ namespace render
 			.albedo = deferred.albedo,
 			.normal = deferred.normal,
 			.geom_normal = deferred.geom_normal,
+			.smooth_normal = deferred.smooth_normal,
 			.pbr = deferred.pbr,
 			.depth = deferred.depth,
 			.hdr = hdr.attachment

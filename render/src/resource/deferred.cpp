@@ -31,6 +31,11 @@ namespace render
 		if (!geom_normal_result)
 			return geom_normal_result.error().forward("Create geometry normal buffer failed");
 
+		auto smooth_normal_result =
+			vulkan::Attachment::create(context.device, context.allocator, extent, NORMAL_FORMAT);
+		if (!smooth_normal_result)
+			return smooth_normal_result.error().forward("Create smooth normal buffer failed");
+
 		auto pbr_result = vulkan::Attachment::create(context.device, context.allocator, extent, PBR_FORMAT);
 		if (!pbr_result) return pbr_result.error().forward("Create pbr buffer failed");
 
@@ -41,6 +46,7 @@ namespace render
 		albedo_result->clear_color_float(command_buffer);
 		normal_result->clear_color_float(command_buffer);
 		geom_normal_result->clear_color_float(command_buffer);
+		smooth_normal_result->clear_color_float(command_buffer);
 		pbr_result->clear_color_float(command_buffer);
 		depth_result->clear_depth_stencil(command_buffer);
 
@@ -49,6 +55,7 @@ namespace render
 			std::move(*albedo_result),
 			std::move(*normal_result),
 			std::move(*geom_normal_result),
+			std::move(*smooth_normal_result),
 			std::move(*pbr_result),
 			std::move(*depth_result)
 		);
@@ -90,6 +97,16 @@ namespace render
 		if (!geom_normal_result)
 			return geom_normal_result.error().forward("Create half-res geometry normal buffer failed");
 
+		auto smooth_normal_result = vulkan::Attachment::create(
+			context.device,
+			context.allocator,
+			half_extent,
+			HALF_NORMAL_FORMAT,
+			vk::ImageUsageFlagBits::eStorage
+		);
+		if (!smooth_normal_result)
+			return smooth_normal_result.error().forward("Create half-res smooth normal buffer failed");
+
 		auto pbr_result = vulkan::Attachment::create(
 			context.device,
 			context.allocator,
@@ -111,6 +128,7 @@ namespace render
 		albedo_result->clear_color_float(command_buffer);
 		normal_result->clear_color_float(command_buffer);
 		geom_normal_result->clear_color_float(command_buffer);
+		smooth_normal_result->clear_color_float(command_buffer);
 		pbr_result->clear_color_float(command_buffer);
 		depth_result->clear_color_float(command_buffer);
 
@@ -120,6 +138,7 @@ namespace render
 			std::move(*albedo_result),
 			std::move(*normal_result),
 			std::move(*geom_normal_result),
+			std::move(*smooth_normal_result),
 			std::move(*pbr_result),
 			std::move(*depth_result)
 		);

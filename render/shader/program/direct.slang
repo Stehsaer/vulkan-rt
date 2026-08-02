@@ -5,6 +5,7 @@ import lighting.pbr;
 
 import algorithm.octahedral;
 import algorithm.coord;
+import algorithm.reconstruct;
 
 layout(set = 0, binding = 0) Sampler2D<float4> albedo_tex;
 layout(set = 0, binding = 1) Sampler2D<float2> normal_tex;
@@ -37,8 +38,7 @@ float4 main(float2 texcoord, float4 fragcoord: SV_Position)
 
 	/*===== Position =====*/
 
-	let ndc = float4(texcoord_to_ndc(texcoord), depth, 1.0);
-	let world_pos = w_div(mul(camera.inv_view_projection, ndc));
+	let world_pos = reconstruct::get_world_pos(camera.inv_view_proj, texcoord_to_ndc(texcoord), depth);
 
 	let view_dir = normalize(camera.camera_pos - world_pos);
 

@@ -79,6 +79,12 @@ namespace render::shadow
 
 		static constexpr auto BLOCK_SIZE = 16_u32;
 
+		struct Extent
+		{
+			glm::u32vec2 half;
+			glm::u32vec2 full;
+		};
+
 		vk::raii::DescriptorSetLayout compute_set_layout;
 		vk::raii::PipelineLayout compute_pipeline_layout;
 		vk::raii::Pipeline compute_pipeline;
@@ -151,6 +157,7 @@ namespace render::shadow
 		struct Resource
 		{
 			glm::u32vec2 half_extent;
+			glm::u32vec2 full_extent;
 			vulkan::AttachmentView spatial_mean;
 			vulkan::AttachmentView spatial_stddev;
 			vulkan::AttachmentView filtered_spatial_stddev;

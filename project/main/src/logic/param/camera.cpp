@@ -54,9 +54,9 @@ namespace logic
 
 		const auto aspect_ratio = static_cast<double>(extent.x) / static_cast<double>(extent.y);
 		const auto view_matrix = curr_view->matrix();
-		const auto proj_matrix = projection.matrix(aspect_ratio);
+		const auto proj_matrix = scene::camera::reverse_z() * projection.matrix(aspect_ratio);
 
-		const auto view_proj_matrix = scene::camera::reverse_z() * proj_matrix * view_matrix;
+		const auto view_proj_matrix = proj_matrix * view_matrix;
 		const auto prev_view_proj_matrix = this->prev_view_proj_matrix.value_or(view_proj_matrix);
 		this->prev_view_proj_matrix = view_proj_matrix;
 
@@ -68,10 +68,11 @@ namespace logic
 		const auto back_projection_matrix = prev_view_proj_matrix * inv_view_proj_matrix;
 
 		return {
-			.inv_view_projection = inv_view_proj_matrix,
-			.prev_view_projection = prev_view_proj_matrix,
-			.view_projection = view_proj_matrix,
-			.back_projection = back_projection_matrix,
+			.inv_view_proj = inv_view_proj_matrix,
+			.inv_proj = glm::inverse(proj_matrix),
+			.prev_view_proj = prev_view_proj_matrix,
+			.view_proj = view_proj_matrix,
+			.back_proj = back_projection_matrix,
 			.view = view_matrix,
 			.camera_pos = camera_pos,
 			.prev_camera_pos = prev_camera_pos,

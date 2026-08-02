@@ -47,7 +47,7 @@ func main(sv: compute::ShaderVar)
 	let curr_pixcoord_center = float2(pixcoord * 2 + 0.5);
 	let curr_texcoord = curr_pixcoord_center / constant.full_size;
 	let curr_ndc = float4(texcoord_to_ndc(curr_texcoord), curr_depth, 1.0);
-	let prev_ndc = w_div(mul(camera.back_projection, curr_ndc));
+	let prev_ndc = w_div(mul(camera.back_proj, curr_ndc));
 
 	[[branch]]
 	if (any(abs(prev_ndc.xy) >= 1.0))

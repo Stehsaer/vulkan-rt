@@ -7,6 +7,14 @@ import interop.camera;
 import internal.shadow;
 import sv.compute;
 
+/*===== STRUCT =====*/
+
+struct Extent
+{
+	uint32_t2 half;
+	uint32_t2 full;
+};
+
 /*===== I/O =====*/
 
 // IMPORTANT: All samplers use:
@@ -21,18 +29,13 @@ Sampler2D<float2> normal_tex;          // Normal reference image, octahedral enc
 ConstantBuffer<Camera> camera;         // Camera parameters
 
 [[vk::push_constant]]
-uint32_t2 half_extent;
+Extent extent;
 
 /*===== CONSTANT =====*/
 
 static const let EPS = 1e-3;
 static const let RADIUS = 1;
 static const let STRIDE = 4;
-static const let GAUS_WEIGHT : float[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 10.0 };
-
-// Sigmas, taken from SVGF paper (Section 4.4)
-static const let SIGMA_Z = 1.0;
-static const let SIGMA_N = 128.0;
 
 /*===== PROGRAM =====*/
 // Compute power-mean of neighbor spatial variance where higher variance has higher weight
@@ -41,7 +44,7 @@ static const let SIGMA_N = 128.0;
 func main(sv: compute::ShaderVar)
 {
 	let pixcoord : int2 = swizzle_t4_b16(sv.global_thread_coord.xy);
-	if (any(pixcoord >= half_extent)) return;
+	if (any(pixcoord >= extent.half)) return;
 
 	let ref_depth = depth_tex.Load(int3(pixcoord, 0));
 	if (ref_depth == 0.0)
@@ -50,10 +53,14 @@ func main(sv: compute::ShaderVar)
 		return;
 	}
 
-	let ref_normal = oct_decode(normal_tex.Load(int3(pixcoord, 0)));
-
-	let view_normal = mul(camera.view, float4(ref_normal, 0.0)).xy;
-	let depth_gradient = view_normal / sqrt(1.0 - view_normal * view_normal);
+	let weight_evaluator = WeightEvaluator::from(
+		camera.inv_proj,
+		camera.view,
+		extent.full,
+		pixcoord,
+		ref_depth,
+		normal_tex.Load(int3(pixcoord, 0))
+	);
 
 	var variance_sum : float = 0;
 	var weight_sum : float = 0;
@@ -65,19 +72,17 @@ func main(sv: compute::ShaderVar)
 		{
 			let coord = pixcoord + int2(x, y) * STRIDE;
 
-			let encoded_normal = normal_tex.SampleLevelZero(coord);
 			let depth = depth_tex.SampleLevelZero(coord);
+			let encoded_normal = normal_tex.SampleLevelZero(coord);
 			let stddev_raw = input_stddev_tex.SampleLevelZero(coord);
 
-			let normal = oct_decode(encoded_normal);
+			if (depth == 0) continue;
+			let weight = x == 0 && y == 0
+				? 1.0
+				: weight_evaluator.eval(camera.inv_proj, extent.full, coord, depth, encoded_normal);
+
 			let stddev = stddev_raw / 2;
 			let variance = stddev * stddev + EPS;
-
-			let normal_weight = pow(max(0.0, dot(normal, ref_normal)), SIGMA_N);
-			let depth_weight =
-				exp(-distance(depth, ref_depth) / (SIGMA_Z * dot(depth_gradient, float2(x, -y)) + EPS));
-			let weight = normal_weight * depth_weight * GAUS_WEIGHT[abs(x)] * GAUS_WEIGHT[abs(y)];
-
 			let variance_pow3 = variance * variance * variance;
 
 			weight_sum += weight;
