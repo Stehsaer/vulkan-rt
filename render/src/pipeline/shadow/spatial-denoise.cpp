@@ -7,18 +7,15 @@
 #include "render/resource/shadow.hpp"
 #include "shader/shadow/spatial-denoise.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
+#include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
-#include "vulkan/numeric/pool-size.hpp"
-#include "vulkan/util/descriptor-set-layout.hpp"
 #include "vulkan/util/shader.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
-#include <algorithm>
-#include <array>
 #include <cstdint>
 #include <expected>
 #include <libassert/assert.hpp>
-#include <memory>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -27,35 +24,13 @@
 
 namespace render::shadow
 {
-	namespace
-	{
-		using Layout = vulkan::MonoDescriptorSetLayout<
-			vulkan::MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			vulkan::
-				MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
-			vulkan::MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			vulkan::MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			vulkan::
-				MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eCompute>
-		>;
-	}
-
 	std::expected<SpatialDenoisePipeline, Error> SpatialDenoisePipeline::create(
 		const vulkan::Context& context
 	) noexcept
 	{
 		/*===== Descriptor Set Layout =====*/
 
-		auto input_layout_result = Layout::create_descriptor_set_layout(context);
+		auto input_layout_result = vulkan::trivset::Layout<Input>::create(context);
 		if (!input_layout_result)
 			return input_layout_result.error().forward("Create descriptor set layout failed");
 		auto input_layout = std::move(*input_layout_result);
@@ -131,43 +106,17 @@ namespace render::shadow
 	std::expected<std::vector<SpatialDenoisePipeline::ResourceSet>, Error> SpatialDenoisePipeline::
 		create_resource_sets(const vulkan::Context& context, uint32_t count) const noexcept
 	{
-		static constexpr auto BINDINGS = Layout::get_bindings();
-		const auto pool_sizes = vulkan::calc_pool_sizes(BINDINGS, count * FILTER_PASSES);
-
-		auto pool_result = context.device.createDescriptorPool(
-			vk::DescriptorPoolCreateInfo()
-				.setPoolSizes(pool_sizes)
-				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-				.setMaxSets(count * FILTER_PASSES)
-		);
-		if (!pool_result) return Error::from(pool_result);
-		auto pool = std::make_shared<vk::raii::DescriptorPool>(std::move(*pool_result));
-
-		const auto layouts = std::vector(count * FILTER_PASSES, *input_layout);
-		auto sets_result = context.device.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo().setSetLayouts(layouts).setDescriptorPool(*pool)
-		);
-		if (!sets_result) return Error::from(sets_result);
-		auto sets = std::move(*sets_result);
-
-		auto set_groups =
-			sets
-			| std::views::as_rvalue
-			| std::views::transform([](auto&& val) {
-				  return std::make_unique<vk::raii::DescriptorSet>(std::forward<decltype(val)>(val));
-			  })
-			| std::views::chunk(FILTER_PASSES)
-			| std::views::transform([](auto&& chunk) {
-				  std::array<std::unique_ptr<vk::raii::DescriptorSet>, FILTER_PASSES> result;
-				  std::ranges::move(chunk, result.begin());
-				  return result;
-			  })
-			| std::ranges::to<std::vector>();
+		auto sets_result = input_layout.create_sets(context, count * FILTER_PASSES);
+		if (!sets_result) return sets_result.error().forward("Create sets failed");
 
 		return std::views::zip_transform(
 				   CTOR_LAMBDA(ResourceSet),
-				   std::views::repeat(pool, count),
-				   std::views::as_rvalue(set_groups),
+				   *sets_result
+					   | std::views::as_rvalue
+					   | std::views::chunk(FILTER_PASSES)
+					   | std::views::transform([](auto&& chunk) {
+							 return std::vector(std::from_range, chunk);
+						 }),
 				   std::views::repeat(*sampler, count)
 			   )
 			| std::ranges::to<std::vector>();
@@ -179,6 +128,7 @@ namespace render::shadow
 	) const noexcept
 	{
 		DEBUG_ASSERT(resource_set.resource.has_value());
+		DEBUG_ASSERT(resource_set.sets.size() == FILTER_PASSES);
 
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
 
@@ -216,7 +166,7 @@ namespace render::shadow
 			const auto dispatch_size = (resource_set->half_extent + BLOCK_SIZE - 1_u32) / BLOCK_SIZE;
 
 			command_buffer
-				.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline_layout, 0, {**set}, {});
+				.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline_layout, 0, {*set}, {});
 			command_buffer.pushConstants<PushConstant>(
 				pipeline_layout,
 				vk::ShaderStageFlagBits::eCompute,
@@ -246,66 +196,28 @@ namespace render::shadow
 		ShadowAttachment::View shadow
 	) noexcept
 	{
+		using namespace vulkan::trivset;
+
 		DEBUG_ASSERT(half_gbuffer.half_extent == shadow.half_extent);
 		DEBUG_ASSERT(half_gbuffer.full_extent == shadow.full_extent);
-
-		const auto denoise_alice_info_sampled = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = shadow.denoise_alice.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		};
-
-		const auto denoise_bob_info_sampled = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = shadow.denoise_bob.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		};
-
-		const auto denoise_alice_info_storage = vk::DescriptorImageInfo{
-			.sampler = nullptr,
-			.imageView = shadow.denoise_alice.view,
-			.imageLayout = vk::ImageLayout::eGeneral,
-		};
-
-		const auto denoise_bob_info_storage = vk::DescriptorImageInfo{
-			.sampler = nullptr,
-			.imageView = shadow.denoise_bob.view,
-			.imageLayout = vk::ImageLayout::eGeneral,
-		};
-
-		const auto normal_tex_info = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = half_gbuffer.smooth_normal.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		};
-
-		const auto depth_tex_info = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = half_gbuffer.depth.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		};
-
-		const auto camera_info = vk::DescriptorBufferInfo{
-			.buffer = camera,
-			.offset = 0,
-			.range = vk::WholeSize,
-		};
+		DEBUG_ASSERT(sets.size() == FILTER_PASSES);
 
 		for (const auto [iter, set] : sets | std::views::as_const | std::views::enumerate)
 		{
-			const auto input_info = iter % 2 == 0 ? denoise_alice_info_sampled : denoise_bob_info_sampled;
-			const auto output_info = iter % 2 == 0 ? denoise_bob_info_storage : denoise_alice_info_storage;
+			const vulkan::AttachmentView input_tex =
+				iter % 2 == 0 ? shadow.denoise_alice : shadow.denoise_bob;
+			const vulkan::AttachmentView output_tex =
+				iter % 2 == 0 ? shadow.denoise_bob : shadow.denoise_alice;
 
-			const auto write_sets = Layout::get_write_infos(
-				*set,
-				input_info,
-				output_info,
-				depth_tex_info,
-				normal_tex_info,
-				camera_info
-			);
+			const auto input = Input{
+				.input_tex = input_tex + sampler,
+				.output_tex = output_tex,
+				.depth_tex = half_gbuffer.depth + sampler,
+				.normal_tex = half_gbuffer.smooth_normal + sampler,
+				.camera = camera
+			};
 
-			context.device.updateDescriptorSets(write_sets, {});
+			set.update(context, input);
 		}
 
 		resource = Resource{

@@ -1,5 +1,6 @@
 #include "render/pipeline/deferred.hpp"
 #include "common/util/array.hpp"
+#include "common/util/construct.hpp"
 #include "common/util/error.hpp"
 #include "model/material.hpp"
 #include "model/mesh.hpp"
@@ -20,9 +21,8 @@
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
 #include "vulkan/numeric/glm.hpp"
-#include "vulkan/numeric/pool-size.hpp"
-#include "vulkan/util/descriptor-set-layout.hpp"
 #include "vulkan/util/shader.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <array>
 #include <cstddef>
@@ -31,7 +31,6 @@
 #include <format>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <libassert/assert.hpp>
-#include <memory>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -42,24 +41,6 @@ namespace render
 {
 	namespace
 	{
-		using DataDescriptorSetLayout = vulkan::MonoDescriptorSetLayout<
-			// primitive_attr
-			vulkan::
-				MonoDescriptorSetSlot<vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment>,
-			// indirect_buffer
-			vulkan::
-				MonoDescriptorSetSlot<vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eVertex>,
-			// transform_buffer
-			vulkan::
-				MonoDescriptorSetSlot<vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eVertex>,
-			// camera_buffer
-			vulkan::MonoDescriptorSetSlot<
-				vk::DescriptorType::eUniformBuffer,
-				vk::ShaderStageFlagBits::eVertex,
-				vk::ShaderStageFlagBits::eFragment
-			>
-		>;
-
 		std::expected<vk::raii::PipelineLayout, Error> create_pipeline_layout(
 			const vulkan::Context& context,
 			vk::DescriptorSetLayout material_descriptor_set_layout,
@@ -274,8 +255,7 @@ namespace render
 			return shader_module_result.error().forward("Create primary shader module failed");
 		auto shader_module = std::move(*shader_module_result);
 
-		auto data_descriptor_set_layout_result =
-			DataDescriptorSetLayout::create_descriptor_set_layout(context);
+		auto data_descriptor_set_layout_result = vulkan::trivset::Layout<DataInput>::create(context);
 		if (!data_descriptor_set_layout_result)
 			return data_descriptor_set_layout_result.error().forward(
 				"Create data descriptor set layout failed"
@@ -320,42 +300,26 @@ namespace render
 
 		static constexpr auto SETS_PER_RESOURCE_SET = 4;
 
-		const auto descriptor_bindings = DataDescriptorSetLayout::get_bindings();
-		const auto descriptor_pool_sizes =
-			vulkan::calc_pool_sizes(descriptor_bindings, count * SETS_PER_RESOURCE_SET);
+		auto sets_result = data_descriptor_set_layout.create_sets(context, count * SETS_PER_RESOURCE_SET);
+		if (!sets_result) return sets_result.error().forward("Create data descriptor sets failed");
+		auto sets = std::move(*sets_result);
 
-		auto descriptor_pool_result = context.device.createDescriptorPool(
-			vk::DescriptorPoolCreateInfo()
-				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-				.setMaxSets(count * SETS_PER_RESOURCE_SET)
-				.setPoolSizes(descriptor_pool_sizes)
-		);
-		if (!descriptor_pool_result) return Error::from(descriptor_pool_result);
-		auto descriptor_pool = std::make_shared<vk::raii::DescriptorPool>(std::move(*descriptor_pool_result));
-
-		const auto data_layouts = std::vector(SETS_PER_RESOURCE_SET, *data_descriptor_set_layout);
-		const auto data_set_alloc_info =
-			vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor_pool).setSetLayouts(data_layouts);
-
-		const auto create_resource_set_fn = [&] -> std::expected<ResourceSet, Error> {
-			auto sets_result = context.device.allocateDescriptorSets(data_set_alloc_info);
-			if (!sets_result) return Error::from(sets_result);
-			auto sets = std::move(*sets_result);
-
-			return ResourceSet(
-				descriptor_pool,
-				{
-					.opaque_single_sided = std::move(sets[0]),
-					.opaque_double_sided = std::move(sets[1]),
-					.masked_single_sided = std::move(sets[2]),
-					.masked_double_sided = std::move(sets[3]),
-				}
-			);
-		};
-
-		return std::views::repeat(create_resource_set_fn, count)
-			| std::views::transform([](auto&& f) { return f(); })
-			| Error::collect();
+		return std::views::zip_transform(
+				   CTOR_LAMBDA(ResourceSet),
+				   sets
+					   | std::views::as_rvalue
+					   | std::views::chunk(SETS_PER_RESOURCE_SET)
+					   | std::views::transform([](auto&& chunk) {
+							 auto data_sets = PerRenderState<vulkan::trivset::Set<DataInput>>{
+								 .opaque_single_sided = std::move(chunk[0]),
+								 .opaque_double_sided = std::move(chunk[1]),
+								 .masked_single_sided = std::move(chunk[2]),
+								 .masked_double_sided = std::move(chunk[3]),
+							 };
+							 return data_sets;
+						 })
+			   )
+			| std::ranges::to<std::vector>();
 	}
 
 	void DeferredPipeline::render(
@@ -479,7 +443,7 @@ namespace render
 				vk::PipelineBindPoint::eGraphics,
 				*pipeline_layout,
 				0,
-				{resource_set->material_descriptor_set, data_descriptor_set},
+				{resource_set->material_descriptor_set, *data_descriptor_set},
 				{}
 			);
 
@@ -567,52 +531,24 @@ namespace render
 		vulkan::ElementBufferRef<Camera> camera_param
 	) noexcept
 	{
+		using namespace vulkan::trivset;
+
 		DEBUG_ASSERT(deferred.extent == hdr.extent);
 
-		/*===== Storage Infos =====*/
-
-		const auto primitive_attr_buffer_write = vk::DescriptorBufferInfo{
-			.buffer = model.mesh_list->primitive_attr_buffer,
-			.offset = 0,
-			.range = vk::WholeSize,
-		};
-
-		const auto indirect_buffer_writes = indirect_resource.ref().map([](const auto& drawcall_buffer) {
-			return vk::DescriptorBufferInfo{
-				.buffer = drawcall_buffer,
-				.offset = 0,
-				.range = drawcall_buffer.size_vk(),
-			};
-		});
-
-		const auto transform_buffer_write = vk::DescriptorBufferInfo{
-			.buffer = host_drawcall->transform,
-			.offset = 0,
-			.range = host_drawcall->transform.size_vk(),
-		};
-
-		const auto camera_buffer_write = vk::DescriptorBufferInfo{
-			.buffer = camera_param,
-			.offset = 0,
-			.range = vk::WholeSize,
-		};
-
-		/*===== Write descriptor for primary pipeline =====*/
-
 		for (
-			const auto& [descriptor_set, indirect_buffer_write] :
-			std::views::zip(data_descriptor_set.all(), indirect_buffer_writes.all())
+			const auto& [data_set, indirect_buffer] :
+			std::views::zip(data_descriptor_set.all(), indirect_resource.ref().all())
 		)
 		{
-			const auto write_sets = DataDescriptorSetLayout::get_write_infos(
-				descriptor_set,
-				primitive_attr_buffer_write,
-				indirect_buffer_write,
-				transform_buffer_write,
-				camera_buffer_write
-			);
+			const auto input = DataInput{
+				.primitive_attr = model.mesh_list->primitive_attr_buffer,
+				.indirect_buffer = slot::StorageBuffer(indirect_buffer, 0, indirect_buffer.size_vk()),
+				.transform_buffer =
+					slot::StorageBuffer(host_drawcall->transform, 0, host_drawcall->transform.size_vk()),
+				.camera = camera_param,
+			};
 
-			context.device.updateDescriptorSets(write_sets, {});
+			data_set.update(context, input);
 		}
 
 		/*===== Store infos =====*/

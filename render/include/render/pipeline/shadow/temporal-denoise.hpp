@@ -6,12 +6,13 @@
 #include "render/resource/shadow.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
-#include <memory>
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -82,14 +83,37 @@ namespace render::shadow
 
 		static constexpr auto BLOCK_SIZE = 16_u32;
 
-		vk::raii::DescriptorSetLayout set_layout;
+		struct Input : public vulkan::trivset::LayoutBase
+		{
+			CombinedImageSampler prev_history_tex;
+			CombinedImageSampler curr_shadow_tex;
+			CombinedImageSampler mean_tex;
+			CombinedImageSampler stddev_tex;
+			CombinedImageSampler motion_vector_tex;
+
+			StorageImage denoise_tex;
+			StorageImage curr_history_tex;
+
+			static constexpr auto STAGE = vk::ShaderStageFlagBits::eCompute;
+			static constexpr auto SLOT_LIST = std::make_tuple(
+				&Input::prev_history_tex,
+				&Input::curr_shadow_tex,
+				&Input::mean_tex,
+				&Input::stddev_tex,
+				&Input::motion_vector_tex,
+				&Input::denoise_tex,
+				&Input::curr_history_tex
+			);
+		};
+
+		vulkan::trivset::Layout<Input> set_layout;
 		vk::raii::PipelineLayout pipeline_layout;
 		vk::raii::Pipeline pipeline;
 
 		vk::raii::Sampler sampler;
 
 		explicit TemporalDenoisePipeline(
-			vk::raii::DescriptorSetLayout set_layout,
+			vulkan::trivset::Layout<Input> set_layout,
 			vk::raii::PipelineLayout pipeline_layout,
 			vk::raii::Pipeline pipeline,
 			vk::raii::Sampler sampler
@@ -129,8 +153,7 @@ namespace render::shadow
 
 	  private:
 
-		std::shared_ptr<vk::raii::DescriptorPool> pool;
-		vk::raii::DescriptorSet set;
+		vulkan::trivset::Set<Input> set;
 		vk::Sampler sampler;
 
 		struct Resource
@@ -144,12 +167,7 @@ namespace render::shadow
 
 		auto operator->() const noexcept { return resource.operator->(); }
 
-		ResourceSet(
-			std::shared_ptr<vk::raii::DescriptorPool> pool,
-			vk::raii::DescriptorSet set,
-			vk::Sampler sampler
-		) :
-			pool(std::move(pool)),
+		ResourceSet(vulkan::trivset::Set<Input> set, vk::Sampler sampler) :
 			set(std::move(set)),
 			sampler(sampler)
 		{}

@@ -1,6 +1,5 @@
 #include "render/pipeline/shadow/spatial-variance.hpp"
 #include "common/number-literals.hpp"
-#include "common/util/array.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
 #include "render/interface/camera.hpp"
@@ -12,16 +11,14 @@
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
-#include "vulkan/numeric/pool-size.hpp"
-#include "vulkan/util/descriptor-set-layout.hpp"
 #include "vulkan/util/shader.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <array>
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <libassert/assert.hpp>
-#include <memory>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -30,59 +27,18 @@
 
 namespace render::shadow
 {
-	namespace
-	{
-		using vulkan::MonoDescriptorSetLayout;
-		using vulkan::MonoDescriptorSetSlot;
-
-		using ComputeLayout = MonoDescriptorSetLayout<
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
-			MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eCompute>
-		>;
-
-		using FilterLayout = MonoDescriptorSetLayout<
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eCompute>
-		>;
-	}
-
 	std::expected<SpatialVariancePipeline, Error> SpatialVariancePipeline::create(
 		const vulkan::Context& context
 	) noexcept
 	{
 		/*===== Descriptor Set Layout =====*/
 
-		auto compute_set_layout_result = ComputeLayout::create_descriptor_set_layout(context);
+		auto compute_set_layout_result = vulkan::trivset::Layout<ComputeInput>::create(context);
 		if (!compute_set_layout_result)
 			return compute_set_layout_result.error().forward("Create compute descriptor set layout failed");
 		auto compute_set_layout = std::move(*compute_set_layout_result);
 
-		auto filter_set_layout_result = FilterLayout::create_descriptor_set_layout(context);
+		auto filter_set_layout_result = vulkan::trivset::Layout<FilterInput>::create(context);
 		if (!filter_set_layout_result)
 			return filter_set_layout_result.error().forward("Create filter descriptor set layout failed");
 		auto filter_set_layout = std::move(*filter_set_layout_result);
@@ -198,37 +154,18 @@ namespace render::shadow
 	std::expected<std::vector<SpatialVariancePipeline::ResourceSet>, Error> SpatialVariancePipeline::
 		create_resource_sets(const vulkan::Context& context, uint32_t count) const noexcept
 	{
-		static constexpr auto COMPUTE_BINDING = ComputeLayout::get_bindings();
-		static constexpr auto FILTER_BINDING = ComputeLayout::get_bindings();
-		static constexpr auto BINDINGS = util::array_concat(COMPUTE_BINDING, FILTER_BINDING);
-		const auto pool_sizes = vulkan::calc_pool_sizes(BINDINGS, count);
-
-		auto pool_result = context.device.createDescriptorPool(
-			vk::DescriptorPoolCreateInfo()
-				.setPoolSizes(pool_sizes)
-				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-				.setMaxSets(count * 2)
-		);
-		if (!pool_result) return Error::from(pool_result);
-		auto pool = std::make_shared<vk::raii::DescriptorPool>(std::move(*pool_result));
-
-		const auto compute_layouts = std::vector(count, *compute_set_layout);
-		auto compute_sets_result = context.device.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo().setSetLayouts(compute_layouts).setDescriptorPool(*pool)
-		);
-		if (!compute_sets_result) return Error::from(compute_sets_result);
+		auto compute_sets_result = compute_set_layout.create_sets(context, count);
+		if (!compute_sets_result)
+			return compute_sets_result.error().forward("Create compute descriptor sets failed");
 		auto compute_sets = std::move(*compute_sets_result);
 
-		const auto filter_layouts = std::vector(count, *filter_set_layout);
-		auto filter_sets_result = context.device.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo().setSetLayouts(filter_layouts).setDescriptorPool(*pool)
-		);
-		if (!filter_sets_result) return Error::from(filter_sets_result);
+		auto filter_sets_result = filter_set_layout.create_sets(context, count);
+		if (!filter_sets_result)
+			return filter_sets_result.error().forward("Create filter descriptor sets failed");
 		auto filter_sets = std::move(*filter_sets_result);
 
 		return std::views::zip_transform(
 				   CTOR_LAMBDA(ResourceSet),
-				   std::views::repeat(pool, count),
 				   std::views::as_rvalue(compute_sets),
 				   std::views::as_rvalue(filter_sets),
 				   std::views::repeat(*sampler, count)
@@ -283,7 +220,7 @@ namespace render::shadow
 				vk::PipelineBindPoint::eCompute,
 				compute_pipeline_layout,
 				0,
-				{resource_set.compute_set},
+				*resource_set.compute_set,
 				{}
 			);
 			command_buffer.pushConstants<Extent>(
@@ -370,7 +307,7 @@ namespace render::shadow
 			vk::PipelineBindPoint::eCompute,
 			filter_pipeline_layout,
 			0,
-			{resource_set.filter_set},
+			*resource_set.filter_set,
 			{}
 		);
 		command_buffer.pushConstants<Extent>(
@@ -405,72 +342,27 @@ namespace render::shadow
 	{
 		DEBUG_ASSERT(half_deferred.half_extent == shadow.half_extent);
 
-		const auto depth_tex = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = half_deferred.depth.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+		using namespace vulkan::trivset;
+
+		const auto compute_input = ComputeInput{
+			.input_tex = shadow.init_sample + sampler,
+			.mean_tex = shadow.spatial_mean,
+			.stddev_tex = shadow.spatial_stddev,
+			.depth_tex = half_deferred.depth + sampler,
+			.normal_tex = half_deferred.geom_normal + sampler,
+			.camera = camera,
 		};
 
-		const auto normal_tex = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = half_deferred.geom_normal.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+		const auto filter_input = FilterInput{
+			.input_stddev_tex = shadow.spatial_stddev + sampler,
+			.output_stddev_tex = shadow.filtered_spatial_stddev,
+			.depth_tex = half_deferred.depth + sampler,
+			.normal_tex = half_deferred.geom_normal + sampler,
+			.camera = camera,
 		};
 
-		const auto camera_buffer = vk::DescriptorBufferInfo{
-			.buffer = camera,
-			.offset = 0,
-			.range = vk::WholeSize,
-		};
-
-		const auto compute_input_tex = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = shadow.init_sample.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		};
-
-		const auto compute_mean_tex = vk::DescriptorImageInfo{
-			.imageView = shadow.spatial_mean.view,
-			.imageLayout = vk::ImageLayout::eGeneral,
-		};
-
-		const auto compute_stddev_tex = vk::DescriptorImageInfo{
-			.imageView = shadow.spatial_stddev.view,
-			.imageLayout = vk::ImageLayout::eGeneral,
-		};
-
-		const auto filter_input_stddev_tex = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = shadow.spatial_stddev.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		};
-
-		const auto filter_output_stddev_tex = vk::DescriptorImageInfo{
-			.imageView = shadow.filtered_spatial_stddev.view,
-			.imageLayout = vk::ImageLayout::eGeneral
-		};
-
-		const auto compute_set_write_info = ComputeLayout::get_write_infos(
-			compute_set,
-			compute_input_tex,
-			compute_mean_tex,
-			compute_stddev_tex,
-			depth_tex,
-			normal_tex,
-			camera_buffer
-		);
-
-		const auto filter_set_write_info = FilterLayout::get_write_infos(
-			filter_set,
-			filter_input_stddev_tex,
-			filter_output_stddev_tex,
-			depth_tex,
-			normal_tex,
-			camera_buffer
-		);
-
-		const auto write_infos = util::array_concat(compute_set_write_info, filter_set_write_info);
-		context.device.updateDescriptorSets(write_infos, {});
+		compute_set.update(context, compute_input);
+		filter_set.update(context, filter_input);
 
 		resource = Resource{
 			.half_extent = shadow.half_extent,

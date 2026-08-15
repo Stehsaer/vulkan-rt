@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
-#include <memory>
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -24,6 +24,7 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 namespace render
 {
@@ -106,12 +107,29 @@ namespace render
 			bool double_sided
 		) noexcept;
 
-		vk::raii::DescriptorSetLayout data_descriptor_set_layout;
+		struct DataInput : public vulkan::trivset::LayoutBase
+		{
+			StorageBuffer primitive_attr;
+			StorageBuffer indirect_buffer;
+			StorageBuffer transform_buffer;
+			UniformBuffer camera;
+
+			static constexpr auto STAGE =
+				vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+			static constexpr auto SLOT_LIST = std::make_tuple(
+				&DataInput::primitive_attr,
+				&DataInput::indirect_buffer,
+				&DataInput::transform_buffer,
+				&DataInput::camera
+			);
+		};
+
+		vulkan::trivset::Layout<DataInput> data_descriptor_set_layout;
 		vk::raii::PipelineLayout pipeline_layout;
 		PerRenderState<vk::raii::Pipeline> pipelines;
 
 		explicit DeferredPipeline(
-			vk::raii::DescriptorSetLayout data_descriptor_set_layout,
+			vulkan::trivset::Layout<DataInput> data_descriptor_set_layout,
 			vk::raii::PipelineLayout pipeline_layout,
 			PerRenderState<vk::raii::Pipeline> pipelines
 		) :
@@ -161,8 +179,7 @@ namespace render
 
 	  private:
 
-		std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool;
-		PerRenderState<vk::raii::DescriptorSet> data_descriptor_set;
+		PerRenderState<vulkan::trivset::Set<DataInput>> data_descriptor_set;
 
 		struct Attachment
 		{
@@ -186,11 +203,7 @@ namespace render
 
 		const Resource* operator->() const noexcept { return resource.operator->(); }
 
-		explicit ResourceSet(
-			std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool,
-			PerRenderState<vk::raii::DescriptorSet> data_descriptor_set
-		) :
-			descriptor_pool(std::move(descriptor_pool)),
+		explicit ResourceSet(PerRenderState<vulkan::trivset::Set<DataInput>> data_descriptor_set) :
 			data_descriptor_set(std::move(data_descriptor_set))
 		{}
 

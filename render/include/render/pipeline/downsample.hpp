@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
-#include <memory>
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -14,6 +14,7 @@
 #include "common/util/error.hpp"
 #include "render/resource/deferred.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 namespace render
 {
@@ -65,14 +66,47 @@ namespace render
 		using PushConstant = glm::u32vec2;
 		static constexpr auto BLOCK_SIZE = 16_u32;
 
-		vk::raii::DescriptorSetLayout descriptor_set_layout;
+		struct Input : public vulkan::trivset::LayoutBase
+		{
+			CombinedImageSampler full_albedo_tex;
+			CombinedImageSampler full_normal_tex;
+			CombinedImageSampler full_geom_normal_tex;
+			CombinedImageSampler full_smooth_normal_tex;
+			CombinedImageSampler full_pbr_tex;
+			CombinedImageSampler full_depth_tex;
+
+			StorageImage half_albedo_tex;
+			StorageImage half_normal_tex;
+			StorageImage half_geom_normal_tex;
+			StorageImage half_smooth_normal_tex;
+			StorageImage half_pbr_tex;
+			StorageImage half_depth_tex;
+
+			static constexpr auto STAGE = vk::ShaderStageFlagBits::eCompute;
+			static constexpr auto SLOT_LIST = std::make_tuple(
+				&Input::full_albedo_tex,
+				&Input::full_normal_tex,
+				&Input::full_geom_normal_tex,
+				&Input::full_smooth_normal_tex,
+				&Input::full_pbr_tex,
+				&Input::full_depth_tex,
+				&Input::half_albedo_tex,
+				&Input::half_normal_tex,
+				&Input::half_geom_normal_tex,
+				&Input::half_smooth_normal_tex,
+				&Input::half_pbr_tex,
+				&Input::half_depth_tex
+			);
+		};
+
+		vulkan::trivset::Layout<Input> descriptor_set_layout;
 		vk::raii::PipelineLayout pipeline_layout;
 		vk::raii::Pipeline pipeline;
 
 		vk::raii::Sampler texture_sampler;
 
 		explicit DownsamplePipeline(
-			vk::raii::DescriptorSetLayout descriptor_set_layout,
+			vulkan::trivset::Layout<Input> descriptor_set_layout,
 			vk::raii::PipelineLayout pipeline_layout,
 			vk::raii::Pipeline pipeline,
 			vk::raii::Sampler texture_sampler
@@ -113,19 +147,12 @@ namespace render
 
 	  private:
 
-		std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool;
-		vk::raii::DescriptorSet descriptor_set;
-
+		vulkan::trivset::Set<Input> descriptor_set;
 		vk::Sampler texture_sampler;
 
 		std::optional<HalfDeferredAttachment::View> attachment = std::nullopt;
 
-		explicit ResourceSet(
-			std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool,
-			vk::raii::DescriptorSet descriptor_set,
-			vk::Sampler texture_sampler
-		) :
-			descriptor_pool(std::move(descriptor_pool)),
+		explicit ResourceSet(vulkan::trivset::Set<Input> descriptor_set, vk::Sampler texture_sampler) :
 			descriptor_set(std::move(descriptor_set)),
 			texture_sampler(texture_sampler)
 		{}

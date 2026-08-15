@@ -8,16 +8,14 @@
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
-#include "vulkan/numeric/pool-size.hpp"
-#include "vulkan/util/descriptor-set-layout.hpp"
 #include "vulkan/util/shader.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <array>
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <libassert/assert.hpp>
-#include <memory>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -28,47 +26,10 @@ namespace render
 {
 	namespace
 	{
-		using DescriptorSetLayout = vulkan::MonoDescriptorSetLayout<
-			vulkan::MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			vulkan::MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			vulkan::MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			vulkan::MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			vulkan::MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			vulkan::MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			vulkan::
-				MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
-			vulkan::
-				MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
-			vulkan::
-				MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
-			vulkan::
-				MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
-			vulkan::
-				MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
-			vulkan::
-				MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>
-		>;
-
-		std::expected<std::pair<vk::raii::DescriptorSetLayout, vk::raii::PipelineLayout>, Error>
-		create_layout(const vulkan::Context& context) noexcept
+		std::expected<vk::raii::PipelineLayout, Error> create_pipeline_layout(
+			const vulkan::Context& context,
+			vk::DescriptorSetLayout descriptor_set_layout
+		) noexcept
 		{
 			constexpr auto push_constant_range = vk::PushConstantRange{
 				.stageFlags = vk::ShaderStageFlagBits::eCompute,
@@ -76,21 +37,13 @@ namespace render
 				.size = sizeof(glm::u32vec2),
 			};
 
-			auto descriptor_set_layout_result = DescriptorSetLayout::create_descriptor_set_layout(context);
-			if (!descriptor_set_layout_result)
-				return descriptor_set_layout_result.error().forward("Create descirptor set layout failed");
-			auto descriptor_set_layout = std::move(*descriptor_set_layout_result);
-			const auto descriptor_set_layout_raw = *descriptor_set_layout;
-
 			auto pipeline_layout_result = context.device.createPipelineLayout(
 				vk::PipelineLayoutCreateInfo()
-					.setSetLayouts(descriptor_set_layout_raw)
+					.setSetLayouts(descriptor_set_layout)
 					.setPushConstantRanges(push_constant_range)
 			);
 			if (!pipeline_layout_result) return Error::from(pipeline_layout_result);
-			auto pipeline_layout = std::move(*pipeline_layout_result);
-
-			return std::make_pair(std::move(descriptor_set_layout), std::move(pipeline_layout));
+			return std::move(*pipeline_layout_result);
 		}
 
 		std::expected<vk::raii::Pipeline, Error> create_pipeline(
@@ -148,9 +101,14 @@ namespace render
 		if (!shader_module_result) return shader_module_result.error().forward("Create shader module failed");
 		auto shader_module = std::move(*shader_module_result);
 
-		auto layout_result = create_layout(context);
-		if (!layout_result) return layout_result.error().forward("Create layout failed");
-		auto [descriptor_set_layout, pipeline_layout] = std::move(*layout_result);
+		auto descriptor_set_layout_result = vulkan::trivset::Layout<Input>::create(context);
+		if (!descriptor_set_layout_result)
+			return descriptor_set_layout_result.error().forward("Create descriptor set layout failed");
+		auto descriptor_set_layout = std::move(*descriptor_set_layout_result);
+
+		auto pipeline_layout_result = create_pipeline_layout(context, descriptor_set_layout);
+		if (!pipeline_layout_result) return pipeline_layout_result.error().forward("Create layout failed");
+		auto pipeline_layout = std::move(*pipeline_layout_result);
 
 		auto pipeline_result = create_pipeline(context, pipeline_layout, shader_module);
 		if (!pipeline_result) return pipeline_result.error().forward("Create downsample pipeline failed");
@@ -171,32 +129,15 @@ namespace render
 	std::expected<std::vector<DownsamplePipeline::ResourceSet>, Error>
 	DownsamplePipeline::create_resource_sets(const vulkan::Context& context, uint32_t count) const noexcept
 	{
-		const auto pool_sizes = vulkan::calc_pool_sizes(DescriptorSetLayout::get_bindings(), count);
-		auto pool_result = context.device.createDescriptorPool(
-			vk::DescriptorPoolCreateInfo()
-				.setPoolSizes(pool_sizes)
-				.setMaxSets(count)
-				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-		);
-		if (!pool_result) return Error::from(pool_result);
-		auto pool = std::make_shared<vk::raii::DescriptorPool>(std::move(*pool_result));
-
-		const auto data_layouts = std::vector(count, *descriptor_set_layout);
-		auto sets_result = context.device.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo()
-				.setSetLayouts(data_layouts)
-				.setDescriptorSetCount(count)
-				.setDescriptorPool(*pool)
-		);
-		if (!sets_result) return Error::from(sets_result);
+		auto sets_result = descriptor_set_layout.create_sets(context, count);
+		if (!sets_result) return sets_result.error().forward("Create descriptor sets failed");
 		auto sets = std::move(*sets_result);
 
 		return std::vector(
 			std::from_range,
 			std::views::zip_transform(
 				CTOR_LAMBDA(ResourceSet),
-				std::views::repeat(pool, count),
-				sets | std::views::as_rvalue,
+				std::views::as_rvalue(sets),
 				std::views::repeat(static_cast<vk::Sampler>(texture_sampler))
 			)
 		);
@@ -245,7 +186,7 @@ namespace render
 			vk::PipelineBindPoint::eCompute,
 			pipeline_layout,
 			0,
-			{resource_set.descriptor_set},
+			{*resource_set.descriptor_set},
 			{}
 		);
 		command_buffer.pushConstants<PushConstant>(
@@ -287,45 +228,25 @@ namespace render
 		HalfDeferredAttachment::View halfres_deferred
 	) noexcept
 	{
-		const auto full_tex = std::to_array<vk::ImageView>({
-			deferred.albedo.view,
-			deferred.normal.view,
-			deferred.geom_normal.view,
-			deferred.smooth_normal.view,
-			deferred.pbr.view,
-			deferred.depth.view,
-		});
+		using namespace vulkan::trivset;
 
-		const auto half_tex = std::to_array<vk::ImageView>({
-			halfres_deferred.albedo.view,
-			halfres_deferred.normal.view,
-			halfres_deferred.geom_normal.view,
-			halfres_deferred.smooth_normal.view,
-			halfres_deferred.pbr.view,
-			halfres_deferred.depth.view,
-		});
+		const auto input = Input{
+			.full_albedo_tex = deferred.albedo + texture_sampler,
+			.full_normal_tex = deferred.normal + texture_sampler,
+			.full_geom_normal_tex = deferred.geom_normal + texture_sampler,
+			.full_smooth_normal_tex = deferred.smooth_normal + texture_sampler,
+			.full_pbr_tex = deferred.pbr + texture_sampler,
+			.full_depth_tex = deferred.depth + texture_sampler,
 
-		const auto full_info =
-			full_tex | util::map_array([this](vk::ImageView view) {
-				return vk::DescriptorImageInfo{
-					.sampler = texture_sampler,
-					.imageView = view,
-					.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-				};
-			});
+			.half_albedo_tex = halfres_deferred.albedo,
+			.half_normal_tex = halfres_deferred.normal,
+			.half_geom_normal_tex = halfres_deferred.geom_normal,
+			.half_smooth_normal_tex = halfres_deferred.smooth_normal,
+			.half_pbr_tex = halfres_deferred.pbr,
+			.half_depth_tex = halfres_deferred.depth,
+		};
 
-		const auto half_info =
-			half_tex | util::map_array([](vk::ImageView view) {
-				return vk::DescriptorImageInfo{
-					.sampler = nullptr,
-					.imageView = view,
-					.imageLayout = vk::ImageLayout::eGeneral
-				};
-			});
-
-		const auto infos = util::array_concat(full_info, half_info) | util::array_to_tuple;
-		const auto write_sets = DescriptorSetLayout::get_write_infos(descriptor_set, infos);
-		context.device.updateDescriptorSets(write_sets, {});
+		descriptor_set.update(context, input);
 
 		attachment = halfres_deferred;
 	}

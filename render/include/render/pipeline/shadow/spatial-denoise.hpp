@@ -8,13 +8,13 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
-#include <array>
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
-#include <memory>
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -81,20 +81,38 @@ namespace render::shadow
 
 		static constexpr auto BLOCK_SIZE = 16_u32;
 
+		struct Input : public vulkan::trivset::LayoutBase
+		{
+			CombinedImageSampler input_tex;
+			StorageImage output_tex;
+			CombinedImageSampler depth_tex;
+			CombinedImageSampler normal_tex;
+			UniformBuffer camera;
+
+			static constexpr auto STAGE = vk::ShaderStageFlagBits::eCompute;
+			static constexpr auto SLOT_LIST = std::make_tuple(
+				&Input::input_tex,
+				&Input::output_tex,
+				&Input::depth_tex,
+				&Input::normal_tex,
+				&Input::camera
+			);
+		};
+
 		struct PushConstant
 		{
 			glm::u32vec2 half_size;
 			uint32_t stride;
 		};
 
-		vk::raii::DescriptorSetLayout input_layout;
+		vulkan::trivset::Layout<Input> input_layout;
 		vk::raii::PipelineLayout pipeline_layout;
 		vk::raii::Pipeline pipeline;
 
 		vk::raii::Sampler sampler;
 
 		explicit SpatialDenoisePipeline(
-			vk::raii::DescriptorSetLayout input_layout,
+			vulkan::trivset::Layout<Input> input_layout,
 			vk::raii::PipelineLayout pipeline_layout,
 			vk::raii::Pipeline pipeline,
 			vk::raii::Sampler sampler
@@ -137,8 +155,7 @@ namespace render::shadow
 
 	  private:
 
-		std::shared_ptr<vk::raii::DescriptorPool> pool;
-		std::array<std::unique_ptr<vk::raii::DescriptorSet>, FILTER_PASSES> sets;
+		std::vector<vulkan::trivset::Set<Input>> sets;
 		vk::Sampler sampler;
 
 		struct Resource
@@ -154,12 +171,7 @@ namespace render::shadow
 
 		friend SpatialDenoisePipeline;
 
-		explicit ResourceSet(
-			std::shared_ptr<vk::raii::DescriptorPool> pool,
-			std::array<std::unique_ptr<vk::raii::DescriptorSet>, FILTER_PASSES> sets,
-			vk::Sampler sampler
-		) :
-			pool(std::move(pool)),
+		explicit ResourceSet(std::vector<vulkan::trivset::Set<Input>> sets, vk::Sampler sampler) :
 			sets(std::move(sets)),
 			sampler(sampler)
 		{}

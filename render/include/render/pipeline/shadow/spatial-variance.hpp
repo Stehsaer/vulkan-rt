@@ -8,12 +8,13 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
-#include <memory>
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -85,21 +86,59 @@ namespace render::shadow
 			glm::u32vec2 full;
 		};
 
-		vk::raii::DescriptorSetLayout compute_set_layout;
+		struct ComputeInput : public vulkan::trivset::LayoutBase
+		{
+			CombinedImageSampler input_tex;
+			StorageImage mean_tex;
+			StorageImage stddev_tex;
+			CombinedImageSampler depth_tex;
+			CombinedImageSampler normal_tex;
+			UniformBuffer camera;
+
+			static constexpr auto STAGE = vk::ShaderStageFlagBits::eCompute;
+			static constexpr auto SLOT_LIST = std::make_tuple(
+				&ComputeInput::input_tex,
+				&ComputeInput::mean_tex,
+				&ComputeInput::stddev_tex,
+				&ComputeInput::depth_tex,
+				&ComputeInput::normal_tex,
+				&ComputeInput::camera
+			);
+		};
+
+		struct FilterInput : public vulkan::trivset::LayoutBase
+		{
+			CombinedImageSampler input_stddev_tex;
+			StorageImage output_stddev_tex;
+			CombinedImageSampler depth_tex;
+			CombinedImageSampler normal_tex;
+			UniformBuffer camera;
+
+			static constexpr auto STAGE = vk::ShaderStageFlagBits::eCompute;
+			static constexpr auto SLOT_LIST = std::make_tuple(
+				&FilterInput::input_stddev_tex,
+				&FilterInput::output_stddev_tex,
+				&FilterInput::depth_tex,
+				&FilterInput::normal_tex,
+				&FilterInput::camera
+			);
+		};
+
+		vulkan::trivset::Layout<ComputeInput> compute_set_layout;
 		vk::raii::PipelineLayout compute_pipeline_layout;
 		vk::raii::Pipeline compute_pipeline;
 
-		vk::raii::DescriptorSetLayout filter_set_layout;
+		vulkan::trivset::Layout<FilterInput> filter_set_layout;
 		vk::raii::PipelineLayout filter_pipeline_layout;
 		vk::raii::Pipeline filter_pipeline;
 
 		vk::raii::Sampler sampler;
 
 		explicit SpatialVariancePipeline(
-			vk::raii::DescriptorSetLayout compute_set_layout,
+			vulkan::trivset::Layout<ComputeInput> compute_set_layout,
 			vk::raii::PipelineLayout compute_pipeline_layout,
 			vk::raii::Pipeline compute_pipeline,
-			vk::raii::DescriptorSetLayout filter_set_layout,
+			vulkan::trivset::Layout<FilterInput> filter_set_layout,
 			vk::raii::PipelineLayout filter_pipeline_layout,
 			vk::raii::Pipeline filter_pipeline,
 			vk::raii::Sampler sampler
@@ -149,9 +188,8 @@ namespace render::shadow
 
 	  private:
 
-		std::shared_ptr<vk::raii::DescriptorPool> pool;
-		vk::raii::DescriptorSet compute_set;
-		vk::raii::DescriptorSet filter_set;
+		vulkan::trivset::Set<ComputeInput> compute_set;
+		vulkan::trivset::Set<FilterInput> filter_set;
 		vk::Sampler sampler;
 
 		struct Resource
@@ -168,12 +206,10 @@ namespace render::shadow
 		auto operator->() const noexcept { return resource.operator->(); }
 
 		ResourceSet(
-			std::shared_ptr<vk::raii::DescriptorPool> pool,
-			vk::raii::DescriptorSet compute_set,
-			vk::raii::DescriptorSet filter_set,
+			vulkan::trivset::Set<ComputeInput> compute_set,
+			vulkan::trivset::Set<FilterInput> filter_set,
 			vk::Sampler sampler
 		) :
-			pool(std::move(pool)),
 			compute_set(std::move(compute_set)),
 			filter_set(std::move(filter_set)),
 			sampler(sampler)

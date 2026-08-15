@@ -3,8 +3,10 @@
 #include "common/util/error.hpp"
 #include "render/model/model.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <expected>
+#include <tuple>
 #include <utility>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -19,6 +21,21 @@ namespace render
 	{
 	  public:
 
+		struct MeshInput : public vulkan::trivset::LayoutBase
+		{
+			StorageBuffer primitive_attr;
+			StorageBuffer vertex_buffer;
+			StorageBuffer index_buffer;
+
+			static constexpr auto STAGE =
+				vk::ShaderStageFlagBits::eAnyHitKHR | vk::ShaderStageFlagBits::eClosestHitKHR;
+			static constexpr auto SLOT_LIST = std::make_tuple(
+				&MeshInput::primitive_attr,
+				&MeshInput::vertex_buffer,
+				&MeshInput::index_buffer
+			);
+		};
+
 		///
 		/// @brief Create raytracing resource layout
 		///
@@ -27,6 +44,14 @@ namespace render
 		///
 		[[nodiscard]]
 		static std::expected<RaytraceResourceLayout, Error> create(const vulkan::Context& context) noexcept;
+
+		///
+		/// @brief Get the underlying descriptor set layout
+		///
+		/// @return Underlying descriptor set layout
+		///
+		[[nodiscard]]
+		const vulkan::trivset::Layout<MeshInput>& get_layout() const noexcept { return mesh_resource_layout; }
 
 		struct View
 		{
@@ -40,9 +65,9 @@ namespace render
 
 	  private:
 
-		vk::raii::DescriptorSetLayout mesh_resource_layout;
+		vulkan::trivset::Layout<MeshInput> mesh_resource_layout;
 
-		explicit RaytraceResourceLayout(vk::raii::DescriptorSetLayout mesh_resource_layout) :
+		explicit RaytraceResourceLayout(vulkan::trivset::Layout<MeshInput> mesh_resource_layout) :
 			mesh_resource_layout(std::move(mesh_resource_layout))
 		{}
 
@@ -89,11 +114,9 @@ namespace render
 
 	  private:
 
-		vk::raii::DescriptorPool pool;
-		vk::raii::DescriptorSet mesh_resource_set;
+		vulkan::trivset::Set<RaytraceResourceLayout::MeshInput> mesh_resource_set;
 
-		explicit RaytraceResource(vk::raii::DescriptorPool pool, vk::raii::DescriptorSet mesh_resource_set) :
-			pool(std::move(pool)),
+		explicit RaytraceResource(vulkan::trivset::Set<RaytraceResourceLayout::MeshInput> mesh_resource_set) :
 			mesh_resource_set(std::move(mesh_resource_set))
 		{}
 

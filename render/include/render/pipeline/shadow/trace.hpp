@@ -12,13 +12,14 @@
 #include "vulkan/alloc/buffer.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_int2_sized.hpp>
 #include <glm/ext/vector_uint2_sized.hpp>
-#include <memory>
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -88,7 +89,27 @@ namespace render::shadow
 			uint32_t frame_index;
 		};
 
-		vk::raii::DescriptorSetLayout input_layout;
+		struct Input : public vulkan::trivset::LayoutBase
+		{
+			AccelerationStructure tlas;
+			UniformBuffer direct_light;
+			UniformBuffer camera;
+			CombinedImageSampler depth_tex;
+			CombinedImageSampler noise_tex;
+			StorageImage shadow_tex;
+
+			static constexpr auto STAGE = vk::ShaderStageFlagBits::eRaygenKHR;
+			static constexpr auto SLOT_LIST = std::make_tuple(
+				&Input::tlas,
+				&Input::direct_light,
+				&Input::camera,
+				&Input::depth_tex,
+				&Input::noise_tex,
+				&Input::shadow_tex
+			);
+		};
+
+		vulkan::trivset::Layout<Input> input_layout;
 		vk::raii::PipelineLayout pipeline_layout;
 
 		vk::raii::Pipeline pipeline;
@@ -109,7 +130,7 @@ namespace render::shadow
 		) noexcept;
 
 		explicit RaytracePipeline(
-			vk::raii::DescriptorSetLayout input_layout,
+			vulkan::trivset::Layout<Input> input_layout,
 			vk::raii::PipelineLayout pipeline_layout,
 			vk::raii::Pipeline pipeline,
 			vulkan::Buffer sbt_buffer,
@@ -172,8 +193,7 @@ namespace render::shadow
 
 	  private:
 
-		std::shared_ptr<vk::raii::DescriptorPool> pool;
-		vk::raii::DescriptorSet input_set;
+		vulkan::trivset::Set<Input> input_set;
 		vk::Sampler sampler;
 
 		struct Resource
@@ -193,12 +213,7 @@ namespace render::shadow
 
 		friend RaytracePipeline;
 
-		ResourceSet(
-			std::shared_ptr<vk::raii::DescriptorPool> pool,
-			vk::raii::DescriptorSet input_set,
-			vk::Sampler depth_sampler
-		) :
-			pool(std::move(pool)),
+		ResourceSet(vulkan::trivset::Set<Input> input_set, vk::Sampler depth_sampler) :
 			input_set(std::move(input_set)),
 			sampler(depth_sampler)
 		{}

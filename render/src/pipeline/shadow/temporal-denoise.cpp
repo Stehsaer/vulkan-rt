@@ -7,16 +7,14 @@
 #include "shader/shadow/temporal-denoise.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
-#include "vulkan/numeric/pool-size.hpp"
-#include "vulkan/util/descriptor-set-layout.hpp"
 #include "vulkan/util/shader.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <array>
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <libassert/assert.hpp>
-#include <memory>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -25,42 +23,11 @@
 
 namespace render::shadow
 {
-	namespace
-	{
-		using vulkan::MonoDescriptorSetLayout;
-		using vulkan::MonoDescriptorSetSlot;
-
-		using Layout = MonoDescriptorSetLayout<
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eCompute
-			>,
-			MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>,
-			MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute>
-		>;
-	}
-
 	std::expected<TemporalDenoisePipeline, Error> TemporalDenoisePipeline::create(
 		const vulkan::Context& context
 	) noexcept
 	{
-		auto set_layout_result = Layout::create_descriptor_set_layout(context);
+		auto set_layout_result = vulkan::trivset::Layout<Input>::create(context);
 		if (!set_layout_result)
 			return set_layout_result.error().forward("Create descriptor set layout failed");
 		auto set_layout = std::move(*set_layout_result);
@@ -132,28 +99,12 @@ namespace render::shadow
 	std::expected<std::vector<TemporalDenoisePipeline::ResourceSet>, Error> TemporalDenoisePipeline::
 		create_resource_sets(const vulkan::Context& context, uint32_t count) const noexcept
 	{
-		static constexpr auto BINDINGS = Layout::get_bindings();
-		const auto pool_sizes = vulkan::calc_pool_sizes(BINDINGS, count);
-
-		auto pool_result = context.device.createDescriptorPool(
-			vk::DescriptorPoolCreateInfo()
-				.setPoolSizes(pool_sizes)
-				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-				.setMaxSets(count)
-		);
-		if (!pool_result) return Error::from(pool_result);
-		auto pool = std::make_shared<vk::raii::DescriptorPool>(std::move(*pool_result));
-
-		const auto layouts = std::vector(count, *set_layout);
-		auto sets_result = context.device.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo().setSetLayouts(layouts).setDescriptorPool(*pool)
-		);
-		if (!sets_result) return Error::from(sets_result);
+		auto sets_result = set_layout.create_sets(context, count);
+		if (!sets_result) return sets_result.error().forward("Create descriptor sets failed");
 		auto sets = std::move(*sets_result);
 
 		return std::views::zip_transform(
 				   CTOR_LAMBDA(ResourceSet),
-				   std::views::repeat(pool, count),
 				   std::views::as_rvalue(sets),
 				   std::views::repeat(*sampler, count)
 			   )
@@ -251,61 +202,22 @@ namespace render::shadow
 		MotionVectorAttachment::View motion_vector
 	) noexcept
 	{
+		using namespace vulkan::trivset;
+
 		DEBUG_ASSERT(shadow.half_extent == prev_shadow.half_extent);
 		DEBUG_ASSERT(shadow.half_extent == motion_vector.half_extent);
 
-		const auto initial_sample = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = shadow.init_sample.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+		const auto input = Input{
+			.prev_history_tex = prev_shadow.history + sampler,
+			.curr_shadow_tex = shadow.init_sample + sampler,
+			.mean_tex = shadow.spatial_mean + sampler,
+			.stddev_tex = shadow.filtered_spatial_stddev + sampler,
+			.motion_vector_tex = motion_vector.motion_vector + sampler,
+			.denoise_tex = shadow.denoise_alice,
+			.curr_history_tex = shadow.history
 		};
 
-		const auto history = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = prev_shadow.history.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		};
-
-		const auto spatial_mean = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = shadow.spatial_mean.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		};
-
-		const auto spatial_stddev = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = shadow.filtered_spatial_stddev.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-		};
-
-		const auto motion_vector_tex = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = motion_vector.motion_vector.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-		};
-
-		const auto curr_history = vk::DescriptorImageInfo{
-			.imageView = shadow.history.view,
-			.imageLayout = vk::ImageLayout::eGeneral
-		};
-
-		const auto denoise_alice = vk::DescriptorImageInfo{
-			.imageView = shadow.denoise_alice.view,
-			.imageLayout = vk::ImageLayout::eGeneral
-		};
-
-		const auto write_infos = Layout::get_write_infos(
-			set,
-			history,
-			initial_sample,
-			spatial_mean,
-			spatial_stddev,
-			motion_vector_tex,
-			denoise_alice,
-			curr_history
-		);
-
-		context.device.updateDescriptorSets(write_infos, {});
+		set.update(context, input);
 
 		resource = Resource{
 			.half_extent = shadow.half_extent,

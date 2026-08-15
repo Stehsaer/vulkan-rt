@@ -17,10 +17,9 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
-#include "vulkan/numeric/pool-size.hpp"
 #include "vulkan/util/command-runner.hpp"
-#include "vulkan/util/descriptor-set-layout.hpp"
 #include "vulkan/util/shader.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <algorithm>
 #include <array>
@@ -30,7 +29,6 @@
 #include <format>
 #include <glm/ext/vector_int2_sized.hpp>
 #include <libassert/assert.hpp>
-#include <memory>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -39,30 +37,6 @@
 
 namespace render::shadow
 {
-	namespace
-	{
-		using vulkan::MonoDescriptorSetLayout;
-		using vulkan::MonoDescriptorSetSlot;
-
-		using InputLayout = MonoDescriptorSetLayout<
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eAccelerationStructureKHR,
-				vk::ShaderStageFlagBits::eRaygenKHR
-			>,
-			MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eRaygenKHR>,
-			MonoDescriptorSetSlot<vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eRaygenKHR>,
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eRaygenKHR
-			>,
-			MonoDescriptorSetSlot<
-				vk::DescriptorType::eCombinedImageSampler,
-				vk::ShaderStageFlagBits::eRaygenKHR
-			>,
-			MonoDescriptorSetSlot<vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eRaygenKHR>
-		>;
-	}
-
 	std::expected<vk::raii::PipelineLayout, Error> RaytracePipeline::create_pipeline_layout(
 		const vulkan::Context& context,
 		vk::DescriptorSetLayout material_layout,
@@ -253,7 +227,7 @@ namespace render::shadow
 
 		/*===== Create Layouts =====*/
 
-		auto input_layout_result = InputLayout::create_descriptor_set_layout(context);
+		auto input_layout_result = vulkan::trivset::Layout<Input>::create(context);
 		if (!input_layout_result)
 			return input_layout_result.error().forward("Create input descriptor set layout failed");
 		auto input_layout = std::move(*input_layout_result);
@@ -437,28 +411,12 @@ namespace render::shadow
 		uint32_t count
 	) const noexcept
 	{
-		static constexpr auto BINDINGS = InputLayout::get_bindings();
-		const auto pool_sizes = vulkan::calc_pool_sizes(BINDINGS, count);
-
-		auto pool_result = context.device.createDescriptorPool(
-			vk::DescriptorPoolCreateInfo()
-				.setPoolSizes(pool_sizes)
-				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-				.setMaxSets(count)
-		);
-		if (!pool_result) return Error::from(pool_result);
-		auto pool = std::make_shared<vk::raii::DescriptorPool>(std::move(*pool_result));
-
-		const auto layouts = std::vector(count, *input_layout);
-		auto sets_result = context.device.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo().setSetLayouts(layouts).setDescriptorPool(*pool)
-		);
-		if (!sets_result) return Error::from(sets_result);
+		auto sets_result = input_layout.create_sets(context, count);
+		if (!sets_result) return sets_result.error().forward("Create descriptor sets failed");
 		auto sets = std::move(*sets_result);
 
 		return std::views::zip_transform(
 				   CTOR_LAMBDA(ResourceSet),
-				   std::views::repeat(pool, count),
 				   std::views::as_rvalue(sets),
 				   std::views::repeat(*sampler, count)
 			   )
@@ -548,54 +506,21 @@ namespace render::shadow
 		uint32_t frame_index
 	) noexcept
 	{
+		using namespace vulkan::trivset;
+
 		DEBUG_ASSERT(gbuffer->half_extent == attachment->half_extent);
 		DEBUG_ASSERT(gbuffer->full_extent == attachment->full_extent);
 
-		const vk::AccelerationStructureKHR tlas_instance = tlas;
-		const auto tlas_write_info =
-			vk::WriteDescriptorSetAccelerationStructureKHR().setAccelerationStructures(tlas_instance);
-
-		const auto direct_light_buffer_info = vk::DescriptorBufferInfo{
-			.buffer = direct_light,
-			.offset = 0,
-			.range = vk::WholeSize,
+		const auto input = Input{
+			.tlas = static_cast<vk::AccelerationStructureKHR>(tlas),
+			.direct_light = direct_light,
+			.camera = camera,
+			.depth_tex = gbuffer.depth + sampler,
+			.noise_tex = noise_tex + sampler,
+			.shadow_tex = attachment.init_sample
 		};
 
-		const auto camera_buffer_info = vk::DescriptorBufferInfo{
-			.buffer = camera,
-			.offset = 0,
-			.range = vk::WholeSize,
-		};
-
-		const auto depth_tex_info = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = gbuffer.depth.view,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		};
-
-		const auto noise_tex_info = vk::DescriptorImageInfo{
-			.sampler = sampler,
-			.imageView = noise_tex,
-			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-		};
-
-		const auto shadow_tex_info = vk::DescriptorImageInfo{
-			.sampler = nullptr,
-			.imageView = attachment.init_sample.view,
-			.imageLayout = vk::ImageLayout::eGeneral
-		};
-
-		const auto write_infos = InputLayout::get_write_infos(
-			input_set,
-			tlas_write_info,
-			direct_light_buffer_info,
-			camera_buffer_info,
-			depth_tex_info,
-			noise_tex_info,
-			shadow_tex_info
-		);
-
-		context.device.updateDescriptorSets(write_infos, {});
+		input_set.update(context, input);
 
 		resource = Resource{
 			.full_extent = attachment.full_extent,

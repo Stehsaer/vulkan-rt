@@ -8,12 +8,13 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
-#include <memory>
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -73,14 +74,30 @@ namespace render
 
 		static constexpr auto BLOCK_SIZE = 16_u32;
 
-		vk::raii::DescriptorSetLayout set_layout;
+		struct Input : public vulkan::trivset::LayoutBase
+		{
+			CombinedImageSampler depth_tex;
+			CombinedImageSampler prev_depth_tex;
+			StorageImage motion_vector_tex;
+			UniformBuffer camera;
+
+			static constexpr auto STAGE = vk::ShaderStageFlagBits::eCompute;
+			static constexpr auto SLOT_LIST = std::make_tuple(
+				&Input::depth_tex,
+				&Input::prev_depth_tex,
+				&Input::motion_vector_tex,
+				&Input::camera
+			);
+		};
+
+		vulkan::trivset::Layout<Input> set_layout;
 		vk::raii::PipelineLayout pipeline_layout;
 		vk::raii::Pipeline pipeline;
 
 		vk::raii::Sampler sampler;
 
 		explicit MotionVectorPipeline(
-			vk::raii::DescriptorSetLayout set_layout,
+			vulkan::trivset::Layout<Input> set_layout,
 			vk::raii::PipelineLayout pipeline_layout,
 			vk::raii::Pipeline pipeline,
 			vk::raii::Sampler sampler
@@ -125,9 +142,7 @@ namespace render
 
 	  private:
 
-		std::shared_ptr<vk::raii::DescriptorPool> pool;
-		vk::raii::DescriptorSet set;
-
+		vulkan::trivset::Set<Input> set;
 		vk::Sampler sampler;
 
 		struct Resource
@@ -141,12 +156,7 @@ namespace render
 
 		auto operator->() const noexcept { return resource.operator->(); }
 
-		explicit ResourceSet(
-			std::shared_ptr<vk::raii::DescriptorPool> pool,
-			vk::raii::DescriptorSet set,
-			vk::Sampler sampler
-		) :
-			pool(std::move(pool)),
+		explicit ResourceSet(vulkan::trivset::Set<Input> set, vk::Sampler sampler) :
 			set(std::move(set)),
 			sampler(sampler)
 		{}

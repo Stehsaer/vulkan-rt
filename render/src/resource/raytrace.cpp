@@ -3,8 +3,7 @@
 #include "render/model/mesh.hpp"
 #include "render/model/model.hpp"
 #include "vulkan/interface/context.hpp"
-#include "vulkan/numeric/pool-size.hpp"
-#include "vulkan/util/descriptor-set-layout.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <expected>
 #include <utility>
@@ -13,31 +12,13 @@
 
 namespace render
 {
-	using MeshResourceLayout = vulkan::MonoDescriptorSetLayout<
-		vulkan::MonoDescriptorSetSlot<
-			vk::DescriptorType::eStorageBuffer,
-			vk::ShaderStageFlagBits::eAnyHitKHR,
-			vk::ShaderStageFlagBits::eClosestHitKHR
-		>,
-		vulkan::MonoDescriptorSetSlot<
-			vk::DescriptorType::eStorageBuffer,
-			vk::ShaderStageFlagBits::eAnyHitKHR,
-			vk::ShaderStageFlagBits::eClosestHitKHR
-		>,
-		vulkan::MonoDescriptorSetSlot<
-			vk::DescriptorType::eStorageBuffer,
-			vk::ShaderStageFlagBits::eAnyHitKHR,
-			vk::ShaderStageFlagBits::eClosestHitKHR
-		>
-	>;
-
 	std::expected<RaytraceResourceLayout, Error> RaytraceResourceLayout::create(
 		const vulkan::Context& context
 	) noexcept
 	{
-		return MeshResourceLayout::create_descriptor_set_layout(context).transform(
-			[](vk::raii::DescriptorSetLayout layout) { return RaytraceResourceLayout(std::move(layout)); }
-		);
+		auto layout_result = vulkan::trivset::Layout<MeshInput>::create(context);
+		if (!layout_result) return layout_result.error().forward("Create layout failed");
+		return RaytraceResourceLayout(std::move(*layout_result));
 	}
 
 	std::expected<RaytraceResource, Error> RaytraceResource::create(
@@ -48,53 +29,22 @@ namespace render
 	{
 		/*===== Create descriptor set =====*/
 
-		static constexpr auto BINDINGS = MeshResourceLayout::get_bindings();
-		const auto pool_sizes = vulkan::calc_pool_sizes(BINDINGS, 1);
-
-		auto pool_result = context.device.createDescriptorPool(
-			vk::DescriptorPoolCreateInfo()
-				.setPoolSizes(pool_sizes)
-				.setMaxSets(1)
-				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-		);
-		if (!pool_result) return Error::from(pool_result);
-		auto pool = std::move(*pool_result);
-
-		const vk::DescriptorSetLayout raw_layout = layout->mesh_resource;
-		auto set_result = context.device.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo().setSetLayouts(raw_layout).setDescriptorPool(pool)
-		);
-		if (!set_result) return Error::from(set_result);
-		auto set = std::move(set_result->at(0));
+		auto sets_result = layout.get_layout().create_sets(context, 1);
+		if (!sets_result) return sets_result.error().forward("Create descriptor sets failed");
+		auto set = std::move((*sets_result)[0]);
 
 		/*===== Write descriptor set =====*/
 
-		const auto primitive_buffer_info = vk::DescriptorBufferInfo{
-			.buffer = model.mesh_list->primitive_attr_buffer,
-			.offset = 0,
-			.range = vk::WholeSize,
+		using namespace vulkan::trivset;
+
+		const auto input = RaytraceResourceLayout::MeshInput{
+			.primitive_attr = slot::StorageBuffer(model.mesh_list->primitive_attr_buffer, 0, vk::WholeSize),
+			.vertex_buffer = slot::StorageBuffer(model.mesh_list->vertex_buffer, 0, vk::WholeSize),
+			.index_buffer = slot::StorageBuffer(model.mesh_list->index_buffer, 0, vk::WholeSize),
 		};
 
-		const auto vertex_buffer_info = vk::DescriptorBufferInfo{
-			.buffer = model.mesh_list->vertex_buffer,
-			.offset = 0,
-			.range = vk::WholeSize,
-		};
+		set.update(context, input);
 
-		const auto index_buffer_info = vk::DescriptorBufferInfo{
-			.buffer = model.mesh_list->index_buffer,
-			.offset = 0,
-			.range = vk::WholeSize,
-		};
-
-		const auto write_sets = MeshResourceLayout::get_write_infos(
-			set,
-			primitive_buffer_info,
-			vertex_buffer_info,
-			index_buffer_info
-		);
-		context.device.updateDescriptorSets(write_sets, {});
-
-		return RaytraceResource(std::move(pool), std::move(set));
+		return RaytraceResource(std::move(set));
 	}
 }
