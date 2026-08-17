@@ -51,7 +51,10 @@ namespace render
 		/// @return Underlying descriptor set layout
 		///
 		[[nodiscard]]
-		const vulkan::trivset::Layout<MeshInput>& get_layout() const noexcept { return mesh_resource_layout; }
+		const vulkan::trivset::Layout<MeshInput>& get_layout() const noexcept
+		{
+			return mesh_resource_layout;
+		}
 
 		struct View
 		{

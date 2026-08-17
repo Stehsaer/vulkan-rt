@@ -87,6 +87,7 @@ namespace vulkan::impl
 	{
 		vk::PhysicalDeviceVulkan12Features result = {};
 		CHECK_FIELD(available, result, shaderFloat16);
+		CHECK_FIELD(available, result, shaderInt8);
 		CHECK_FIELD(available, result, scalarBlockLayout);
 		CHECK_FIELD(available, result, runtimeDescriptorArray);
 		CHECK_FIELD(available, result, bufferDeviceAddress);

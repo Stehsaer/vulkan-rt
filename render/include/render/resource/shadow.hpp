@@ -30,6 +30,9 @@ namespace render
 		// Format for ping-pong buffer containing both mean and variance
 		static constexpr auto DENOISE_FORMAT = vk::Format::eR16G16Unorm;
 
+		// Format for bitmask used in upsample
+		static constexpr auto UPSAMPLE_BITMASK_FORMAT = vk::Format::eR8Uint;
+
 		///
 		/// @brief Create a shadow attachment
 		///
@@ -57,6 +60,7 @@ namespace render
 			vulkan::AttachmentView history;
 			vulkan::AttachmentView denoise_alice;
 			vulkan::AttachmentView denoise_bob;
+			vulkan::AttachmentView upsample_bitmask;
 			vulkan::AttachmentView visibility;
 
 			auto operator->() const noexcept { return this; }
@@ -74,6 +78,7 @@ namespace render
 				.history = history,
 				.denoise_alice = denoise_alice,
 				.denoise_bob = denoise_bob,
+				.upsample_bitmask = upsample_bitmask,
 				.visibility = visibility,
 			};
 		}
@@ -92,6 +97,7 @@ namespace render
 		vulkan::Attachment history;                  // History visibility
 		vulkan::Attachment denoise_alice;            // Ping-pong buffer A
 		vulkan::Attachment denoise_bob;              // Ping-pong buffer B
+		vulkan::Attachment upsample_bitmask;         // Upsample bitmask
 		vulkan::Attachment visibility;               // High-resolution visibility result
 
 		explicit ShadowAttachment(
@@ -104,6 +110,7 @@ namespace render
 			vulkan::Attachment history,
 			vulkan::Attachment denoise_alice,
 			vulkan::Attachment denoise_bob,
+			vulkan::Attachment upsample_bitmask,
 			vulkan::Attachment visibility
 		) :
 			half_extent(half_extent),
@@ -115,6 +122,7 @@ namespace render
 			history(std::move(history)),
 			denoise_alice(std::move(denoise_alice)),
 			denoise_bob(std::move(denoise_bob)),
+			upsample_bitmask(std::move(upsample_bitmask)),
 			visibility(std::move(visibility))
 		{}
 

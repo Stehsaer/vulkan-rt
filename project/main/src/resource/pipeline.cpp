@@ -15,6 +15,7 @@
 #include "render/pipeline/shadow/spatial-variance.hpp"
 #include "render/pipeline/shadow/temporal-denoise.hpp"
 #include "render/pipeline/shadow/trace.hpp"
+#include "render/pipeline/shadow/upsample.hpp"
 #include "render/resource/raytrace.hpp"
 #include "resource/aux-resource.hpp"
 #include "resource/render-resource.hpp"
@@ -87,6 +88,11 @@ namespace resource
 			);
 		auto shadow_spatial_denoise_pipeline = std::move(*shadow_spatial_denoise_pipeline_result);
 
+		auto shadow_upsample_result = render::shadow::UpsamplePipeline::create(context);
+		if (!shadow_upsample_result)
+			return shadow_upsample_result.error().forward("Create shadow upsample pipeline failed");
+		auto shadow_upsample = std::move(*shadow_upsample_result);
+
 		auto direct_lighting_pipeline_result = render::DirectLightingPipeline::create(context);
 		if (!direct_lighting_pipeline_result)
 			return direct_lighting_pipeline_result.error().forward("Create direct lighting pipeline failed");
@@ -111,6 +117,7 @@ namespace resource
 			.shadow_spatial_variance = std::move(shadow_spatial_variance_pipeline),
 			.shadow_temporal_denoise = std::move(shadow_temporal_denoise_pipeline),
 			.shadow_spatial_denoise = std::move(shadow_spatial_denoise_pipeline),
+			.shadow_upsample = std::move(shadow_upsample),
 			.direct_lighting = std::move(direct_lighting_pipeline),
 			.auto_exposure = std::move(auto_exposure_pipeline),
 			.composite = std::move(composite_pipeline)
@@ -181,6 +188,13 @@ namespace resource
 			);
 		auto shadow_spatial_denoise_resource_sets = std::move(*shadow_spatial_denoise_resource_set_result);
 
+		auto shadow_upsample_resource_set_result = shadow_upsample.create_resource_sets(context, count);
+		if (!shadow_upsample_resource_set_result)
+			return shadow_upsample_resource_set_result.error().forward(
+				"Create resource sets for shadow upsample failed"
+			);
+		auto shadow_upsample_resource_sets = std::move(*shadow_upsample_resource_set_result);
+
 		auto direct_lighting_resource_set_result = direct_lighting.create_resource_sets(context, count);
 		if (!direct_lighting_resource_set_result)
 			return direct_lighting_resource_set_result.error().forward(
@@ -212,6 +226,7 @@ namespace resource
 				   shadow_spatial_variance_resource_sets | std::views::as_rvalue,
 				   shadow_temporal_denoise_resource_sets | std::views::as_rvalue,
 				   shadow_spatial_denoise_resource_sets | std::views::as_rvalue,
+				   shadow_upsample_resource_sets | std::views::as_rvalue,
 				   direct_lighting_resource_sets | std::views::as_rvalue,
 				   auto_exposure_resource_sets | std::views::as_rvalue,
 				   composite_resource_sets | std::views::as_rvalue
@@ -294,6 +309,13 @@ namespace resource
 			curr_resource.param->camera,
 			curr_resource.attachments->half_deferred,
 			curr_resource.attachments->shadow
+		);
+
+		shadow_upsample.update(
+			context,
+			curr_resource.attachments->deferred,
+			curr_resource.attachments->shadow,
+			curr_resource.param->camera
 		);
 
 		direct_lighting.update(

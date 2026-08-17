@@ -89,6 +89,16 @@ namespace render
 		if (!denoise_bob_result)
 			return denoise_bob_result.error().forward("Create denoise_bob texture failed");
 
+		auto upsample_bitmask_result = vulkan::Attachment::create(
+			context.device,
+			context.allocator,
+			half_extent,
+			UPSAMPLE_BITMASK_FORMAT,
+			vk::ImageUsageFlagBits::eStorage
+		);
+		if (!upsample_bitmask_result)
+			return upsample_bitmask_result.error().forward("Create upsample bitmask texture failed");
+
 		auto visibility_result = vulkan::Attachment::create(
 			context.device,
 			context.allocator,
@@ -110,6 +120,7 @@ namespace render
 			std::move(*history_result),
 			std::move(*denoise_alice_result),
 			std::move(*denoise_bob_result),
+			std::move(*upsample_bitmask_result),
 			std::move(*visibility_result)
 		);
 	}

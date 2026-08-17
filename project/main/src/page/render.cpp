@@ -371,6 +371,7 @@ namespace page
 			.denoise(frame.command_buffer, frame.resource_set.shadow_temporal_denoise);
 		pipeline.shadow_spatial_denoise
 			.denoise(frame.command_buffer, frame.resource_set.shadow_spatial_denoise);
+		pipeline.shadow_upsample.upsample(frame.command_buffer, frame.resource_set.shadow_upsample);
 	}
 
 	void RenderPage::render_lighting(const Frame& frame) const noexcept

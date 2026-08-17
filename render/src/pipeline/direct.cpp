@@ -315,7 +315,7 @@ namespace render
 
 		const auto shadow_tex_info = vk::DescriptorImageInfo{
 			.sampler = shadow_sampler,
-			.imageView = shadow.denoise_bob.view,  // TODO: switch to visibility buffer
+			.imageView = shadow.visibility.view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		};
 

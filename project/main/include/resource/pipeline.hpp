@@ -17,6 +17,7 @@
 #include "render/pipeline/shadow/spatial-variance.hpp"
 #include "render/pipeline/shadow/temporal-denoise.hpp"
 #include "render/pipeline/shadow/trace.hpp"
+#include "render/pipeline/shadow/upsample.hpp"
 #include "render/resource/raytrace.hpp"
 #include "vulkan/interface/context.hpp"
 
@@ -43,6 +44,7 @@ namespace resource
 		render::shadow::SpatialVariancePipeline shadow_spatial_variance;
 		render::shadow::TemporalDenoisePipeline shadow_temporal_denoise;
 		render::shadow::SpatialDenoisePipeline shadow_spatial_denoise;
+		render::shadow::UpsamplePipeline shadow_upsample;
 		render::DirectLightingPipeline direct_lighting;
 		render::AutoExposurePipeline auto_exposure;
 		render::CompositePipeline composite;
@@ -90,6 +92,7 @@ namespace resource
 		render::shadow::SpatialVariancePipeline::ResourceSet shadow_spatial_variance;
 		render::shadow::TemporalDenoisePipeline::ResourceSet shadow_temporal_denoise;
 		render::shadow::SpatialDenoisePipeline::ResourceSet shadow_spatial_denoise;
+		render::shadow::UpsamplePipeline::ResourceSet shadow_upsample;
 		render::DirectLightingPipeline::ResourceSet direct_lighting;
 		render::AutoExposurePipeline::ResourceSet auto_exposure;
 		render::CompositePipeline::ResourceSet composite;

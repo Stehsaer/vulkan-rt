@@ -44,6 +44,7 @@ namespace vulkan
 	/// - Runtime descriptor array
 	/// - Descriptor indexing (basic supports)
 	/// - Buffer device address
+	/// - Shader 8-bit integer support
 	///
 	/// #### Vulkan 1.3
 	/// - Dynamic rendering

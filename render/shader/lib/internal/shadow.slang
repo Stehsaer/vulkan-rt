@@ -8,6 +8,17 @@ import algorithm.reconstruct;
 
 public static const let VARIANCE_STORAGE_RATIO = 4.0;
 
+public static const let NEIGHBOR_8_OFFSETS : int2[8] = {
+	int2(0, -1),
+	int2(1, -1),
+	int2(1, 0),
+	int2(1, 1),
+	int2(0, 1),
+	int2(-1, 1),
+	int2(-1, 0),
+	int2(-1, -1)
+};
+
 /*===== UTILITY =====*/
 
 [[ForceInline]]
