@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "render/interface/camera.hpp"
 #include "render/resource/deferred.hpp"
@@ -8,6 +7,7 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/compute-pipeline.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
@@ -72,7 +72,7 @@ namespace render
 			glm::u32vec2 full_size;
 		};
 
-		static constexpr auto BLOCK_SIZE = 16_u32;
+		using Pipeline = vulkan::ComputePipeline<PushConstant, {16, 16, 1}>;
 
 		struct Input : public vulkan::trivset::LayoutBase
 		{
@@ -91,19 +91,16 @@ namespace render
 		};
 
 		vulkan::trivset::Layout<Input> set_layout;
-		vk::raii::PipelineLayout pipeline_layout;
-		vk::raii::Pipeline pipeline;
+		Pipeline pipeline;
 
 		vk::raii::Sampler sampler;
 
 		explicit MotionVectorPipeline(
 			vulkan::trivset::Layout<Input> set_layout,
-			vk::raii::PipelineLayout pipeline_layout,
-			vk::raii::Pipeline pipeline,
+			Pipeline pipeline,
 			vk::raii::Sampler sampler
 		) :
 			set_layout(std::move(set_layout)),
-			pipeline_layout(std::move(pipeline_layout)),
 			pipeline(std::move(pipeline)),
 			sampler(std::move(sampler))
 		{}

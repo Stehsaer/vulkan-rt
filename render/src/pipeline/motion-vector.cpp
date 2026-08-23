@@ -1,5 +1,4 @@
 #include "render/pipeline/motion-vector.hpp"
-#include "common/number-literals.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
 #include "render/interface/camera.hpp"
@@ -9,11 +8,11 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
-#include "vulkan/util/shader.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
 #include <expected>
+#include <glm/ext/vector_uint3_sized.hpp>
 #include <libassert/assert.hpp>
 #include <ranges>
 #include <utility>
@@ -32,35 +31,8 @@ namespace render
 			return set_layout_result.error().forward("Create descriptor set layout failed");
 		auto set_layout = std::move(*set_layout_result);
 
-		const auto push_constant_range = vk::PushConstantRange{
-			.stageFlags = vk::ShaderStageFlagBits::eCompute,
-			.offset = 0,
-			.size = sizeof(PushConstant),
-		};
-		const auto set_layout_raw = *set_layout;
-
-		auto pipeline_layout_result = context.device.createPipelineLayout(
-			vk::PipelineLayoutCreateInfo()
-				.setPushConstantRanges(push_constant_range)
-				.setSetLayouts(set_layout_raw)
-		);
-		if (!pipeline_layout_result) return Error::from(pipeline_layout_result);
-		auto pipeline_layout = std::move(*pipeline_layout_result);
-
-		auto shader_result = vulkan::create_shader(context.device, shader::motion_vector);
-		if (!shader_result) return shader_result.error();
-		auto shader = std::move(*shader_result);
-
-		const auto shader_stage = vk::PipelineShaderStageCreateInfo{
-			.stage = vk::ShaderStageFlagBits::eCompute,
-			.module = shader,
-			.pName = "main",
-		};
-
-		const auto create_info =
-			vk::ComputePipelineCreateInfo().setLayout(pipeline_layout).setStage(shader_stage);
-		auto pipeline_result = context.device.createComputePipeline(nullptr, create_info);
-		if (!pipeline_result) return Error::from(pipeline_result);
+		auto pipeline_result = Pipeline::create(context, set_layout, shader::motion_vector);
+		if (!pipeline_result) return pipeline_result.error().forward("Create pipeline failed");
 		auto pipeline = std::move(*pipeline_result);
 
 		constexpr auto sampler_create_info = vk::SamplerCreateInfo{
@@ -82,7 +54,6 @@ namespace render
 
 		return MotionVectorPipeline(
 			std::move(set_layout),
-			std::move(pipeline_layout),
 			std::move(pipeline),
 			std::move(sampler)
 		);
@@ -138,19 +109,13 @@ namespace render
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor),
 		};
 
-		const auto groups = (resource_set->half_size + BLOCK_SIZE - 1_u32) / BLOCK_SIZE;
-
 		command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(pre_barrier));
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
-		command_buffer
-			.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline_layout, 0, {*resource_set.set}, {});
-		command_buffer.pushConstants<PushConstant>(
-			pipeline_layout,
-			vk::ShaderStageFlagBits::eCompute,
-			0,
-			PushConstant{.half_size = resource_set->half_size, .full_size = resource_set->full_size}
+		pipeline.dispatch(
+			command_buffer,
+			*resource_set.set,
+			PushConstant{.half_size = resource_set->half_size, .full_size = resource_set->full_size},
+			glm::u32vec3(resource_set->half_size, 1)
 		);
-		command_buffer.dispatch(groups.x, groups.y, 1);
 		command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(post_barrier));
 	}
 

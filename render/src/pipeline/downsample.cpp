@@ -1,5 +1,4 @@
 #include "render/pipeline/downsample.hpp"
-#include "common/number-literals.hpp"
 #include "common/util/array.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
@@ -8,13 +7,13 @@
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
-#include "vulkan/util/shader.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <array>
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
+#include <glm/ext/vector_uint3_sized.hpp>
 #include <libassert/assert.hpp>
 #include <ranges>
 #include <utility>
@@ -26,49 +25,6 @@ namespace render
 {
 	namespace
 	{
-		std::expected<vk::raii::PipelineLayout, Error> create_pipeline_layout(
-			const vulkan::Context& context,
-			vk::DescriptorSetLayout descriptor_set_layout
-		) noexcept
-		{
-			constexpr auto push_constant_range = vk::PushConstantRange{
-				.stageFlags = vk::ShaderStageFlagBits::eCompute,
-				.offset = 0,
-				.size = sizeof(glm::u32vec2),
-			};
-
-			auto pipeline_layout_result = context.device.createPipelineLayout(
-				vk::PipelineLayoutCreateInfo()
-					.setSetLayouts(descriptor_set_layout)
-					.setPushConstantRanges(push_constant_range)
-			);
-			if (!pipeline_layout_result) return Error::from(pipeline_layout_result);
-			return std::move(*pipeline_layout_result);
-		}
-
-		std::expected<vk::raii::Pipeline, Error> create_pipeline(
-			const vulkan::Context& context,
-			vk::PipelineLayout pipeline_layout,
-			vk::ShaderModule shader_module
-		) noexcept
-		{
-			const auto shader_stage = vk::PipelineShaderStageCreateInfo{
-				.stage = vk::ShaderStageFlagBits::eCompute,
-				.module = shader_module,
-				.pName = "main",
-				.pSpecializationInfo = nullptr
-			};
-
-			const auto create_info = vk::ComputePipelineCreateInfo{
-				.stage = shader_stage,
-				.layout = pipeline_layout,
-			};
-			auto pipeline_result = context.device.createComputePipeline(nullptr, create_info);
-			if (!pipeline_result) return Error::from(pipeline_result);
-
-			return std::move(*pipeline_result);
-		}
-
 		std::expected<vk::raii::Sampler, Error> create_sampler(const vulkan::Context& context) noexcept
 		{
 			auto sampler_result = context.device.createSampler({
@@ -97,20 +53,12 @@ namespace render
 		const vulkan::Context& context
 	) noexcept
 	{
-		auto shader_module_result = vulkan::create_shader(context.device, shader::downsample);
-		if (!shader_module_result) return shader_module_result.error().forward("Create shader module failed");
-		auto shader_module = std::move(*shader_module_result);
-
 		auto descriptor_set_layout_result = vulkan::trivset::Layout<Input>::create(context);
 		if (!descriptor_set_layout_result)
 			return descriptor_set_layout_result.error().forward("Create descriptor set layout failed");
 		auto descriptor_set_layout = std::move(*descriptor_set_layout_result);
 
-		auto pipeline_layout_result = create_pipeline_layout(context, descriptor_set_layout);
-		if (!pipeline_layout_result) return pipeline_layout_result.error().forward("Create layout failed");
-		auto pipeline_layout = std::move(*pipeline_layout_result);
-
-		auto pipeline_result = create_pipeline(context, pipeline_layout, shader_module);
+		auto pipeline_result = Pipeline::create(context, descriptor_set_layout, shader::downsample);
 		if (!pipeline_result) return pipeline_result.error().forward("Create downsample pipeline failed");
 		auto pipeline = std::move(*pipeline_result);
 
@@ -120,7 +68,6 @@ namespace render
 
 		return DownsamplePipeline(
 			std::move(descriptor_set_layout),
-			std::move(pipeline_layout),
 			std::move(pipeline),
 			std::move(sampler)
 		);
@@ -181,23 +128,12 @@ namespace render
 
 		/*===== Downsample =====*/
 
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
-		command_buffer.bindDescriptorSets(
-			vk::PipelineBindPoint::eCompute,
-			pipeline_layout,
-			0,
-			{*resource_set.descriptor_set},
-			{}
+		pipeline.dispatch(
+			command_buffer,
+			*resource_set.descriptor_set,
+			{resource_set.attachment->half_extent},
+			glm::u32vec3(resource_set.attachment->half_extent, 1)
 		);
-		command_buffer.pushConstants<PushConstant>(
-			pipeline_layout,
-			vk::ShaderStageFlagBits::eCompute,
-			0,
-			{resource_set.attachment->half_extent}
-		);
-
-		const auto dispatch_size = (resource_set.attachment->half_extent + BLOCK_SIZE - 1_u32) / BLOCK_SIZE;
-		command_buffer.dispatch(dispatch_size.x, dispatch_size.y, 1);
 
 		/*===== Post-Synchronize =====*/
 

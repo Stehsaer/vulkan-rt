@@ -10,11 +10,11 @@
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
-#include "vulkan/util/shader.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
 #include <expected>
+#include <glm/ext/vector_uint3_sized.hpp>
 #include <libassert/assert.hpp>
 #include <ranges>
 #include <utility>
@@ -35,42 +35,10 @@ namespace render::shadow
 			return input_layout_result.error().forward("Create descriptor set layout failed");
 		auto input_layout = std::move(*input_layout_result);
 
-		/*===== Pipeline Layout =====*/
-
-		const auto push_constant_range = vk::PushConstantRange{
-			.stageFlags = vk::ShaderStageFlagBits::eCompute,
-			.offset = 0,
-			.size = sizeof(PushConstant),
-		};
-		const auto set_layout = *input_layout;
-		auto pipeline_layout_result = context.device.createPipelineLayout(
-			vk::PipelineLayoutCreateInfo()
-				.setPushConstantRanges(push_constant_range)
-				.setSetLayouts(set_layout)
-		);
-		if (!pipeline_layout_result) return Error::from(pipeline_layout_result);
-		auto pipeline_layout = std::move(*pipeline_layout_result);
-
-		/*===== Shader =====*/
-
-		auto shader_module_result = vulkan::create_shader(context.device, shader::shadow::spatial_denoise);
-		if (!shader_module_result) return shader_module_result.error().forward("Create shader module failed");
-		auto shader_module = std::move(*shader_module_result);
-
-		const auto shader_info = vk::PipelineShaderStageCreateInfo{
-			.stage = vk::ShaderStageFlagBits::eCompute,
-			.module = shader_module,
-			.pName = "main",
-		};
-
 		/*===== Pipeline =====*/
 
-		const auto create_info = vk::ComputePipelineCreateInfo{
-			.stage = shader_info,
-			.layout = pipeline_layout,
-		};
-		auto pipeline_result = context.device.createComputePipeline(nullptr, create_info);
-		if (!pipeline_result) return Error::from(pipeline_result);
+		auto pipeline_result = Pipeline::create(context, input_layout, shader::shadow::spatial_denoise);
+		if (!pipeline_result) return pipeline_result.error().forward("Create pipeline failed");
 		auto pipeline = std::move(*pipeline_result);
 
 		/*===== Sampler =====*/
@@ -95,12 +63,7 @@ namespace render::shadow
 		if (!sampler_result) return Error::from(sampler_result);
 		auto sampler = std::move(*sampler_result);
 
-		return SpatialDenoisePipeline(
-			std::move(input_layout),
-			std::move(pipeline_layout),
-			std::move(pipeline),
-			std::move(sampler)
-		);
+		return SpatialDenoisePipeline(std::move(input_layout), std::move(pipeline), std::move(sampler));
 	}
 
 	std::expected<std::vector<SpatialDenoisePipeline::ResourceSet>, Error> SpatialDenoisePipeline::
@@ -129,8 +92,6 @@ namespace render::shadow
 	{
 		DEBUG_ASSERT(resource_set.resource.has_value());
 		DEBUG_ASSERT(resource_set.sets.size() == FILTER_PASSES);
-
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
 
 		for (const auto [iter, set] : std::views::enumerate(resource_set.sets))
 		{
@@ -163,25 +124,19 @@ namespace render::shadow
 				.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 			};
 
-			const auto dispatch_size = (resource_set->half_extent + BLOCK_SIZE - 1_u32) / BLOCK_SIZE;
-
-			command_buffer
-				.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline_layout, 0, {*set}, {});
-			command_buffer.pushConstants<PushConstant>(
-				pipeline_layout,
-				vk::ShaderStageFlagBits::eCompute,
-				0,
-				PushConstant{
-					.half_size = resource_set->half_extent,
-					.stride = 1_u32 << iter,
-				}
-			);
-
 			command_buffer.pipelineBarrier2(
 				vk::DependencyInfo().setImageMemoryBarriers(output_image_pre_barrier)
 			);
 
-			command_buffer.dispatch(dispatch_size.x, dispatch_size.y, 1);
+			pipeline.dispatch(
+				command_buffer,
+				*set,
+				PushConstant{
+					.half_size = resource_set->half_extent,
+					.stride = 1_u32 << iter,
+				},
+				glm::u32vec3(resource_set->half_extent, 1)
+			);
 
 			command_buffer.pipelineBarrier2(
 				vk::DependencyInfo().setImageMemoryBarriers(output_image_post_barrier)

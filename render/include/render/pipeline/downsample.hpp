@@ -10,10 +10,10 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "render/resource/deferred.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/compute-pipeline.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
 namespace render
@@ -64,7 +64,7 @@ namespace render
 	  private:
 
 		using PushConstant = glm::u32vec2;
-		static constexpr auto BLOCK_SIZE = 16_u32;
+		using Pipeline = vulkan::ComputePipeline<PushConstant, {16, 16, 1}>;
 
 		struct Input : public vulkan::trivset::LayoutBase
 		{
@@ -100,19 +100,16 @@ namespace render
 		};
 
 		vulkan::trivset::Layout<Input> descriptor_set_layout;
-		vk::raii::PipelineLayout pipeline_layout;
-		vk::raii::Pipeline pipeline;
+		Pipeline pipeline;
 
 		vk::raii::Sampler texture_sampler;
 
 		explicit DownsamplePipeline(
 			vulkan::trivset::Layout<Input> descriptor_set_layout,
-			vk::raii::PipelineLayout pipeline_layout,
-			vk::raii::Pipeline pipeline,
+			Pipeline pipeline,
 			vk::raii::Sampler texture_sampler
 		) :
 			descriptor_set_layout(std::move(descriptor_set_layout)),
-			pipeline_layout(std::move(pipeline_layout)),
 			pipeline(std::move(pipeline)),
 			texture_sampler(std::move(texture_sampler))
 		{}

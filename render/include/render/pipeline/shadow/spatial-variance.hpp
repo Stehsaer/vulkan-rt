@@ -8,6 +8,7 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/compute-pipeline.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
@@ -124,30 +125,27 @@ namespace render::shadow
 			);
 		};
 
+		using ComputePipeline = vulkan::ComputePipeline<Extent, {16, 16, 1}>;
+		using FilterPipeline = vulkan::ComputePipeline<Extent, {16, 16, 1}>;
+
 		vulkan::trivset::Layout<ComputeInput> compute_set_layout;
-		vk::raii::PipelineLayout compute_pipeline_layout;
-		vk::raii::Pipeline compute_pipeline;
+		ComputePipeline compute_pipeline;
 
 		vulkan::trivset::Layout<FilterInput> filter_set_layout;
-		vk::raii::PipelineLayout filter_pipeline_layout;
-		vk::raii::Pipeline filter_pipeline;
+		FilterPipeline filter_pipeline;
 
 		vk::raii::Sampler sampler;
 
 		explicit SpatialVariancePipeline(
 			vulkan::trivset::Layout<ComputeInput> compute_set_layout,
-			vk::raii::PipelineLayout compute_pipeline_layout,
-			vk::raii::Pipeline compute_pipeline,
+			ComputePipeline compute_pipeline,
 			vulkan::trivset::Layout<FilterInput> filter_set_layout,
-			vk::raii::PipelineLayout filter_pipeline_layout,
-			vk::raii::Pipeline filter_pipeline,
+			FilterPipeline filter_pipeline,
 			vk::raii::Sampler sampler
 		) :
 			compute_set_layout(std::move(compute_set_layout)),
-			compute_pipeline_layout(std::move(compute_pipeline_layout)),
 			compute_pipeline(std::move(compute_pipeline)),
 			filter_set_layout(std::move(filter_set_layout)),
-			filter_pipeline_layout(std::move(filter_pipeline_layout)),
 			filter_pipeline(std::move(filter_pipeline)),
 			sampler(std::move(sampler))
 		{}

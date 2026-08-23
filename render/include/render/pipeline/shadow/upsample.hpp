@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "render/interface/camera.hpp"
 #include "render/resource/deferred.hpp"
@@ -8,6 +7,7 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/compute-pipeline.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
@@ -108,29 +108,24 @@ namespace render::shadow
 				std::make_tuple(&GenInput::half_shadow, &GenInput::full_shadow, &GenInput::visibility_mask);
 		};
 
-		static constexpr auto BLOCK_SIZE = 16_u32;
+		using MaskPipeline = vulkan::ComputePipeline<Resolution, {16, 16, 1}>;
+		using GenPipeline = vulkan::ComputePipeline<Resolution, {16, 16, 1}>;
 
 		vulkan::trivset::Layout<MaskInput> mask_set_layout;
 		vulkan::trivset::Layout<GenInput> gen_set_layout;
-		vk::raii::PipelineLayout mask_pipeline_layout;
-		vk::raii::PipelineLayout gen_pipeline_layout;
-		vk::raii::Pipeline mask_pipeline;
-		vk::raii::Pipeline gen_pipeline;
+		MaskPipeline mask_pipeline;
+		GenPipeline gen_pipeline;
 		vk::raii::Sampler sampler;
 
 		explicit UpsamplePipeline(
 			vulkan::trivset::Layout<MaskInput> mask_set_layout,
 			vulkan::trivset::Layout<GenInput> gen_set_layout,
-			vk::raii::PipelineLayout mask_pipeline_layout,
-			vk::raii::PipelineLayout gen_pipeline_layout,
-			vk::raii::Pipeline mask_pipeline,
-			vk::raii::Pipeline gen_pipeline,
+			MaskPipeline mask_pipeline,
+			GenPipeline gen_pipeline,
 			vk::raii::Sampler sampler
 		) :
 			mask_set_layout(std::move(mask_set_layout)),
 			gen_set_layout(std::move(gen_set_layout)),
-			mask_pipeline_layout(std::move(mask_pipeline_layout)),
-			gen_pipeline_layout(std::move(gen_pipeline_layout)),
 			mask_pipeline(std::move(mask_pipeline)),
 			gen_pipeline(std::move(gen_pipeline)),
 			sampler(std::move(sampler))

@@ -1,5 +1,4 @@
 #include "render/pipeline/shadow/upsample.hpp"
-#include "common/number-literals.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
 #include "render/interface/camera.hpp"
@@ -10,12 +9,11 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
-#include "vulkan/util/shader.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
-#include <array>
 #include <cstdint>
 #include <expected>
+#include <glm/ext/vector_uint3_sized.hpp>
 #include <libassert/assert.hpp>
 #include <ranges>
 #include <utility>
@@ -37,67 +35,14 @@ namespace render::shadow
 			return gen_set_layout_result.error().forward("Create descriptor set layout for gen failed");
 		auto gen_set_layout = std::move(*gen_set_layout_result);
 
-		const auto push_constant_range = vk::PushConstantRange{
-			.stageFlags = vk::ShaderStageFlagBits::eCompute,
-			.offset = 0,
-			.size = sizeof(Resolution),
-		};
-
-		const auto mask_set_layouts = std::to_array({*mask_set_layout});
-		const auto mask_pipeline_layout_create_info =
-			vk::PipelineLayoutCreateInfo()
-				.setSetLayouts(mask_set_layouts)
-				.setPushConstantRanges(push_constant_range);
-		auto mask_pipeline_layout_result =
-			context.device.createPipelineLayout(mask_pipeline_layout_create_info);
-		if (!mask_pipeline_layout_result) return Error::from(mask_pipeline_layout_result);
-		auto mask_pipeline_layout = std::move(*mask_pipeline_layout_result);
-
-		auto mask_shader_module_result =
-			vulkan::create_shader(context.device, shader::shadow::upsample::mask);
-		if (!mask_shader_module_result)
-			return mask_shader_module_result.error().forward("Create shader module for mask failed");
-		auto mask_shader_module = std::move(*mask_shader_module_result);
-
-		const auto mask_shader_module_info = vk::PipelineShaderStageCreateInfo{
-			.stage = vk::ShaderStageFlagBits::eCompute,
-			.module = mask_shader_module,
-			.pName = "main",
-		};
-		const auto mask_pipeline_create_info = vk::ComputePipelineCreateInfo{
-			.stage = mask_shader_module_info,
-			.layout = mask_pipeline_layout,
-		};
-		auto mask_pipeline_result = context.device.createComputePipeline(nullptr, mask_pipeline_create_info);
-		if (!mask_pipeline_result) return Error::from(mask_pipeline_result);
+		auto mask_pipeline_result =
+			MaskPipeline::create(context, mask_set_layout, shader::shadow::upsample::mask);
+		if (!mask_pipeline_result) return mask_pipeline_result.error().forward("Create mask pipeline failed");
 		auto mask_pipeline = std::move(*mask_pipeline_result);
 
-		const auto gen_set_layouts = std::to_array({*gen_set_layout});
-		const auto gen_pipeline_layout_create_info =
-			vk::PipelineLayoutCreateInfo()
-				.setSetLayouts(gen_set_layouts)
-				.setPushConstantRanges(push_constant_range);
-		auto gen_pipeline_layout_result =
-			context.device.createPipelineLayout(gen_pipeline_layout_create_info);
-		if (!gen_pipeline_layout_result) return Error::from(gen_pipeline_layout_result);
-		auto gen_pipeline_layout = std::move(*gen_pipeline_layout_result);
-
-		auto gen_shader_module_result = vulkan::create_shader(context.device, shader::shadow::upsample::gen);
-		if (!gen_shader_module_result)
-			return gen_shader_module_result.error().forward("Create shader module for gen failed");
-		auto gen_shader_module = std::move(*gen_shader_module_result);
-
-		const auto gen_shader_module_info = vk::PipelineShaderStageCreateInfo{
-			.stage = vk::ShaderStageFlagBits::eCompute,
-			.module = gen_shader_module,
-			.pName = "main",
-		};
-		const auto gen_pipeline_create_info = vk::ComputePipelineCreateInfo{
-			.stage = gen_shader_module_info,
-			.layout = gen_pipeline_layout,
-		};
-		auto gen_pipeline_result = context.device.createComputePipeline(nullptr, gen_pipeline_create_info);
-		if (!gen_pipeline_result) return Error::from(gen_pipeline_result);
+		auto gen_pipeline_result =
+			GenPipeline::create(context, gen_set_layout, shader::shadow::upsample::gen);
+		if (!gen_pipeline_result) return gen_pipeline_result.error().forward("Create gen pipeline failed");
 		auto gen_pipeline = std::move(*gen_pipeline_result);
 
 		const auto sampler_info = vk::SamplerCreateInfo{
@@ -123,8 +68,6 @@ namespace render::shadow
 		return UpsamplePipeline(
 			std::move(mask_set_layout),
 			std::move(gen_set_layout),
-			std::move(mask_pipeline_layout),
-			std::move(gen_pipeline_layout),
 			std::move(mask_pipeline),
 			std::move(gen_pipeline),
 			std::move(sampler)
@@ -161,7 +104,6 @@ namespace render::shadow
 	{
 		DEBUG_ASSERT(resource_set.resource.has_value());
 
-		const auto dispatch_size = (resource_set->half_extent + BLOCK_SIZE - 1_u32) / BLOCK_SIZE;
 		const auto resolution = Resolution{
 			.half = resource_set->half_extent,
 			.full = resource_set->full_extent,
@@ -194,23 +136,13 @@ namespace render::shadow
 				.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 			};
 
-			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, mask_pipeline);
-			command_buffer.bindDescriptorSets(
-				vk::PipelineBindPoint::eCompute,
-				mask_pipeline_layout,
-				0,
-				*resource_set.mask_set,
-				{}
-			);
-			command_buffer.pushConstants<Resolution>(
-				mask_pipeline_layout,
-				vk::ShaderStageFlagBits::eCompute,
-				0,
-				resolution
-			);
-
 			command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(pre_barrier));
-			command_buffer.dispatch(dispatch_size.x, dispatch_size.y, 1);
+			mask_pipeline.dispatch(
+				command_buffer,
+				*resource_set.mask_set,
+				resolution,
+				glm::u32vec3(resource_set->half_extent, 1)
+			);
 			command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(post_barrier));
 		}
 
@@ -241,23 +173,13 @@ namespace render::shadow
 				.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 			};
 
-			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, gen_pipeline);
-			command_buffer.bindDescriptorSets(
-				vk::PipelineBindPoint::eCompute,
-				gen_pipeline_layout,
-				0,
-				*resource_set.gen_set,
-				{}
-			);
-			command_buffer.pushConstants<Resolution>(
-				gen_pipeline_layout,
-				vk::ShaderStageFlagBits::eCompute,
-				0,
-				resolution
-			);
-
 			command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(pre_barrier));
-			command_buffer.dispatch(dispatch_size.x, dispatch_size.y, 1);
+			gen_pipeline.dispatch(
+				command_buffer,
+				*resource_set.gen_set,
+				resolution,
+				glm::u32vec3(resource_set->half_extent, 1)
+			);
 			command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(post_barrier));
 		}
 	}

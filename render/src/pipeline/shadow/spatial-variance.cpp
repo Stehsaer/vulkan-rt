@@ -1,5 +1,4 @@
 #include "render/pipeline/shadow/spatial-variance.hpp"
-#include "common/number-literals.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
 #include "render/interface/camera.hpp"
@@ -11,13 +10,13 @@
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
-#include "vulkan/util/shader.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <array>
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
+#include <glm/ext/vector_uint3_sized.hpp>
 #include <libassert/assert.hpp>
 #include <ranges>
 #include <utility>
@@ -45,77 +44,12 @@ namespace render::shadow
 
 		/*===== Pipeline Layout =====*/
 
-		const auto push_constant_range = vk::PushConstantRange{
-			.stageFlags = vk::ShaderStageFlagBits::eCompute,
-			.offset = 0,
-			.size = sizeof(Extent),
-		};
+		auto compute_pipeline_result =
+			ComputePipeline::create(context, compute_set_layout, shader::shadow::spatial_variance::compute);
+		auto filter_pipeline_result =
+			FilterPipeline::create(context, filter_set_layout, shader::shadow::spatial_variance::filter);
 
-		const auto compute_set_layouts = std::to_array({*compute_set_layout});
-		const auto filter_set_layouts = std::to_array({*filter_set_layout});
-
-		auto compute_pipeline_layout_result = context.device.createPipelineLayout(
-			vk::PipelineLayoutCreateInfo()
-				.setPushConstantRanges(push_constant_range)
-				.setSetLayouts(compute_set_layouts)
-		);
-		if (!compute_pipeline_layout_result) return Error::from(compute_pipeline_layout_result);
-		auto compute_pipeline_layout = std::move(*compute_pipeline_layout_result);
-
-		auto filter_pipeline_layout_result = context.device.createPipelineLayout(
-			vk::PipelineLayoutCreateInfo()
-				.setPushConstantRanges(push_constant_range)
-				.setSetLayouts(filter_set_layouts)
-		);
-		if (!filter_pipeline_layout_result) return Error::from(filter_pipeline_layout_result);
-		auto filter_pipeline_layout = std::move(*filter_pipeline_layout_result);
-
-		/*===== Shader =====*/
-
-		auto compute_shader_module_result =
-			vulkan::create_shader(context.device, shader::shadow::spatial_variance::compute);
-		if (!compute_shader_module_result)
-			return compute_shader_module_result.error().forward("Create compute shader module failed");
-		auto compute_shader_module = std::move(*compute_shader_module_result);
-
-		auto filter_shader_module_result =
-			vulkan::create_shader(context.device, shader::shadow::spatial_variance::filter);
-		if (!filter_shader_module_result)
-			return filter_shader_module_result.error().forward("Create filter shader module failed");
-		auto filter_shader_module = std::move(*filter_shader_module_result);
-
-		const auto compute_shader_info = vk::PipelineShaderStageCreateInfo{
-			.stage = vk::ShaderStageFlagBits::eCompute,
-			.module = compute_shader_module,
-			.pName = "main",
-		};
-
-		const auto filter_shader_info = vk::PipelineShaderStageCreateInfo{
-			.stage = vk::ShaderStageFlagBits::eCompute,
-			.module = filter_shader_module,
-			.pName = "main",
-		};
-
-		/*===== Pipeline =====*/
-
-		auto compute_pipeline_result = context.device.createComputePipeline(
-			nullptr,
-			vk::ComputePipelineCreateInfo{
-				.stage = compute_shader_info,
-				.layout = compute_pipeline_layout,
-			}
-		);
-		if (!compute_pipeline_result) return Error::from(compute_pipeline_result);
 		auto compute_pipeline = std::move(*compute_pipeline_result);
-
-		auto filter_pipeline_result = context.device.createComputePipeline(
-			nullptr,
-			vk::ComputePipelineCreateInfo{
-				.stage = filter_shader_info,
-				.layout = filter_pipeline_layout,
-			}
-		);
-		if (!filter_pipeline_result) return Error::from(filter_pipeline_result);
 		auto filter_pipeline = std::move(*filter_pipeline_result);
 
 		/*===== Sampler =====*/
@@ -142,10 +76,8 @@ namespace render::shadow
 
 		return SpatialVariancePipeline(
 			std::move(compute_set_layout),
-			std::move(compute_pipeline_layout),
 			std::move(compute_pipeline),
 			std::move(filter_set_layout),
-			std::move(filter_pipeline_layout),
 			std::move(filter_pipeline),
 			std::move(sampler)
 		);
@@ -179,7 +111,6 @@ namespace render::shadow
 	) const noexcept
 	{
 		DEBUG_ASSERT(resource_set.resource.has_value());
-		const auto dispatch_size = (resource_set->half_extent + BLOCK_SIZE - 1_u32) / BLOCK_SIZE;
 
 		/*===== Pre-barriers =====*/
 		{
@@ -213,27 +144,15 @@ namespace render::shadow
 			command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(barriers));
 		}
 
-		/*===== Compute =====*/
-		{
-			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute_pipeline);
-			command_buffer.bindDescriptorSets(
-				vk::PipelineBindPoint::eCompute,
-				compute_pipeline_layout,
-				0,
-				*resource_set.compute_set,
-				{}
-			);
-			command_buffer.pushConstants<Extent>(
-				compute_pipeline_layout,
-				vk::ShaderStageFlagBits::eCompute,
-				0,
-				Extent{
-					.half = resource_set->half_extent,
-					.full = resource_set->full_extent,
-				}
-			);
-			command_buffer.dispatch(dispatch_size.x, dispatch_size.y, 1);
-		}
+		compute_pipeline.dispatch(
+			command_buffer,
+			resource_set.compute_set,
+			{
+				.half = resource_set->half_extent,
+				.full = resource_set->full_extent,
+			},
+			glm::u32vec3(resource_set->half_extent, 1)
+		);
 
 		/*===== Post-barrier =====*/
 		{
@@ -274,7 +193,6 @@ namespace render::shadow
 	) const noexcept
 	{
 		DEBUG_ASSERT(resource_set.resource.has_value());
-		const auto dispatch_size = (resource_set->half_extent + BLOCK_SIZE - 1_u32) / BLOCK_SIZE;
 
 		const auto pre_barrier = vk::ImageMemoryBarrier2{
 			.srcStageMask = {},
@@ -302,25 +220,13 @@ namespace render::shadow
 			.subresourceRange = vulkan::base_level_image_range(vk::ImageAspectFlagBits::eColor)
 		};
 
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, filter_pipeline);
-		command_buffer.bindDescriptorSets(
-			vk::PipelineBindPoint::eCompute,
-			filter_pipeline_layout,
-			0,
-			*resource_set.filter_set,
-			{}
-		);
-		command_buffer.pushConstants<Extent>(
-			filter_pipeline_layout,
-			vk::ShaderStageFlagBits::eCompute,
-			0,
-			Extent{
-				.half = resource_set->half_extent,
-				.full = resource_set->full_extent,
-			}
-		);
 		command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(pre_barrier));
-		command_buffer.dispatch(dispatch_size.x, dispatch_size.y, 1);
+		filter_pipeline.dispatch(
+			command_buffer,
+			resource_set.filter_set,
+			{.half = resource_set->half_extent, .full = resource_set->full_extent},
+			glm::u32vec3(resource_set->half_extent, 1)
+		);
 		command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(post_barrier));
 	}
 

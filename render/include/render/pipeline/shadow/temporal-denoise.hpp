@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/number-literals.hpp"
 #include "common/util/error.hpp"
 #include "render/resource/motion-vector.hpp"
 #include "render/resource/shadow.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/compute-pipeline.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
@@ -81,8 +81,6 @@ namespace render::shadow
 
 	  private:
 
-		static constexpr auto BLOCK_SIZE = 16_u32;
-
 		struct Input : public vulkan::trivset::LayoutBase
 		{
 			CombinedImageSampler prev_history_tex;
@@ -106,20 +104,19 @@ namespace render::shadow
 			);
 		};
 
+		using Pipeline = vulkan::ComputePipeline<glm::u32vec2, {16, 16, 1}>;
+
 		vulkan::trivset::Layout<Input> set_layout;
-		vk::raii::PipelineLayout pipeline_layout;
-		vk::raii::Pipeline pipeline;
+		Pipeline pipeline;
 
 		vk::raii::Sampler sampler;
 
 		explicit TemporalDenoisePipeline(
 			vulkan::trivset::Layout<Input> set_layout,
-			vk::raii::PipelineLayout pipeline_layout,
-			vk::raii::Pipeline pipeline,
+			Pipeline pipeline,
 			vk::raii::Sampler sampler
 		) :
 			set_layout(std::move(set_layout)),
-			pipeline_layout(std::move(pipeline_layout)),
 			pipeline(std::move(pipeline)),
 			sampler(std::move(sampler))
 		{}

@@ -1,5 +1,4 @@
 #include "render/pipeline/shadow/temporal-denoise.hpp"
-#include "common/number-literals.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/error.hpp"
 #include "render/resource/motion-vector.hpp"
@@ -7,13 +6,12 @@
 #include "shader/shadow/temporal-denoise.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
-#include "vulkan/util/shader.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
-#include <array>
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
+#include <glm/ext/vector_uint3_sized.hpp>
 #include <libassert/assert.hpp>
 #include <ranges>
 #include <utility>
@@ -32,40 +30,8 @@ namespace render::shadow
 			return set_layout_result.error().forward("Create descriptor set layout failed");
 		auto set_layout = std::move(*set_layout_result);
 
-		const auto push_constant_range = vk::PushConstantRange{
-			.stageFlags = vk::ShaderStageFlagBits::eCompute,
-			.offset = 0,
-			.size = sizeof(glm::u32vec2),
-		};
-		const auto set_layouts = std::to_array({*set_layout});
-
-		auto pipeline_layout_result = context.device.createPipelineLayout(
-			vk::PipelineLayoutCreateInfo()
-				.setPushConstantRanges(push_constant_range)
-				.setSetLayouts(set_layouts)
-		);
-		if (!pipeline_layout_result) return Error::from(pipeline_layout_result);
-		auto pipeline_layout = std::move(*pipeline_layout_result);
-
-		auto shader_module_result = vulkan::create_shader(context.device, shader::shadow::temporal_denoise);
-		if (!shader_module_result)
-			return shader_module_result.error().forward("Create compute shader module failed");
-		auto shader_module = std::move(*shader_module_result);
-
-		const auto shader_info = vk::PipelineShaderStageCreateInfo{
-			.stage = vk::ShaderStageFlagBits::eCompute,
-			.module = shader_module,
-			.pName = "main",
-		};
-
-		auto pipeline_result = context.device.createComputePipeline(
-			nullptr,
-			vk::ComputePipelineCreateInfo{
-				.stage = shader_info,
-				.layout = pipeline_layout,
-			}
-		);
-		if (!pipeline_result) return Error::from(pipeline_result);
+		auto pipeline_result = Pipeline::create(context, set_layout, shader::shadow::temporal_denoise);
+		if (!pipeline_result) return pipeline_result.error().forward("Create pipeline failed");
 		auto pipeline = std::move(*pipeline_result);
 
 		const auto sampler_info = vk::SamplerCreateInfo{
@@ -88,12 +54,7 @@ namespace render::shadow
 		if (!sampler_result) return Error::from(sampler_result);
 		auto sampler = std::move(*sampler_result);
 
-		return TemporalDenoisePipeline(
-			std::move(set_layout),
-			std::move(pipeline_layout),
-			std::move(pipeline),
-			std::move(sampler)
-		);
+		return TemporalDenoisePipeline(std::move(set_layout), std::move(pipeline), std::move(sampler));
 	}
 
 	std::expected<std::vector<TemporalDenoisePipeline::ResourceSet>, Error> TemporalDenoisePipeline::
@@ -117,7 +78,6 @@ namespace render::shadow
 	) const noexcept
 	{
 		DEBUG_ASSERT(resource_set.resource.has_value());
-		const auto dispatch_size = (resource_set->half_extent + BLOCK_SIZE - 1_u32) / BLOCK_SIZE;
 
 		/*===== Pre-barriers =====*/
 		{
@@ -151,16 +111,12 @@ namespace render::shadow
 			command_buffer.pipelineBarrier2(vk::DependencyInfo().setImageMemoryBarriers(barriers));
 		}
 
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
-		command_buffer
-			.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline_layout, 0, *resource_set.set, {});
-		command_buffer.pushConstants<glm::u32vec2>(
-			pipeline_layout,
-			vk::ShaderStageFlagBits::eCompute,
-			0,
-			resource_set->half_extent
+		pipeline.dispatch(
+			command_buffer,
+			*resource_set.set,
+			resource_set->half_extent,
+			glm::u32vec3(resource_set->half_extent, 1)
 		);
-		command_buffer.dispatch(dispatch_size.x, dispatch_size.y, 1);
 
 		/*===== Post-barrier =====*/
 		{
