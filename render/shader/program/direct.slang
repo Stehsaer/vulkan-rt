@@ -15,7 +15,7 @@ layout(set = 0, binding = 4) Sampler2D<float2> shadow_tex;
 layout(set = 0, binding = 5) ConstantBuffer<Camera> camera;
 layout(set = 0, binding = 6) ConstantBuffer<DirectLight> light;
 
-static const float AMBIENT = 0.03;
+static const float3 AMBIENT = 0.05 * float3(0.5871, 0.5678, 1.0000);
 
 [[shader("fragment")]]
 float4 main(float2 texcoord, float4 fragcoord: SV_Position)
@@ -48,7 +48,8 @@ float4 main(float2 texcoord, float4 fragcoord: SV_Position)
 		pbr::Material(normal, albedo.rgb, lerp(0.04, 1.0, roughness_metallic.r), roughness_metallic.g);
 	let light = pbr::DirectionalLight(light.direction, light.light);
 
-	let ambient_color = albedo.rgb * AMBIENT * (1.0 - lerp(0.04, albedo.rgb, roughness_metallic.g));
+	let ambient_color =
+		albedo.rgb * AMBIENT * (1.0 - lerp(0.04, albedo.rgb, roughness_metallic.g)) * (normal.y / 4.0 + 0.6);
 	let color = pbr::gltf(light, material, view_dir);
 
 	let cut_shadow = max(shadow * 1.0005 - 0.0005, 0.0);
