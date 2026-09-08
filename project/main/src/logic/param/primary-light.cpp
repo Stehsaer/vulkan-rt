@@ -9,8 +9,9 @@ namespace logic
 {
 	void PrimaryLight::config_ui() noexcept
 	{
-		ImGui::SliderFloat("Yaw", &light_yaw_deg, 0.0f, 360.0f);
-		ImGui::SliderFloat("Pitch", &light_pitch_deg, 0.0f, 90.0f);
+		ImGui::SliderFloat("Yaw", &light_yaw_deg, 0.0f, 360.0f, "%.2f deg");
+		ImGui::SliderFloat("Pitch", &light_pitch_deg, 0.0f, 90.0f, "%.2f deg");
+		ImGui::SliderFloat("Size", &light_size_deg, 0.1, 10.0, "%.2f deg", ImGuiSliderFlags_Logarithmic);
 		ImGui::ColorEdit3("Color", &light_color.r);
 		ImGui::SliderFloat(
 			"Intensity",
@@ -38,7 +39,7 @@ namespace logic
 		return render::DirectLight{
 			.direction = direction,
 			.light = light,
-			.sin_half_angle = 0.0f,
+			.sin_half_angle = glm::sin(glm::radians(light_size_deg / 2))
 		};
 	}
 }

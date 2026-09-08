@@ -5,6 +5,7 @@
 #include "render/interface/direct-light.hpp"
 #include "render/resource/deferred.hpp"
 #include "render/resource/hdr.hpp"
+#include "render/resource/shadow.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 
@@ -72,17 +73,20 @@ namespace render
 		vk::raii::PipelineLayout pipeline_layout;
 		vk::raii::Pipeline pipeline;
 		vk::raii::Sampler sampler;
+		vk::raii::Sampler shadow_sampler;
 
 		explicit DirectLightingPipeline(
 			vk::raii::DescriptorSetLayout descriptor_set_layout,
 			vk::raii::PipelineLayout pipeline_layout,
 			vk::raii::Pipeline pipeline,
-			vk::raii::Sampler sampler
+			vk::raii::Sampler sampler,
+			vk::raii::Sampler shadow_sampler
 		) :
 			descriptor_set_layout(std::move(descriptor_set_layout)),
 			pipeline_layout(std::move(pipeline_layout)),
 			pipeline(std::move(pipeline)),
-			sampler(std::move(sampler))
+			sampler(std::move(sampler)),
+			shadow_sampler(std::move(shadow_sampler))
 		{}
 
 	  public:
@@ -93,14 +97,28 @@ namespace render
 		DirectLightingPipeline& operator=(DirectLightingPipeline&&) = default;
 	};
 
+	///
+	/// @brief Resource set for direct lighting pipeline
+	///
 	class DirectLightingPipeline::ResourceSet
 	{
 	  public:
 
+		///
+		/// @brief Update resource set
+		///
+		/// @param context Vulkan context
+		/// @param deferred Deferred attachment
+		/// @param hdr HDR attachment
+		/// @param shadow Shadow attachment
+		/// @param camera Camera parameter buffer
+		/// @param direct_light Direct light buffer
+		///
 		void update(
 			const vulkan::Context& context,
 			DeferredAttachment::View deferred,
 			HdrAttachment::View hdr,
+			ShadowAttachment::View shadow,
 			vulkan::ElementBufferRef<Camera> camera,
 			vulkan::ElementBufferRef<DirectLight> direct_light
 		) noexcept;
@@ -111,6 +129,7 @@ namespace render
 		vk::raii::DescriptorSet set;
 
 		vk::Sampler sampler;
+		vk::Sampler shadow_sampler;
 
 		struct Resource
 		{
@@ -124,11 +143,13 @@ namespace render
 		explicit ResourceSet(
 			std::shared_ptr<vk::raii::DescriptorPool> pool,
 			vk::raii::DescriptorSet set,
-			vk::Sampler sampler
+			vk::Sampler sampler,
+			vk::Sampler shadow_sampler
 		) :
 			pool(std::move(pool)),
 			set(std::move(set)),
-			sampler(sampler)
+			sampler(sampler),
+			shadow_sampler(shadow_sampler)
 		{}
 
 		friend class DirectLightingPipeline;

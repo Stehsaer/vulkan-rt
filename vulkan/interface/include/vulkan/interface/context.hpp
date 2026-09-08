@@ -32,6 +32,8 @@ namespace vulkan
 	/// - BC textures
 	/// - Pipeline statistics
 	/// - Multi draw indirect
+	/// - Shader 16-bit integer support
+	/// - Extended image gather
 	///
 	/// #### Vulkan 1.1
 	/// - Shader draw parameters (required by slang)
@@ -42,6 +44,7 @@ namespace vulkan
 	/// - Runtime descriptor array
 	/// - Descriptor indexing (basic supports)
 	/// - Buffer device address
+	/// - Shader 8-bit integer support
 	///
 	/// #### Vulkan 1.3
 	/// - Dynamic rendering

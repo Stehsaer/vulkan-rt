@@ -21,11 +21,7 @@ namespace vulkan
 		if (!command_pool_result) return Error::from(command_pool_result);
 		auto command_pool = std::move(*command_pool_result);
 
-		auto fence_result = context.device.createFence({});
-		if (!fence_result) return Error::from(fence_result);
-		auto fence = std::move(*fence_result);
-
-		return CommandRunner(std::move(command_pool), std::move(fence));
+		return CommandRunner(std::move(command_pool));
 	}
 
 	std::expected<void, Error> CommandRunner::run(
@@ -41,6 +37,10 @@ namespace vulkan
 		});
 		if (!command_buffer_result) return Error::from(command_buffer_result);
 		auto command_buffer = std::move(command_buffer_result->at(0));
+
+		auto fence_result = context.device.createFence({});
+		if (!fence_result) return Error::from(fence_result);
+		auto fence = std::move(*fence_result);
 
 		if (const auto result = command_buffer.begin({}); !result) return Error::from(result);
 

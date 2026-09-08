@@ -1,6 +1,7 @@
-.xmake/*
-build/*
-.vscode/*
+.xmake
+build
+.vscode
+.cache
 */.DS_Store
 TODO.md
 .reasonix

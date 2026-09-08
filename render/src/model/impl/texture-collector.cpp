@@ -23,7 +23,7 @@ namespace render::impl
 		};
 	}
 
-	std::expected<TextureIndex, Error> MaterialCollector::add_material(
+	std::expected<std::pair<TextureIndex, TextureSampleMode>, Error> MaterialCollector::add_material(
 		const vk::raii::Device& device,
 		const TextureList& texture_list,
 		const model::TextureSet& texture_set
@@ -49,12 +49,17 @@ namespace render::impl
 		if (!orm_idx_result) return orm_idx_result.error().forward("Collect ORM texture failed");
 		if (!normal_idx_result) return normal_idx_result.error().forward("Collect normal texture failed");
 
-		return TextureIndex{
-			.albedo = *albedo_idx_result,
-			.emissive = *emissive_idx_result,
-			.orm = *orm_idx_result,
-			.normal = *normal_idx_result
-		};
+		return std::make_pair(
+			TextureIndex{
+				.albedo = *albedo_idx_result,
+				.emissive = *emissive_idx_result,
+				.orm = *orm_idx_result,
+				.normal = *normal_idx_result,
+			},
+			TextureSampleMode{
+				.albedo = albedo_ref.sample_mode,
+			}
+		);
 	}
 
 	std::expected<uint32_t, Error> MaterialCollector::add_texture(

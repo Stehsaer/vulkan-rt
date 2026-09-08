@@ -10,6 +10,8 @@
 #include "render/resource/hdr.hpp"
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
+#include "render/resource/motion-vector.hpp"
+#include "render/resource/shadow.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/interface/context.hpp"
 
@@ -52,6 +54,9 @@ namespace resource
 		struct Attachments
 		{
 			render::DeferredAttachment deferred;
+			render::HalfDeferredAttachment half_deferred;
+			render::ShadowAttachment shadow;
+			render::MotionVectorAttachment motion_vector;
 			render::HdrAttachment hdr;
 		};
 
@@ -86,6 +91,7 @@ namespace resource
 		[[nodiscard]]
 		std::expected<void, Error> resize_attachments(
 			const vulkan::Context& context,
+			const vk::raii::CommandBuffer& command_buffer,
 			glm::u32vec2 extent
 		) noexcept;
 

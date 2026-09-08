@@ -115,7 +115,8 @@ namespace render
 				return resource_creator_result.error().forward("Create resource creator failed");
 			auto resource_creator = std::move(*resource_creator_result);
 
-			vk::BufferUsageFlags geometry_buffer_extra_flgs = vk::BufferUsageFlagBits::eShaderDeviceAddress;
+			vk::BufferUsageFlags geometry_buffer_extra_flgs =
+				vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer;
 			if (context.feature.raytracing)
 				geometry_buffer_extra_flgs |=
 					vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR;

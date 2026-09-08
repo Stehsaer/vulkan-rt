@@ -5,6 +5,7 @@
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
 #include "vulkan/util/static-resource-creator.hpp"
+#include "vulkan/util/stbn.hpp"
 
 #include <cstddef>
 #include <expected>
@@ -62,9 +63,14 @@ namespace resource
 		if (!exposure_mask_view_result) return Error::from(exposure_mask_view_result);
 		auto exposure_mask_view = std::move(*exposure_mask_view_result);
 
+		auto stbn_result = vulkan::STBN::create(context);
+		if (!stbn_result) return stbn_result.error().forward("Create STBN failed");
+		auto stbn = std::move(*stbn_result);
+
 		return AuxResource{
 			.exposure_mask = std::move(exposure_mask_texture),
 			.exposure_mask_view = std::move(exposure_mask_view),
+			.stbn_noise = std::move(stbn),
 		};
 	}
 }

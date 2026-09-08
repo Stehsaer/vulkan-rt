@@ -36,8 +36,8 @@ func main(sv: compute::ShaderVar)
 	[[branch]]
 	if (all(pixel_coord < exposure_param.image_size))
 	{
-		let color = input_image.SampleLevel(texcoord, 0).rgb;
-		let mask_value_unorm = mask_image.SampleLevel(texcoord, 0);
+		let color = input_image.SampleLevelZero(texcoord).rgb;
+		let mask_value_unorm = mask_image.SampleLevelZero(texcoord);
 		let mask_value_uint = uint(mask_value_unorm * 64.0);
 		let luminance = calc_luminance(color);
 		let bin_idx = calc_bin_idx(luminance);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <expected>
 #include <filesystem>
 #include <glm/glm.hpp>
@@ -14,17 +15,17 @@
 
 namespace model
 {
-	enum class Filter
+	enum class Filter : uint32_t
 	{
-		Nearest,
-		Linear,
+		Nearest = 0,
+		Linear = 1,
 	};
 
-	enum class Wrap
+	enum class Wrap : uint32_t
 	{
-		Repeat,
-		MirroredRepeat,
-		ClampToEdge
+		Repeat = 0,
+		MirroredRepeat = 1,
+		ClampToEdge = 2,
 	};
 
 	///

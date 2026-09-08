@@ -6,6 +6,7 @@
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
 #include "render/model/tlas.hpp"
+#include "render/resource/raytrace.hpp"
 #include "render/util/per-render-state.hpp"
 #include "resource/aux-resource.hpp"
 #include "resource/context.hpp"
@@ -15,12 +16,14 @@
 #include "vulkan/container/host/cycle.hpp"
 #include "vulkan/numeric/base-level.hpp"
 #include "vulkan/numeric/glm.hpp"
+#include "vulkan/util/command-runner.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <cstdint>
 #include <expected>
 #include <format>
 #include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_int2_sized.hpp>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
@@ -31,6 +34,7 @@
 #include <utility>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
 namespace page
@@ -56,6 +60,17 @@ namespace page
 		if (!command_buffers_result) return Error::from(command_buffers_result);
 		auto command_buffers = std::move(*command_buffers_result);
 
+		auto raytrace_res_layout_result = render::RaytraceResourceLayout::create(context->device.get());
+		if (!raytrace_res_layout_result)
+			return raytrace_res_layout_result.error().forward("Create raytrace resource layout failed");
+		auto raytrace_res_layout = std::move(*raytrace_res_layout_result);
+
+		auto raytrace_resource_result =
+			render::RaytraceResource::create(context->device.get(), raytrace_res_layout, model);
+		if (!raytrace_resource_result)
+			return raytrace_resource_result.error().forward("Create raytrace resource failed");
+		auto raytrace_resource = std::move(*raytrace_resource_result);
+
 		auto render_buffers_result =
 			std::views::repeat(resource::RenderResource::create, config::INFLIGHT_FRAMES)
 			| std::views::transform([&context](auto f) { return f(context->device.get()); })
@@ -75,6 +90,7 @@ namespace page
 		auto pipeline_result = resource::Pipeline::create(
 			context->device.get(),
 			material_layout,
+			raytrace_res_layout,
 			context->swapchain->surface_format.format
 		);
 		if (!pipeline_result) return pipeline_result.error().forward("Create pipelines failed");
@@ -121,10 +137,12 @@ namespace page
 			std::move(material_layout),
 			std::move(model),
 			std::move(tlas),
+			std::move(raytrace_res_layout),
+			std::move(raytrace_resource),
+			std::move(aux_resource),
 			std::move(pipeline),
 			std::move(frame_resources),
-			std::move(render_complete_semaphores),
-			std::move(aux_resource)
+			std::move(render_complete_semaphores)
 		);
 	}
 
@@ -195,16 +213,32 @@ namespace page
 		{
 			if (const auto result = context->device->waitIdle(); !result) return Error::from(result);
 
-			// NOTE: recreating every set is intended
-			for (auto& resource : frame_resources.iterate())
-			{
-				auto render_target_result = resource.render_resource.resize_attachments(
-					context->device.get(),
-					swapchain_frame.extent
-				);
-				if (!render_target_result)
-					return render_target_result.error().forward("Create render target failed");
-			}
+			auto command_runner_result = vulkan::CommandRunner::create(context->device.get());
+			if (!command_runner_result)
+				return command_runner_result.error().forward("Create command runner failed");
+			auto command_runner = std::move(*command_runner_result);
+
+			const auto recreate_result = command_runner.run(
+				context->device.get(),
+				[this, &swapchain_frame](const vk::raii::CommandBuffer& command_buffer)
+					-> std::expected<void, Error> {
+					// NOTE: recreating every set is intended
+					for (auto& resource : frame_resources.iterate())
+					{
+						auto render_target_result = resource.render_resource.resize_attachments(
+							context->device.get(),
+							command_buffer,
+							swapchain_frame.extent
+						);
+						if (!render_target_result)
+							return render_target_result.error().forward("Create render target failed");
+					}
+
+					return {};
+				}
+			);
+
+			if (!recreate_result) return recreate_result.error();
 		}
 
 		return FrameAcquireResult{
@@ -303,10 +337,15 @@ namespace page
 		frame.curr_resource.resource_set.update(
 			context->device.get(),
 			model,
+			tlas,
+			raytrace_resource,
 			frame.curr_resource.render_resource,
 			frame.prev_resource.render_resource,
-			aux_resource
+			aux_resource,
+			frames
 		);
+
+		frames++;
 
 		return Frame{
 			.command_buffer = frame.curr_resource.command_buffer,
@@ -323,6 +362,16 @@ namespace page
 	{
 		pipeline.indirect.compute(frame.command_buffer, frame.resource_set.indirect);
 		pipeline.deferred.render(frame.command_buffer, frame.resource_set.deferred);
+		pipeline.downsample.downsample(frame.command_buffer, frame.resource_set.downsample);
+		pipeline.motion_vector.compute(frame.command_buffer, frame.resource_set.motion_vector);
+		pipeline.shadow_trace.trace(frame.command_buffer, frame.resource_set.shadow_trace);
+		pipeline.shadow_spatial_variance
+			.generate(frame.command_buffer, frame.resource_set.shadow_spatial_variance);
+		pipeline.shadow_temporal_denoise
+			.denoise(frame.command_buffer, frame.resource_set.shadow_temporal_denoise);
+		pipeline.shadow_spatial_denoise
+			.denoise(frame.command_buffer, frame.resource_set.shadow_spatial_denoise);
+		pipeline.shadow_upsample.upsample(frame.command_buffer, frame.resource_set.shadow_upsample);
 	}
 
 	void RenderPage::render_lighting(const Frame& frame) const noexcept

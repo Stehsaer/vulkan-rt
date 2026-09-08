@@ -15,8 +15,9 @@ namespace logic
 	struct PrimaryLight
 	{
 		float light_yaw_deg = 0.0f, light_pitch_deg = 45.0f;
-		glm::vec3 light_color = glm::vec3(1.0f);
+		glm::vec3 light_color = glm::vec3(1.00f, 0.94f, 0.90f);
 		float light_intensity = glm::pi<float>();
+		float light_size_deg = 1;
 
 		///
 		/// @brief Configuration UI

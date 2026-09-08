@@ -7,6 +7,7 @@
 #include "render/pipeline/util/fullscreen-pipeline.hpp"
 #include "render/resource/deferred.hpp"
 #include "render/resource/hdr.hpp"
+#include "render/resource/shadow.hpp"
 #include "shader/direct.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/container/host/linked-struct.hpp"
@@ -60,17 +61,22 @@ namespace render
 				.stageFlags = vk::ShaderStageFlagBits::eFragment,
 			};
 
-			// TODO: Shadow mask texture
+			constexpr auto shadow_tex_binding = vk::DescriptorSetLayoutBinding{
+				.binding = 4,
+				.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+				.descriptorCount = 1,
+				.stageFlags = vk::ShaderStageFlagBits::eFragment,
+			};
 
 			constexpr auto camera_binding = vk::DescriptorSetLayoutBinding{
-				.binding = 4,
+				.binding = 5,
 				.descriptorType = vk::DescriptorType::eUniformBuffer,
 				.descriptorCount = 1,
 				.stageFlags = vk::ShaderStageFlagBits::eFragment,
 			};
 
 			constexpr auto light_binding = vk::DescriptorSetLayoutBinding{
-				.binding = 5,
+				.binding = 6,
 				.descriptorType = vk::DescriptorType::eUniformBuffer,
 				.descriptorCount = 1,
 				.stageFlags = vk::ShaderStageFlagBits::eFragment,
@@ -81,6 +87,7 @@ namespace render
 				normal_tex_binding,
 				pbr_tex_binding,
 				depth_tex_binding,
+				shadow_tex_binding,
 				camera_binding,
 				light_binding,
 			});
@@ -171,7 +178,6 @@ namespace render
 			.minFilter = vk::Filter::eNearest,
 			.mipmapMode = vk::SamplerMipmapMode::eNearest,
 
-			// NOTE: use repeat to flip image vertically
 			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
 			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
 			.addressModeW = vk::SamplerAddressMode::eClampToEdge,
@@ -184,11 +190,29 @@ namespace render
 		if (!sampler_result) return Error::from(sampler_result);
 		auto sampler = std::move(*sampler_result);
 
+		constexpr auto shadow_sampler_create_info = vk::SamplerCreateInfo{
+			.magFilter = vk::Filter::eLinear,
+			.minFilter = vk::Filter::eLinear,
+			.mipmapMode = vk::SamplerMipmapMode::eNearest,
+
+			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
+			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
+			.addressModeW = vk::SamplerAddressMode::eClampToEdge,
+			.mipLodBias = 0.0f,
+			.minLod = 0.0f,
+			.maxLod = 0.0f,
+		};
+
+		auto shadow_sampler_result = context.device.createSampler(shadow_sampler_create_info);
+		if (!shadow_sampler_result) return Error::from(shadow_sampler_result);
+		auto shadow_sampler = std::move(*shadow_sampler_result);
+
 		return DirectLightingPipeline(
 			std::move(descriptor_set_layout),
 			std::move(pipeline_layout),
 			std::move(pipeline),
-			std::move(sampler)
+			std::move(sampler),
+			std::move(shadow_sampler)
 		);
 	}
 
@@ -217,7 +241,8 @@ namespace render
 				   CTOR_LAMBDA(ResourceSet),
 				   std::views::repeat(descriptor_pool),
 				   sets | std::views::as_rvalue,
-				   std::views::repeat(*sampler)
+				   std::views::repeat(*sampler),
+				   std::views::repeat(*shadow_sampler)
 			   )
 			| std::ranges::to<std::vector>();
 	}
@@ -257,6 +282,7 @@ namespace render
 		const vulkan::Context& context,
 		DeferredAttachment::View deferred,
 		HdrAttachment::View hdr,
+		ShadowAttachment::View shadow,
 		vulkan::ElementBufferRef<Camera> camera,
 		vulkan::ElementBufferRef<DirectLight> direct_light
 	) noexcept
@@ -284,6 +310,12 @@ namespace render
 		const auto depth_tex_info = vk::DescriptorImageInfo{
 			.sampler = sampler,
 			.imageView = deferred.depth.view,
+			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+		};
+
+		const auto shadow_tex_info = vk::DescriptorImageInfo{
+			.sampler = shadow_sampler,
+			.imageView = shadow.visibility.view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		};
 
@@ -337,9 +369,18 @@ namespace render
 			.pImageInfo = &depth_tex_info,
 		};
 
-		const auto camera_buf_write_descriptor = vk::WriteDescriptorSet{
+		const auto shadow_tex_write_descriptor = vk::WriteDescriptorSet{
 			.dstSet = set,
 			.dstBinding = 4,
+			.dstArrayElement = 0,
+			.descriptorCount = 1,
+			.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			.pImageInfo = &shadow_tex_info,
+		};
+
+		const auto camera_buf_write_descriptor = vk::WriteDescriptorSet{
+			.dstSet = set,
+			.dstBinding = 5,
 			.dstArrayElement = 0,
 			.descriptorCount = 1,
 			.descriptorType = vk::DescriptorType::eUniformBuffer,
@@ -348,7 +389,7 @@ namespace render
 
 		const auto direct_light_buf_write_descriptor = vk::WriteDescriptorSet{
 			.dstSet = set,
-			.dstBinding = 5,
+			.dstBinding = 6,
 			.dstArrayElement = 0,
 			.descriptorCount = 1,
 			.descriptorType = vk::DescriptorType::eUniformBuffer,
@@ -360,6 +401,7 @@ namespace render
 			normal_tex_write_descriptor,
 			pbr_tex_write_descriptor,
 			depth_tex_write_descriptor,
+			shadow_tex_write_descriptor,
 			camera_buf_write_descriptor,
 			direct_light_buf_write_descriptor,
 		});

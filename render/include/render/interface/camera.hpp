@@ -13,9 +13,12 @@ namespace render
 	///
 	struct Camera
 	{
-		glm::mat4 inv_view_projection;
-		glm::mat4 prev_view_projection;
-		glm::mat4 view_projection;
+		glm::mat4 inv_view_proj;
+		glm::mat4 inv_proj;
+		glm::mat4 prev_view_proj;
+		glm::mat4 view_proj;
+		glm::mat4 back_proj;
+		glm::mat4 view;
 		glm::vec3 camera_pos;
 		glm::vec3 prev_camera_pos;
 	};

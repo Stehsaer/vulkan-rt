@@ -52,10 +52,10 @@ namespace render::impl
 		/// @param device Vulkan device
 		/// @param texture_list Texture list to get texture references from
 		/// @param texture_set CPU-side texture set to collect
-		/// @return Texture index for the collected material, or error
+		/// @return Texture index and sample modes for the collected material, or error
 		///
 		[[nodiscard]]
-		std::expected<TextureIndex, Error> add_material(
+		std::expected<std::pair<TextureIndex, TextureSampleMode>, Error> add_material(
 			const vk::raii::Device& device,
 			const TextureList& texture_list,
 			const model::TextureSet& texture_set

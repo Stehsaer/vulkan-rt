@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>
-#include <memory>
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -13,7 +13,6 @@
 #include "common/util/error.hpp"
 #include "model/mesh.hpp"
 #include "render/interface/camera.hpp"
-#include "render/interface/direct-light.hpp"
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
@@ -25,6 +24,7 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
+#include "vulkan/util/trivial-descriptor-set.hpp"
 
 namespace render
 {
@@ -36,12 +36,14 @@ namespace render
 	///
 	/// ### Color attachments
 	///
-	/// | Location | Description | R            | G         | B        | A        |
-	/// | :------: | :---------: | :----------: | :-------: | :------: | :------: |
-	/// | 0        | Albedo      | Albedo R     | Albedo G  | Albedo B | Sky Flag |
-	/// | 1        | Normal      | Packed Norm. | -         | -        | -        |
-	/// | 2        | PBR         | Roughness    | Metalness | -        | -        |
-	/// | 3        | HDR Output  | HDR R        | HDR G     | HDR B    | Alpha    |
+	/// | Location | Description  | R         | G         | B        | A        |
+	/// | :------: | :----------: | :-------: | :-------: | :------: | :------: |
+	/// | 0        | Albedo       | Albedo R  | Albedo G  | Albedo B | Sky Flag |
+	/// | 1        | Normal       | Oct. X    | Oct. Y    | -        | -        |
+	/// | 2        | Geom. Normal | Oct. X    | Oct. Y    | -        | -        |
+	/// | 3        | Smth. Normal | Oct. X    | Oct. Y    | -        | -        |
+	/// | 4        | PBR          | Roughness | Metalness | -        | -        |
+	/// | 5        | HDR Output   | HDR R     | HDR G     | HDR B    | Alpha    |
 	///
 	/// @note Synchronization scheme used by this pipeline expects next usage of the HDR attachment is color
 	/// attachment (which is very likely to be lighting pass)
@@ -99,18 +101,35 @@ namespace render
 
 		static std::expected<vk::raii::Pipeline, Error> create_pipeline(
 			const vulkan::Context& context,
-			const vk::raii::PipelineLayout& pipeline_layout,
-			const vk::raii::ShaderModule& shader_module,
+			vk::PipelineLayout pipeline_layout,
+			vk::ShaderModule shader_module,
 			bool alpha_mask_enabled,
 			bool double_sided
 		) noexcept;
 
-		vk::raii::DescriptorSetLayout data_descriptor_set_layout;
+		struct DataInput : public vulkan::trivset::LayoutBase
+		{
+			StorageBuffer primitive_attr;
+			StorageBuffer indirect_buffer;
+			StorageBuffer transform_buffer;
+			UniformBuffer camera;
+
+			static constexpr auto STAGE =
+				vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+			static constexpr auto SLOT_LIST = std::make_tuple(
+				&DataInput::primitive_attr,
+				&DataInput::indirect_buffer,
+				&DataInput::transform_buffer,
+				&DataInput::camera
+			);
+		};
+
+		vulkan::trivset::Layout<DataInput> data_descriptor_set_layout;
 		vk::raii::PipelineLayout pipeline_layout;
 		PerRenderState<vk::raii::Pipeline> pipelines;
 
 		explicit DeferredPipeline(
-			vk::raii::DescriptorSetLayout data_descriptor_set_layout,
+			vulkan::trivset::Layout<DataInput> data_descriptor_set_layout,
 			vk::raii::PipelineLayout pipeline_layout,
 			PerRenderState<vk::raii::Pipeline> pipelines
 		) :
@@ -139,13 +158,11 @@ namespace render
 		///
 		/// @param context Vulkan context
 		/// @param model Model instance
-		/// @param camera_param Camera parameter buffer
-		/// @param primary_light_param  Primary light parameter buffer
 		/// @param host_drawcall Host drawcall resource
 		/// @param indirect_resource Indirect drawcall resource
-		/// @param deferred_attachment Deferred attachments
-		/// @param hdr_attachment HDR attachments
-		/// @param extent Rendering extent
+		/// @param deferred Deferred attachments
+		/// @param hdr HDR attachments
+		/// @param camera_param Camera parameter buffer
 		///
 		/// @warning Deferred and HDR attachments must have identical extents, or a fatal/unrecoverable error
 		/// will occur
@@ -155,21 +172,19 @@ namespace render
 			const Model& model,
 			const HostDrawcallResource& host_drawcall,
 			const IndirectResource& indirect_resource,
-			DeferredAttachment::View deferred_attachment,
-			HdrAttachment::View hdr_attachment,
-			vulkan::ElementBufferRef<Camera> camera_param,
-			vulkan::ElementBufferRef<DirectLight> primary_light_param
+			DeferredAttachment::View deferred,
+			HdrAttachment::View hdr,
+			vulkan::ElementBufferRef<Camera> camera_param
 		) noexcept;
 
 	  private:
 
-		std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool;
-		PerRenderState<vk::raii::DescriptorSet> data_descriptor_set;
+		PerRenderState<vulkan::trivset::Set<DataInput>> data_descriptor_set;
 
 		struct Attachment
 		{
 			glm::u32vec2 extent;
-			vulkan::AttachmentView albedo, normal, pbr, depth, hdr;
+			vulkan::AttachmentView albedo, normal, geom_normal, smooth_normal, pbr, depth, hdr;
 		};
 
 		// External resources
@@ -188,11 +203,7 @@ namespace render
 
 		const Resource* operator->() const noexcept { return resource.operator->(); }
 
-		explicit ResourceSet(
-			std::shared_ptr<vk::raii::DescriptorPool> descriptor_pool,
-			PerRenderState<vk::raii::DescriptorSet> data_descriptor_set
-		) :
-			descriptor_pool(std::move(descriptor_pool)),
+		explicit ResourceSet(PerRenderState<vulkan::trivset::Set<DataInput>> data_descriptor_set) :
 			data_descriptor_set(std::move(data_descriptor_set))
 		{}
 

@@ -122,12 +122,17 @@ namespace render
 			std::vector<model::Material::Mode> material_modes;
 
 			// Collect fallback texture
-			const auto fallback_texture_index_result =
+			const auto fallback_texture_result =
 				texture_collector.add_material(context.device, texture_list, model::TextureSet{});
-			if (!fallback_texture_index_result)
-				return fallback_texture_index_result.error().forward("Collect fallback texture failed");
+			if (!fallback_texture_result)
+				return fallback_texture_result.error().forward("Collect fallback texture failed");
+			const auto [fallback_texture_index, fallback_texture_sample_mode] = *fallback_texture_result;
 			material_infos.emplace_back(
-				MaterialInfo{.texture_index = *fallback_texture_index_result, .param = {}}
+				MaterialInfo{
+					.texture_index = fallback_texture_index,
+					.sample_mode = fallback_texture_sample_mode,
+					.param = {},
+				}
 			);
 			material_modes.emplace_back(
 				model::Material::Mode{.alpha_mode = model::AlphaMode::Mask, .double_sided = true}
@@ -136,14 +141,19 @@ namespace render
 			// Collect material textures
 			for (const auto& [idx, material] : material_list.materials | std::views::enumerate)
 			{
-				const auto texture_index_result =
+				const auto texture_result =
 					texture_collector.add_material(context.device, texture_list, material.texture_set);
-				if (!texture_index_result)
-					return texture_index_result.error()
+				if (!texture_result)
+					return texture_result.error()
 						.forward("Collect material texture failed", std::format("Material index: {}", idx));
+				const auto [texture_index, texture_sample_mode] = *texture_result;
 
 				material_infos.emplace_back(
-					MaterialInfo{.texture_index = *texture_index_result, .param = material.param}
+					MaterialInfo{
+						.texture_index = texture_index,
+						.sample_mode = texture_sample_mode,
+						.param = material.param,
+					}
 				);
 				material_modes.push_back(material.mode);
 			}

@@ -6,8 +6,8 @@ namespace pbr
 	{
 		public float3 normal;
 		public float3 albedo;
-		public float metallic;
 		public float roughness;
+		public float metallic;
 	}
 
 	public struct DirectionalLight

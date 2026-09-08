@@ -1,24 +1,19 @@
 module octahedral;
 
+[[ForceInline]]
 public func oct_encode(in_normal: float3)->float2
 {
-	var normal = in_normal;
-	normal.xy /= dot(1, abs(normal));
-
-	[[flatten]]
-	if (normal.z <= 0) normal.xy = copysign(1 - abs(normal.yx), normal.xy);
-
-	return normal.xy;
+	let abs_normal = abs(in_normal);
+	let coord = in_normal.xy / (abs_normal.x + abs_normal.y + abs_normal.z);
+	return in_normal.z <= 0 ? copysign(1 - abs(coord.yx), coord.xy) : coord;
 }
 
+[[ForceInline]]
 public func oct_decode(oct: float2)->float3
 {
-	var normal = float3(oct, 1 - dot(1, abs(oct)));
-
-	[[flatten]]
-	if (normal.z < 0) normal.xy = copysign(1 - abs(normal.yx), normal.xy);
-
-	return normalize(normal);
+	let sign = 1 - abs(oct.x) - abs(oct.y);
+	let xy = sign < 0 ? copysign(1 - abs(oct.yx), oct) : oct;
+	return normalize(float3(xy, sign));
 }
 
 

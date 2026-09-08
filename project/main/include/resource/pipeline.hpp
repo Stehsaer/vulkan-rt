@@ -5,15 +5,25 @@
 #include "render-resource.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
+#include "render/model/tlas.hpp"
 #include "render/pipeline/auto-exposure.hpp"
 #include "render/pipeline/composite.hpp"
 #include "render/pipeline/deferred.hpp"
 #include "render/pipeline/direct.hpp"
+#include "render/pipeline/downsample.hpp"
 #include "render/pipeline/indirect.hpp"
+#include "render/pipeline/motion-vector.hpp"
+#include "render/pipeline/shadow/spatial-denoise.hpp"
+#include "render/pipeline/shadow/spatial-variance.hpp"
+#include "render/pipeline/shadow/temporal-denoise.hpp"
+#include "render/pipeline/shadow/trace.hpp"
+#include "render/pipeline/shadow/upsample.hpp"
+#include "render/resource/raytrace.hpp"
 #include "vulkan/interface/context.hpp"
 
 #include <cstdint>
 #include <expected>
+#include <glm/ext/vector_int2_sized.hpp>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
@@ -28,6 +38,13 @@ namespace resource
 	{
 		render::IndirectPipeline indirect;
 		render::DeferredPipeline deferred;
+		render::DownsamplePipeline downsample;
+		render::MotionVectorPipeline motion_vector;
+		render::shadow::RaytracePipeline shadow_trace;
+		render::shadow::SpatialVariancePipeline shadow_spatial_variance;
+		render::shadow::TemporalDenoisePipeline shadow_temporal_denoise;
+		render::shadow::SpatialDenoisePipeline shadow_spatial_denoise;
+		render::shadow::UpsamplePipeline shadow_upsample;
 		render::DirectLightingPipeline direct_lighting;
 		render::AutoExposurePipeline auto_exposure;
 		render::CompositePipeline composite;
@@ -44,6 +61,7 @@ namespace resource
 		static std::expected<Pipeline, Error> create(
 			const vulkan::Context& context,
 			const render::MaterialLayout& material_layout,
+			const render::RaytraceResourceLayout& raytrace_resource_layout,
 			vk::Format composite_format
 		) noexcept;
 
@@ -68,6 +86,13 @@ namespace resource
 	{
 		render::IndirectPipeline::ResourceSet indirect;
 		render::DeferredPipeline::ResourceSet deferred;
+		render::DownsamplePipeline::ResourceSet downsample;
+		render::MotionVectorPipeline::ResourceSet motion_vector;
+		render::shadow::RaytracePipeline::ResourceSet shadow_trace;
+		render::shadow::SpatialVariancePipeline::ResourceSet shadow_spatial_variance;
+		render::shadow::TemporalDenoisePipeline::ResourceSet shadow_temporal_denoise;
+		render::shadow::SpatialDenoisePipeline::ResourceSet shadow_spatial_denoise;
+		render::shadow::UpsamplePipeline::ResourceSet shadow_upsample;
 		render::DirectLightingPipeline::ResourceSet direct_lighting;
 		render::AutoExposurePipeline::ResourceSet auto_exposure;
 		render::CompositePipeline::ResourceSet composite;
@@ -85,9 +110,12 @@ namespace resource
 		void update(
 			const vulkan::Context& context,
 			const render::Model& model,
+			const render::Tlas& tlas,
+			const render::RaytraceResource& raytrace_res,
 			const resource::RenderResource& curr_resource,
 			const resource::RenderResource& prev_resource,
-			const resource::AuxResource& aux_resource
+			const resource::AuxResource& aux_resource,
+			uint32_t frame_index
 		) noexcept;
 	};
 }
