@@ -96,7 +96,7 @@ TEST_CASE("Tangent Generation")
 	);
 }
 
-TEST_CASE("Degenerate Tangetn Generation")
+TEST_CASE("Degenerate Tangent Generation")
 {
 	// pos=(0, 0, 0), texcoord=(0, 0)
 	const model::NormalOnlyVertex v0{

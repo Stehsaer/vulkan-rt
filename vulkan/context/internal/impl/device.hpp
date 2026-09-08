@@ -97,7 +97,7 @@ namespace vulkan::impl
 	/// @param phy_device Physical device
 	/// @param instance Surface instance
 	/// @param config Device config
-	/// @retval SurfaceDeviceInfo Success, all info required for creatin ga device
+	/// @retval SurfaceDeviceInfo Success, all info required for creating a device
 	/// @retval FailInfo Fail, error info explaining the cause
 	///
 	[[nodiscard]]

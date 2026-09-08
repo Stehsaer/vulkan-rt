@@ -201,7 +201,7 @@ namespace vulkan::impl
 			return Error(
 				"Vulkan API version too low",
 				std::format(
-					"Expecting > {}.{}, got {}.{}",
+					"Expecting >= {}.{}, got {}.{}",
 					vk::versionMajor(API_VERSION),
 					vk::versionMinor(API_VERSION),
 					vk::versionMajor(properties.apiVersion),

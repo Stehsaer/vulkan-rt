@@ -282,7 +282,7 @@ namespace vulkan
 		///
 		/// @brief Execute all upload tasks when pending data size exceeds or equals the given threshold
 		/// @note
-		/// - If pending data size excees the given threshold, no matter success or fail, tasks will be
+		/// - If pending data size exceeds the given threshold, no matter success or fail, tasks will be
 		/// cleared after this call
 		/// - This function is multi-threading safe
 		///
