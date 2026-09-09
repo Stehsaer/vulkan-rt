@@ -7,7 +7,9 @@
 #include "vulkan/interface/attachment.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
+#include "vulkan/util/sampler.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
+#include "vulkan/vulkan.hpp"
 
 #include <array>
 #include <cstdint>
@@ -23,32 +25,6 @@
 
 namespace render
 {
-	namespace
-	{
-		std::expected<vk::raii::Sampler, Error> create_sampler(const vulkan::Context& context) noexcept
-		{
-			auto sampler_result = context.device.createSampler({
-				.magFilter = vk::Filter::eNearest,
-				.minFilter = vk::Filter::eNearest,
-				.mipmapMode = vk::SamplerMipmapMode::eNearest,
-				.addressModeU = vk::SamplerAddressMode::eClampToEdge,
-				.addressModeV = vk::SamplerAddressMode::eClampToEdge,
-				.addressModeW = vk::SamplerAddressMode::eClampToEdge,
-				.mipLodBias = 0,
-				.anisotropyEnable = vk::False,
-				.maxAnisotropy = 0,
-				.compareEnable = vk::False,
-				.minLod = 0,
-				.maxLod = 0,
-				.unnormalizedCoordinates = vk::True,
-			});
-			if (!sampler_result) return Error::from(sampler_result);
-			auto sampler = std::move(*sampler_result);
-
-			return sampler;
-		}
-	}
-
 	std::expected<DownsamplePipeline, Error> DownsamplePipeline::create(
 		const vulkan::Context& context
 	) noexcept
@@ -62,15 +38,15 @@ namespace render
 		if (!pipeline_result) return pipeline_result.error().forward("Create downsample pipeline failed");
 		auto pipeline = std::move(*pipeline_result);
 
-		auto sampler_result = create_sampler(context);
-		if (!sampler_result) return sampler_result.error().forward("Create downsample sampler failed");
+		auto sampler_result = context.device.createSampler(
+			vulkan::SamplerFilter::Nearest
+			+ vk::SamplerAddressMode::eClampToEdge
+			+ vulkan::SamplerUnnormalized
+		);
+		if (!sampler_result) return Error::from(sampler_result);
 		auto sampler = std::move(*sampler_result);
 
-		return DownsamplePipeline(
-			std::move(descriptor_set_layout),
-			std::move(pipeline),
-			std::move(sampler)
-		);
+		return DownsamplePipeline(std::move(descriptor_set_layout), std::move(pipeline), std::move(sampler));
 	}
 
 	std::expected<std::vector<DownsamplePipeline::ResourceSet>, Error>

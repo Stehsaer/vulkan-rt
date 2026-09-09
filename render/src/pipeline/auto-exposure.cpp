@@ -12,7 +12,9 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/pool-size.hpp"
+#include "vulkan/util/sampler.hpp"
 #include "vulkan/util/shader.hpp"
+#include "vulkan/vulkan.hpp"
 
 #include <array>
 #include <cstdint>
@@ -332,35 +334,15 @@ namespace render
 
 		/*===== Sampler =====*/
 
-		constexpr auto input_sampler_create_info = vk::SamplerCreateInfo{
-			.magFilter = vk::Filter::eNearest,
-			.minFilter = vk::Filter::eNearest,
-			.mipmapMode = vk::SamplerMipmapMode::eNearest,
-			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
-			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
-			.addressModeW = vk::SamplerAddressMode::eClampToEdge,
-			.mipLodBias = 0.0f,
-			.minLod = 0.0f,
-			.maxLod = 0.0f,
-		};
-
-		auto input_sampler_result = context.device.createSampler(input_sampler_create_info);
+		auto input_sampler_result = context.device.createSampler(
+			vulkan::SamplerFilter::Nearest + vk::SamplerAddressMode::eClampToEdge
+		);
 		if (!input_sampler_result) return Error::from(input_sampler_result);
 		auto input_sampler = std::move(*input_sampler_result);
 
-		constexpr auto mask_sampler_create_info = vk::SamplerCreateInfo{
-			.magFilter = vk::Filter::eLinear,
-			.minFilter = vk::Filter::eLinear,
-			.mipmapMode = vk::SamplerMipmapMode::eNearest,
-			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
-			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
-			.addressModeW = vk::SamplerAddressMode::eClampToEdge,
-			.mipLodBias = 0.0f,
-			.minLod = 0.0f,
-			.maxLod = 0.0f,
-		};
-
-		auto mask_sampler_result = context.device.createSampler(mask_sampler_create_info);
+		auto mask_sampler_result = context.device.createSampler(
+			vulkan::SamplerFilter::LinearMipmapNearest + vk::SamplerAddressMode::eClampToEdge
+		);
 		if (!mask_sampler_result) return Error::from(mask_sampler_result);
 		auto mask_sampler = std::move(*mask_sampler_result);
 

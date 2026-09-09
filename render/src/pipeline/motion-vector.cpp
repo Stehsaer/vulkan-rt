@@ -8,6 +8,7 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
+#include "vulkan/util/sampler.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
@@ -35,28 +36,15 @@ namespace render
 		if (!pipeline_result) return pipeline_result.error().forward("Create pipeline failed");
 		auto pipeline = std::move(*pipeline_result);
 
-		constexpr auto sampler_create_info = vk::SamplerCreateInfo{
-			.magFilter = vk::Filter::eLinear,
-			.minFilter = vk::Filter::eLinear,
-			.mipmapMode = vk::SamplerMipmapMode::eNearest,
-
-			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
-			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
-			.addressModeW = vk::SamplerAddressMode::eClampToEdge,
-			.mipLodBias = 0.0f,
-			.minLod = 0.0f,
-			.maxLod = 0.0f,
-			.unnormalizedCoordinates = vk::True
-		};
-		auto sampler_result = context.device.createSampler(sampler_create_info);
+		auto sampler_result = context.device.createSampler(
+			vulkan::SamplerFilter::LinearMipmapNearest
+			+ vk::SamplerAddressMode::eClampToEdge
+			+ vulkan::SamplerUnnormalized
+		);
 		if (!sampler_result) return Error::from(sampler_result);
 		auto sampler = std::move(*sampler_result);
 
-		return MotionVectorPipeline(
-			std::move(set_layout),
-			std::move(pipeline),
-			std::move(sampler)
-		);
+		return MotionVectorPipeline(std::move(set_layout), std::move(pipeline), std::move(sampler));
 	}
 
 	std::expected<std::vector<MotionVectorPipeline::ResourceSet>, Error>

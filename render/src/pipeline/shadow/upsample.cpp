@@ -9,6 +9,7 @@
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/interface/context.hpp"
 #include "vulkan/numeric/base-level.hpp"
+#include "vulkan/util/sampler.hpp"
 #include "vulkan/util/trivial-descriptor-set.hpp"
 
 #include <cstdint>
@@ -45,23 +46,11 @@ namespace render::shadow
 		if (!gen_pipeline_result) return gen_pipeline_result.error().forward("Create gen pipeline failed");
 		auto gen_pipeline = std::move(*gen_pipeline_result);
 
-		const auto sampler_info = vk::SamplerCreateInfo{
-			.magFilter = vk::Filter::eNearest,
-			.minFilter = vk::Filter::eNearest,
-			.mipmapMode = vk::SamplerMipmapMode::eNearest,
-			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
-			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
-			.addressModeW = vk::SamplerAddressMode::eClampToEdge,
-			.mipLodBias = 0,
-			.anisotropyEnable = vk::False,
-			.maxAnisotropy = 0,
-			.compareEnable = vk::False,
-			.minLod = 0,
-			.maxLod = 0,
-			.unnormalizedCoordinates = vk::True
-		};
-
-		auto sampler_result = context.device.createSampler(sampler_info);
+		auto sampler_result = context.device.createSampler(
+			vulkan::SamplerFilter::Nearest
+			+ vk::SamplerAddressMode::eClampToEdge
+			+ vulkan::SamplerUnnormalized
+		);
 		if (!sampler_result) return Error::from(sampler_result);
 		auto sampler = std::move(*sampler_result);
 
