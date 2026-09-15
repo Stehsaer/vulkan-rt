@@ -8,5 +8,5 @@ target("vulkan.alloc")
 	add_headerfiles("include/(**.hpp)")
 
 	add_packages("vulkan-memory-allocator", "vulkan-hpp", {public = true})
-	add_deps("lib.common", {public = true})
+	add_deps("common", {public = true})
 	

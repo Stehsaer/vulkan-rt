@@ -1,17 +1,17 @@
 #include "render/pipeline/shadow/spatial-variance.hpp"
+#include "common/container/error.hpp"
 #include "common/util/construct.hpp"
-#include "common/util/error.hpp"
 #include "render/interface/camera.hpp"
 #include "render/resource/deferred.hpp"
 #include "render/resource/shadow.hpp"
 #include "shader/shadow/spatial-variance/compute.hpp"
 #include "shader/shadow/spatial-variance/filter.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/interface/attachment.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/numeric/base-level.hpp"
-#include "vulkan/util/sampler.hpp"
-#include "vulkan/util/trivial-descriptor-set.hpp"
+#include "vulkan/common/attachment.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/numeric/base-level.hpp"
+#include "vulkan/common/numeric/sampler.hpp"
+#include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 #include <array>
 #include <cstdint>

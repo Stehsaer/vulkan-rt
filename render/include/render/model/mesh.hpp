@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "model/mesh.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/alloc/buffer.hpp"
-#include "vulkan/interface/context.hpp"
+#include "vulkan/common/context.hpp"
 
 #include <cstdint>
 #include <expected>

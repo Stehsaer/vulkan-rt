@@ -1,14 +1,14 @@
 #pragma once
 
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "render/interface/auto-exposure.hpp"
 #include "render/interface/camera.hpp"
 #include "render/interface/direct-light.hpp"
 #include "render/interface/primitive-drawcall.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/container/device/staged-buffer.hpp"
-#include "vulkan/interface/context.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/container/staged-buffer.hpp"
 
 #include <array>
 #include <expected>

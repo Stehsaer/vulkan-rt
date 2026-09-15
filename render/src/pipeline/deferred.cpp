@@ -1,7 +1,8 @@
 #include "render/pipeline/deferred.hpp"
+#include "common/container/error.hpp"
+#include "common/container/linked-struct.hpp"
 #include "common/util/array.hpp"
 #include "common/util/construct.hpp"
-#include "common/util/error.hpp"
 #include "model/material.hpp"
 #include "model/mesh.hpp"
 #include "render/interface/camera.hpp"
@@ -16,13 +17,12 @@
 #include "render/util/per-render-state.hpp"
 #include "shader/deferred.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/container/host/linked-struct.hpp"
-#include "vulkan/interface/attachment.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/numeric/base-level.hpp"
-#include "vulkan/numeric/glm.hpp"
-#include "vulkan/util/shader.hpp"
-#include "vulkan/util/trivial-descriptor-set.hpp"
+#include "vulkan/common/attachment.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/numeric/base-level.hpp"
+#include "vulkan/common/numeric/glm.hpp"
+#include "vulkan/common/util/shader.hpp"
+#include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 #include <array>
 #include <cstddef>
@@ -218,7 +218,7 @@ namespace render
 
 		/*===== Pipeline Creation =====*/
 
-		vulkan::LinkedStruct<vk::GraphicsPipelineCreateInfo> pipeline_create_info =
+		util::LinkedStruct<vk::GraphicsPipelineCreateInfo> pipeline_create_info =
 			vk::GraphicsPipelineCreateInfo()
 				.setStages(shader_stage_create_infos)
 				.setPVertexInputState(&vertex_input_state_create_info)

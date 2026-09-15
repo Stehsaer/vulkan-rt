@@ -1,13 +1,13 @@
 #include "render/model/texture.hpp"
+#include "common/container/error.hpp"
 #include "common/number-literals.hpp"
-#include "common/util/error.hpp"
 #include "common/util/overload.hpp"
 #include "image/bc-image.hpp"
 #include "image/common.hpp"
 #include "image/image.hpp"
 #include "model/texture.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/util/static-resource-creator.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/util/static-resource-creator.hpp"
 
 #include <algorithm>
 #include <cstdint>

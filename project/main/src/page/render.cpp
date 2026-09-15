@@ -1,6 +1,7 @@
 #include "page/render.hpp"
+#include "common/container/cycle.hpp"
+#include "common/container/error.hpp"
 #include "common/util/construct.hpp"
-#include "common/util/error.hpp"
 #include "config.hpp"
 #include "render/interface/primitive-drawcall.hpp"
 #include "render/model/material.hpp"
@@ -13,10 +14,9 @@
 #include "resource/pipeline.hpp"
 #include "resource/render-resource.hpp"
 #include "resource/sync-primitive.hpp"
-#include "vulkan/container/host/cycle.hpp"
-#include "vulkan/numeric/base-level.hpp"
-#include "vulkan/numeric/glm.hpp"
-#include "vulkan/util/command-runner.hpp"
+#include "vulkan/common/numeric/base-level.hpp"
+#include "vulkan/common/numeric/glm.hpp"
+#include "vulkan/common/util/command-runner.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <cstdint>
@@ -109,7 +109,7 @@ namespace page
 				resource_sets | std::views::as_rvalue,
 				sync_primitives | std::views::as_rvalue
 			)
-			| vulkan::Cycle<FrameResource>::into;
+			| util::Cycle<FrameResource>::into;
 
 		auto render_complete_semaphores_result =
 			std::views::repeat(

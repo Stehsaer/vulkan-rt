@@ -1,10 +1,10 @@
-#include "vulkan/context/device.hpp"
-#include "common/util/error.hpp"
+#include "vulkan/platform/device.hpp"
+#include "common/container/error.hpp"
 #include "resource/context.hpp"
-#include "vulkan/context/imgui.hpp"
-#include "vulkan/context/instance.hpp"
-#include "vulkan/context/swapchain.hpp"
-#include "vulkan/interface/context.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/platform/imgui.hpp"
+#include "vulkan/platform/instance.hpp"
+#include "vulkan/platform/swapchain.hpp"
 
 #include <expected>
 #include <utility>

@@ -1,13 +1,13 @@
 #include "helper/imgui-page.hpp"
+#include "common/container/cycle.hpp"
+#include "common/container/error.hpp"
 #include "common/number-literals.hpp"
-#include "common/util/error.hpp"
 #include "config.hpp"
 #include "resource/context.hpp"
 #include "resource/sync-primitive.hpp"
-#include "vulkan/container/host/cycle.hpp"
-#include "vulkan/context/swapchain.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/numeric/base-level.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/numeric/base-level.hpp"
+#include "vulkan/platform/swapchain.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <array>
@@ -44,8 +44,7 @@ namespace helper
 			.commandBufferCount = config::INFLIGHT_FRAMES,
 		});
 		if (!command_buffer_result) return Error::from(command_buffer_result);
-		auto command_buffers =
-			std::move(*command_buffer_result) | vulkan::Cycle<vk::raii::CommandBuffer>::into;
+		auto command_buffers = std::move(*command_buffer_result) | util::Cycle<vk::raii::CommandBuffer>::into;
 
 		auto sync_primitives_result = std::views::iota(0_u32, config::INFLIGHT_FRAMES)
 			| std::views::transform([&](auto) { return resource::FrameSyncPrimitive::create(context); })
@@ -53,7 +52,7 @@ namespace helper
 		if (!sync_primitives_result)
 			return sync_primitives_result.error().forward("Create frame sync primitives failed");
 		auto sync_primitives =
-			std::move(*sync_primitives_result) | vulkan::Cycle<resource::FrameSyncPrimitive>::into;
+			std::move(*sync_primitives_result) | util::Cycle<resource::FrameSyncPrimitive>::into;
 
 		auto render_complete_semaphores_result =
 			std::views::repeat(

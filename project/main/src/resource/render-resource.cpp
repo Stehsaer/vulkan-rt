@@ -1,6 +1,6 @@
 #include "resource/render-resource.hpp"
+#include "common/container/error.hpp"
 #include "common/util/array.hpp"
-#include "common/util/error.hpp"
 #include "render/interface/primitive-drawcall.hpp"
 #include "render/resource/auto-exposure.hpp"
 #include "render/resource/deferred.hpp"
@@ -9,7 +9,7 @@
 #include "render/resource/motion-vector.hpp"
 #include "render/resource/shadow.hpp"
 #include "render/util/per-render-state.hpp"
-#include "vulkan/interface/context.hpp"
+#include "vulkan/common/context.hpp"
 
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>

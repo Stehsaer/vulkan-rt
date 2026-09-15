@@ -1,14 +1,14 @@
 #pragma once
 
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "render/interface/camera.hpp"
 #include "render/resource/deferred.hpp"
 #include "render/resource/motion-vector.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/interface/attachment.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/util/compute-pipeline.hpp"
-#include "vulkan/util/trivial-descriptor-set.hpp"
+#include "vulkan/common/attachment.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/wrapper/compute-pipeline.hpp"
+#include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 #include <cstdint>
 #include <expected>

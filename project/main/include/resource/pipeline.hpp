@@ -1,7 +1,7 @@
 #pragma once
 
 #include "aux-resource.hpp"
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "render-resource.hpp"
 #include "render/model/material.hpp"
 #include "render/model/model.hpp"
@@ -19,7 +19,7 @@
 #include "render/pipeline/shadow/trace.hpp"
 #include "render/pipeline/shadow/upsample.hpp"
 #include "render/resource/raytrace.hpp"
-#include "vulkan/interface/context.hpp"
+#include "vulkan/common/context.hpp"
 
 #include <cstdint>
 #include <expected>

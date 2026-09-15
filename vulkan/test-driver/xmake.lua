@@ -7,5 +7,5 @@ target("vulkan.test-driver")
 	add_headerfiles("include/(**.hpp)")
 	add_files("src/**.cpp")
 
-	add_deps("vulkan.context", {public = true})
+	add_deps("vulkan.platform", {public = true})
 	add_packages("doctest", {public = true})

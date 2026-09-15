@@ -10,7 +10,7 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "model/mesh.hpp"
 #include "render/interface/camera.hpp"
 #include "render/interface/indirect-drawcall.hpp"
@@ -22,9 +22,9 @@
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/interface/attachment.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/util/trivial-descriptor-set.hpp"
+#include "vulkan/common/attachment.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 namespace render
 {

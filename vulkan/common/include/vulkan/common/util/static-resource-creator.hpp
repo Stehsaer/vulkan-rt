@@ -1,0 +1,550 @@
+#pragma once
+
+#include "common/container/error.hpp"
+#include "common/number-literals.hpp"
+#include "common/util/span.hpp"
+#include "image/bc-image.hpp"
+#include "image/common.hpp"
+#include "image/image.hpp"
+#include "vulkan/alloc/allocator.hpp"
+#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/alloc/image.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/numeric/base-level.hpp"
+#include "vulkan/common/util/command-runner.hpp"
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <functional>
+#include <glm/ext/vector_uint2_sized.hpp>
+#include <memory>
+#include <mutex>
+#include <ranges>
+#include <span>
+#include <type_traits>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan_structs.hpp>
+
+namespace vulkan
+{
+	///
+	/// @brief Static resource creator, designed for creating buffers and images at initialization/loading
+	/// stage
+	///
+	/// @warning
+	/// - Do not create multiple upload tasks for the same image subresource layer
+	/// - Make sure to call `execute_uploads()` after creating resources and before deconstructing the
+	/// creator. No checks are made for pending tasks in the destructor.
+	/// - Do not use it in frame loops, as this is not designed to be highly efficient. Manually upload in
+	/// such scenarios.
+	///
+	/// @note All resosurces are created as `GpuOnly`
+	///
+	class StaticResourceCreator
+	{
+	  public:
+
+		///
+		/// @brief Create a static resource creator
+		///
+		/// @param context Vulkan context
+		/// @return Created instance or failed
+		///
+		static std::expected<StaticResourceCreator, Error> create(const vulkan::Context& context) noexcept;
+
+		///
+		/// @brief Create a buffer
+		/// @note This function is multi-threading safe
+		///
+		/// @param context Vulkan context
+		/// @param data Data to upload to the buffer
+		/// @param usage Buffer usage flags (No need to include `TransferDst` bit)
+		/// @return Created buffer, or error
+		///
+		[[nodiscard]]
+		std::expected<Buffer, Error> create_buffer(
+			const Context& context,
+			std::span<const std::byte> data,
+			vk::BufferUsageFlags usage
+		) noexcept;
+
+		///
+		/// @brief Create a element buffer
+		///
+		/// @tparam T Type of the element
+		/// @param context Vulkan context
+		/// @param element Element to upload to the buffer
+		/// @param usage Buffer usage flags (No need to include `TransferDst` bit)
+		/// @return Created element buffer, or error
+		///
+		template <typename T>
+		[[nodiscard]]
+		std::expected<ElementBuffer<T>, Error> create_element_buffer(
+			const Context& context,
+			const T& element,
+			vk::BufferUsageFlags usage
+		) noexcept
+		{
+			return create_buffer(context, util::object_as_bytes(element), usage).transform([](Buffer buffer) {
+				return ElementBuffer<T>(std::move(buffer));
+			});
+		}
+
+		///
+		/// @brief Create an array buffer
+		///
+		/// @tparam T Type of the element
+		/// @param context Vulkan context
+		/// @param data Array of elements to upload to the buffer
+		/// @param usage Buffer usage flags (No need to include `TransferDst` bit)
+		/// @return Created array buffer, or error
+		///
+		template <typename T>
+		[[nodiscard]]
+		std::expected<ArrayBuffer<T>, Error> create_array_buffer(
+			const Context& context,
+			std::span<const T> data,
+			vk::BufferUsageFlags usage
+		) noexcept
+		{
+			return create_buffer(context, util::as_bytes(data), usage)
+				.transform([item_count = data.size()](Buffer buffer) {
+					return ArrayBuffer<T>(std::move(buffer), item_count);
+				});
+		}
+
+		///
+		/// @brief Create an array buffer
+		///
+		/// @tparam T Type of the element
+		/// @param context Vulkan context
+		/// @param data Array of elements to upload to the buffer
+		/// @param usage Buffer usage flags (No need to include `TransferDst` bit)
+		/// @return Created array buffer, or error
+		///
+		template <std::ranges::contiguous_range T>
+		[[nodiscard]]
+		std::expected<ArrayBuffer<std::decay_t<std::ranges::range_value_t<T>>>, Error> create_array_buffer(
+			const Context& context,
+			T&& data,
+			vk::BufferUsageFlags usage
+		) noexcept
+		{
+			using ValueType = std::decay_t<std::ranges::range_value_t<T>>;
+			return create_array_buffer(context, std::span<const ValueType>(data), usage);
+		}
+
+		///
+		/// @brief Create a image from CPU-side image
+		/// @note This function is multi-threading safe
+		///
+		/// @tparam T Image format
+		/// @tparam L Image layout
+		/// @param context Vulkan context
+		/// @param image CPU-side image to create the GPU image from
+		/// @param format Vulkan format of the created image, must be compatible with the CPU-side image
+		/// format
+		/// @param usage Vulkan image usage flags (No need to include `TransferDst` bit)
+		/// @param layout Vulkan image layout to transition the created image to after upload
+		/// @return Created image, or error
+		///
+		template <image::Format T, image::Layout L>
+		[[nodiscard]]
+		std::expected<Image, Error> create_image(
+			const Context& context,
+			const image::Image<T, L>& image,
+			vk::Format format,
+			vk::ImageUsageFlags usage,
+			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			vk::ImageCreateFlags create_flags = {}
+		) noexcept;
+
+		///
+		/// @brief Create a image from CPU-side BCn image
+		/// @note This function is multi-threading safe
+		///
+		/// @param context Vulkan context
+		/// @param image CPU-side BCn image to create the GPU image from
+		/// @param srgb Whether the image is in sRGB color space
+		/// @param usage Vulkan image usage flags (No need to include `TransferDst` bit)
+		/// @param layout Vulkan image layout to transition the created image to after upload
+		/// @return Created image, or error
+		///
+		[[nodiscard]]
+		std::expected<Image, Error> create_image_bcn(
+			const Context& context,
+			const image::BCnImage& image,
+			bool srgb,
+			vk::ImageUsageFlags usage,
+			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			vk::ImageCreateFlags create_flags = {}
+		) noexcept;
+
+		///
+		/// @brief Create a image with multiple mipmap levels from CPU-side images chain
+		/// @note This function is multi-threading safe
+		///
+		/// @tparam T Image format
+		/// @tparam L Image layout
+		/// @param context Vulkan context
+		/// @param mipmap_chain CPU-side images for each mipmap level, ordered from largest to smallest
+		/// @param format Vulkan format of the created image, must be compatible with the CPU-side image
+		/// format
+		/// @param usage Vulkan image usage flags (No need to include `TransferDst` bit)
+		/// @param layout Vulkan image layout to transition the created image to after upload
+		/// @return Created image, or error
+		///
+		template <image::Format T, image::Layout L>
+		[[nodiscard]]
+		std::expected<Image, Error> create_image_mipmap(
+			const Context& context,
+			std::span<const image::Image<T, L>> mipmap_chain,
+			vk::Format format,
+			vk::ImageUsageFlags usage,
+			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			vk::ImageCreateFlags create_flags = {}
+		) noexcept;
+
+		///
+		/// @brief Create a image with multiple mipmap levels from CPU-side images chain
+		/// @note This function is multi-threading safe
+		///
+		/// @param context Vulkan context
+		/// @param mipmap_chain CPU-side images for each mipmap level, ordered from largest to smallest
+		/// @param format Vulkan format of the created image, must be compatible with the CPU-side image
+		/// format
+		/// @param usage Vulkan image usage flags (No need to include `TransferDst` bit)
+		/// @param layout Vulkan image layout to transition the created image to after upload
+		/// @return Created image, or error
+		///
+		template <std::ranges::input_range Range>
+			requires(std::ranges::contiguous_range<Range>)
+		std::expected<Image, Error> create_image_mipmap(
+			const Context& context,
+			Range&& mipmap_chain,
+			vk::Format format,
+			vk::ImageUsageFlags usage,
+			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			vk::ImageCreateFlags create_flags = {}
+		) noexcept
+		{
+			using RangeValueType = std::add_const_t<std::ranges::range_value_t<Range>>;
+			return create_image_mipmap(
+				context,
+				std::span<RangeValueType>(mipmap_chain),
+				format,
+				usage,
+				layout,
+				create_flags
+			);
+		}
+
+		///
+		/// @brief Create a image with multiple mipmap levels from CPU-side BCn images chain
+		/// @note This function is multi-threading safe
+		///
+		/// @param context Vulkan context
+		/// @param mipmap_chain CPU-side images for each mipmap level, ordered from largest to smallest
+		/// @param format Vulkan format of the created image, must be compatible with the CPU-side image
+		/// format
+		/// @param usage Vulkan image usage flags (No need to include `TransferDst` bit)
+		/// @param layout Vulkan image layout to transition the created image to after upload
+		/// @return Created image, or error
+		///
+		[[nodiscard]]
+		std::expected<Image, Error> create_image_mipmap_bcn(
+			const Context& context,
+			const std::span<const image::BCnImage>& mipmap_chain,
+			bool srgb,
+			vk::ImageUsageFlags usage,
+			vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			vk::ImageCreateFlags create_flags = {}
+		) noexcept;
+
+		///
+		/// @brief Execute all upload tasks
+		/// @note
+		/// - No matter success or fail, tasks will be cleared after this call
+		/// - This function is multi-threading safe
+		///
+		/// @param context Vulkan context
+		/// @return `void` if all uploads succeed, or `Error` describing reason of failure if any upload fails
+		///
+		[[nodiscard]]
+		std::expected<void, Error> execute_uploads(const Context& context) noexcept;
+
+		///
+		/// @brief Execute all upload tasks when pending data size exceeds or equals the given threshold
+		/// @note
+		/// - If pending data size exceeds the given threshold, no matter success or fail, tasks will be
+		/// cleared after this call
+		/// - This function is multi-threading safe
+		///
+		/// @param context Vulkan context
+		/// @param size_thres Threshold of pending data size in bytes to trigger execution
+		/// @retval void if all uploads succeed or threshold not reached
+		/// @retval Error describing reason of failure if any upload fails
+		///
+		[[nodiscard]]
+		std::expected<void, Error> execute_uploads_with_size_thres(
+			const Context& context,
+			size_t size_thres
+		) noexcept;
+
+		///
+		/// @brief Get number of pending upload tasks
+		/// @note This function is multi-threading safe
+		///
+		/// @return
+		///
+		[[nodiscard]]
+		size_t num_pending() const noexcept;
+
+		///
+		/// @brief Get total size of pending upload data in bytes
+		/// @note This function is multi-threading safe
+		///
+		/// @return Total size of pending upload data in bytes
+		///
+		[[nodiscard]]
+		size_t size_pending() const noexcept;
+
+		///
+		/// @brief Check if there are any pending upload tasks
+		/// @note This function is multi-threading safe
+		///
+		/// @return `true` if there are pending upload tasks, `false` otherwise
+		///
+		[[nodiscard]]
+		bool has_pending() const noexcept
+		{
+			return num_pending() > 0;
+		}
+
+	  private:
+
+		struct BufferUploadTask
+		{
+			vk::Buffer dst_buffer;
+			vulkan::Buffer staging_buffer;
+			size_t data_size;
+		};
+
+		struct ImageUploadTask
+		{
+			vk::Image dst_image;
+			Buffer staging_buffer;
+			vk::ImageSubresourceLayers subresource_layers;
+			vk::Extent3D image_extent;
+			vk::ImageLayout dst_layout;
+
+			[[nodiscard]]
+			vk::ImageMemoryBarrier2 get_barrier_pre() const;
+
+			[[nodiscard]]
+			vk::ImageMemoryBarrier2 get_barrier_post() const;
+		};
+
+		std::unique_ptr<std::mutex> execution_mutex;
+		CommandRunner command_runner;
+
+		std::vector<BufferUploadTask> buffer_upload_tasks;
+		std::vector<ImageUploadTask> image_upload_tasks;
+		size_t pending_data_size = 0;
+
+		explicit StaticResourceCreator(CommandRunner command_runner) :
+			execution_mutex(std::make_unique<std::mutex>()),
+			command_runner(std::move(command_runner))
+		{}
+
+		///
+		/// @brief Create a staging buffer and upload data to it.
+		///
+		/// @param data Data to upload to the staging buffer
+		/// @return Created staging buffer, or error
+		///
+		[[nodiscard]]
+		std::expected<Buffer, Error> create_staging_buffer(
+			const Context& context,
+			std::span<const std::byte> data
+		) noexcept;
+
+		///
+		/// @brief Check mipmap chain sizes for validity.
+		///
+		/// @param sizes Sizes of the mipmap levels, in order from largest to smallest
+		/// @return `void` if the sizes are valid, or `Error` describing reason of being invalid
+		///
+		[[nodiscard]]
+		static std::expected<void, Error> check_mipmap_chain_sizes(std::vector<glm::u32vec2> sizes) noexcept;
+
+		[[nodiscard]]
+		std::expected<void, Error> execute_uploads_impl(
+			const Context& context,
+			const std::vector<BufferUploadTask>& buffer_tasks,
+			const std::vector<ImageUploadTask>& image_tasks
+		) noexcept;
+
+	  public:
+
+		StaticResourceCreator(const StaticResourceCreator&) = delete;
+		StaticResourceCreator(StaticResourceCreator&&) = default;
+		StaticResourceCreator& operator=(const StaticResourceCreator&) = delete;
+		StaticResourceCreator& operator=(StaticResourceCreator&&) = default;
+	};
+
+	/* Implementations */
+
+	template <image::Format T, image::Layout L>
+	std::expected<Image, Error> StaticResourceCreator::create_image(
+		const Context& context,
+		const image::Image<T, L>& image,
+		vk::Format format,
+		vk::ImageUsageFlags usage,
+		vk::ImageLayout layout,
+		vk::ImageCreateFlags create_flags
+	) noexcept
+	{
+		const auto extent = vk::Extent3D{.width = image.size.x, .height = image.size.y, .depth = 1};
+		const auto subresource_layer = vulkan::base_level_image_layer(vk::ImageAspectFlagBits::eColor);
+
+		const auto image_create_info = vk::ImageCreateInfo{
+			.flags = create_flags,
+			.imageType = vk::ImageType::e2D,
+			.format = format,
+			.extent = extent,
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.usage = usage | vk::ImageUsageFlagBits::eTransferDst
+		};
+		auto image_result = context.allocator.create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
+		if (!image_result) return image_result.error().forward("Create gpu image failed");
+		auto dst_image = std::move(*image_result);
+
+		auto staging_buffer_result = create_staging_buffer(context, util::as_bytes(image.data));
+		if (!staging_buffer_result)
+			return staging_buffer_result.error().forward("Create staging buffer failed");
+
+		const std::scoped_lock lock(*execution_mutex);
+		pending_data_size += std::span(image.data).size_bytes();
+		image_upload_tasks.push_back(
+			ImageUploadTask{
+				.dst_image = dst_image,
+				.staging_buffer = std::move(*staging_buffer_result),
+				.subresource_layers = subresource_layer,
+				.image_extent = extent,
+				.dst_layout = layout
+			}
+		);
+
+		return dst_image;
+	}
+
+	template <image::Format T, image::Layout L>
+	std::expected<Image, Error> StaticResourceCreator::create_image_mipmap(
+		const Context& context,
+		std::span<const image::Image<T, L>> mipmap_chain,
+		vk::Format format,
+		vk::ImageUsageFlags usage,
+		vk::ImageLayout layout,
+		vk::ImageCreateFlags create_flags
+	) noexcept
+	{
+		/*===== Verify inputs =====*/
+
+		// Empty mipmap chain
+		if (mipmap_chain.empty()) return Error("Input mipmap chain is empty");
+
+		// Verify sizes
+		if (const auto size_check_result = check_mipmap_chain_sizes(
+				mipmap_chain
+				| std::views::transform([](const auto& image) { return image.size; })
+				| std::ranges::to<std::vector>()
+			);
+			!size_check_result)
+		{
+			return size_check_result.error();
+		}
+
+		/*===== Create image =====*/
+
+		const std::vector<vk::Extent3D> extents =
+			mipmap_chain
+			| std::views::transform([](const auto& image) {
+				  return vk::Extent3D{.width = image.size.x, .height = image.size.y, .depth = 1};
+			  })
+			| std::ranges::to<std::vector>();
+		const uint32_t mipmap_levels = mipmap_chain.size();
+
+		const auto image_create_info = vk::ImageCreateInfo{
+			.flags = create_flags,
+			.imageType = vk::ImageType::e2D,
+			.format = format,
+			.extent = extents[0],
+			.mipLevels = mipmap_levels,
+			.arrayLayers = 1,
+			.usage = usage | vk::ImageUsageFlagBits::eTransferDst
+		};
+		auto image_result = context.allocator.create_image(image_create_info, vulkan::MemoryUsage::GpuOnly);
+		if (!image_result) return image_result.error().forward("Create gpu image failed");
+		auto dst_image = std::move(*image_result);
+
+		/* Create staging buffers */
+
+		auto staging_buffer_result =
+			mipmap_chain
+			| std::views::transform([this, &context](const auto& image) {
+				  return create_staging_buffer(context, util::as_bytes(image.data));
+			  })
+			| Error::collect();
+		if (!staging_buffer_result)
+			return staging_buffer_result.error().forward("Create staging buffers failed");
+		std::vector<Buffer> staging_buffers = std::move(*staging_buffer_result);
+
+		/* Append task */
+
+		const std::vector<vk::ImageSubresourceLayers> subresource_layers =
+			std::views::iota(0_u32, mipmap_levels)
+			| std::views::transform([](uint32_t mip_level) {
+				  return vk::ImageSubresourceLayers{
+					  .aspectMask = vk::ImageAspectFlagBits::eColor,
+					  .mipLevel = mip_level,
+					  .baseArrayLayer = 0,
+					  .layerCount = 1,
+				  };
+			  })
+			| std::ranges::to<std::vector>();
+
+		const auto as_upload_task =
+			[&dst_image, layout](const auto& extent, const auto& subresource_layer, auto& staging_buffer) {
+				return ImageUploadTask{
+					.dst_image = dst_image,
+					.staging_buffer = std::move(staging_buffer),
+					.subresource_layers = subresource_layer,
+					.image_extent = extent,
+					.dst_layout = layout
+				};
+			};
+
+		const std::scoped_lock lock(*execution_mutex);
+		pending_data_size +=
+			std::ranges::fold_left_first(
+				mipmap_chain | std::views::transform([](const auto& image) {
+					return std::span(image.data).size_bytes();
+				}),
+				std::plus()
+			)
+				.value_or(0);
+		image_upload_tasks.append_range(
+			std::views::zip_transform(as_upload_task, extents, subresource_layers, staging_buffers)
+		);
+
+		return dst_image;
+	}
+}

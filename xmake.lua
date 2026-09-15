@@ -87,9 +87,13 @@ add_defines(
 includes("rule")
 
 -- Targets
-includes("shader")
-includes("lib")
-includes("vulkan")
-includes("project")
-includes("model")
-includes("render")
+includes(
+	"common",
+	"image",
+	"model",
+	"project",
+	"render",
+	"scene",
+	"shader",
+	"vulkan"
+)

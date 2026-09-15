@@ -8,15 +8,15 @@
 #include <utility>
 #include <vulkan/vulkan.hpp>
 
+#include "common/container/async.hpp"
 #include "common/file.hpp"
 #include "common/test-macro.hpp"
-#include "common/util/async.hpp"
 #include "image/common.hpp"
 #include "image/image.hpp"
 #include "render/model/texture-list.hpp"
 #include "test-common.hpp"
+#include "vulkan/common/util/resource-readback.hpp"
 #include "vulkan/test-driver.hpp"
-#include "vulkan/util/resource-readback.hpp"
 
 TEST_CASE("Normal")
 {

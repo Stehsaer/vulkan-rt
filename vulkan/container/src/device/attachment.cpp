@@ -1,7 +1,7 @@
-#include "vulkan/container/device/attachment.hpp"
-#include "common/util/error.hpp"
+#include "vulkan/container/attachment.hpp"
+#include "common/container/error.hpp"
 #include "vulkan/alloc/allocator.hpp"
-#include "vulkan/numeric/base-level.hpp"
+#include "vulkan/common/numeric/base-level.hpp"
 
 #include <cstdint>
 #include <expected>

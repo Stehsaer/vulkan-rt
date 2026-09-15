@@ -9,6 +9,6 @@ target("model.wavefront")
 	add_includedirs("impl")
 	add_headerfiles("include/(**.hpp)")
 
-	add_deps("lib.model", {public = true})
+	add_deps("model", {public = true})
 	add_packages("tinyobjloader")
 	add_packages("libcoro", {public = true})

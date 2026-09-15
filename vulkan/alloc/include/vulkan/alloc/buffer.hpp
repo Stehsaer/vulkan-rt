@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "common/util/span.hpp"
 #include "vulkan/alloc/wrapper.hpp"
 

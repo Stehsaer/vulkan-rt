@@ -6,8 +6,8 @@
 #include "image/image.hpp"
 #include "model/texture.hpp"
 #include "render/model/texture.hpp"
+#include "vulkan/common/util/static-resource-creator.hpp"
 #include "vulkan/test-driver.hpp"
-#include "vulkan/util/static-resource-creator.hpp"
 
 // NOLINTBEGIN
 

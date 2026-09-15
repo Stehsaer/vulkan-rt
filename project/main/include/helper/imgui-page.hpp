@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/util/error.hpp"
-#include "common/util/tagged-type.hpp"
+#include "common/container/cycle.hpp"
+#include "common/container/error.hpp"
+#include "common/container/tagged-type.hpp"
 #include "resource/context.hpp"
 #include "resource/sync-primitive.hpp"
-#include "vulkan/container/host/cycle.hpp"
-#include "vulkan/context/swapchain.hpp"
-#include "vulkan/interface/context.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/platform/swapchain.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <cstddef>
@@ -161,8 +161,8 @@ namespace helper
 		};
 
 		vk::raii::CommandPool command_pool;
-		vulkan::Cycle<vk::raii::CommandBuffer> command_buffers;
-		vulkan::Cycle<resource::FrameSyncPrimitive> frame_sync_primitives;
+		util::Cycle<vk::raii::CommandBuffer> command_buffers;
+		util::Cycle<resource::FrameSyncPrimitive> frame_sync_primitives;
 		std::vector<vk::raii::Semaphore> render_complete_semaphores;
 
 		[[nodiscard]]
@@ -179,8 +179,8 @@ namespace helper
 
 		explicit ImGuiPage(
 			vk::raii::CommandPool command_pool,
-			vulkan::Cycle<vk::raii::CommandBuffer> command_buffers,
-			vulkan::Cycle<resource::FrameSyncPrimitive> sync_primitives,
+			util::Cycle<vk::raii::CommandBuffer> command_buffers,
+			util::Cycle<resource::FrameSyncPrimitive> sync_primitives,
 			std::vector<vk::raii::Semaphore> render_complete_semaphores
 		) :
 			command_pool(std::move(command_pool)),

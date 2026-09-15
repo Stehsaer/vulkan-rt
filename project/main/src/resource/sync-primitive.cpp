@@ -1,6 +1,6 @@
 #include "resource/sync-primitive.hpp"
-#include "common/util/error.hpp"
-#include "vulkan/interface/context.hpp"
+#include "common/container/error.hpp"
+#include "vulkan/common/context.hpp"
 
 #include <expected>
 #include <utility>

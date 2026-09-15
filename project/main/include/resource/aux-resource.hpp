@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "vulkan/alloc/image.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/util/stbn.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/util/stbn.hpp"
 
 #include <expected>
 #include <vulkan/vulkan_raii.hpp>

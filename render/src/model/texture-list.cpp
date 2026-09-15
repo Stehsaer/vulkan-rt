@@ -1,14 +1,14 @@
 #include "render/model/texture-list.hpp"
+#include "common/container/async.hpp"
+#include "common/container/error.hpp"
 #include "common/number-literals.hpp"
-#include "common/util/async.hpp"
-#include "common/util/error.hpp"
 #include "image/common.hpp"
 #include "image/image.hpp"
 #include "model/material.hpp"
 #include "model/texture.hpp"
 #include "render/model/texture.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/util/static-resource-creator.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/util/static-resource-creator.hpp"
 
 #include <coro/task.hpp>
 #include <coro/thread_pool.hpp>

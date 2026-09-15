@@ -1,6 +1,7 @@
 #pragma once
 
-#include "common/util/error.hpp"
+#include "common/container/cycle.hpp"
+#include "common/container/error.hpp"
 #include "logic/drawcall-gen.hpp"
 #include "logic/param.hpp"
 #include "render/interface/auto-exposure.hpp"
@@ -18,8 +19,7 @@
 #include "resource/render-resource.hpp"
 #include "resource/sync-primitive.hpp"
 #include "scene/page.hpp"
-#include "vulkan/container/host/cycle.hpp"
-#include "vulkan/context/swapchain.hpp"
+#include "vulkan/platform/swapchain.hpp"
 
 #include <cstddef>
 #include <expected>
@@ -134,7 +134,7 @@ namespace page
 		size_t frames = 0;
 
 		resource::Pipeline pipeline;
-		vulkan::Cycle<FrameResource> frame_resources;
+		util::Cycle<FrameResource> frame_resources;
 		std::vector<vk::raii::Semaphore> render_complete_semaphores;  // Indexed by swapchain image indices
 
 		logic::DrawcallGenerator drawcall_generator;
@@ -191,7 +191,7 @@ namespace page
 			render::RaytraceResource raytrace_resource,
 			resource::AuxResource aux_resource,
 			resource::Pipeline pipeline,
-			vulkan::Cycle<FrameResource> frame_resources,
+			util::Cycle<FrameResource> frame_resources,
 			std::vector<vk::raii::Semaphore> render_complete_semaphores
 		) :
 			context(std::move(context)),

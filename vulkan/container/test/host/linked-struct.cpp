@@ -1,4 +1,4 @@
-#include "vulkan/container/host/linked-struct.hpp"
+#include "common/container/linked-struct.hpp"
 
 #include <doctest.h>
 #include <vulkan/vulkan.hpp>
@@ -8,7 +8,7 @@
 TEST_CASE("Push (Move)")
 {
 	auto linked =
-		vulkan::LinkedStruct(vk::DeviceCreateInfo())
+		util::LinkedStruct(vk::DeviceCreateInfo())
 			.push(vk::PhysicalDeviceFeatures2())
 			.push(vk::PhysicalDeviceVulkan11Features());
 
@@ -27,7 +27,7 @@ TEST_CASE("Push (Move)")
 
 TEST_CASE("Push (Non-move)")
 {
-	auto linked = vulkan::LinkedStruct(vk::DeviceCreateInfo());
+	auto linked = util::LinkedStruct(vk::DeviceCreateInfo());
 	linked.push(vk::PhysicalDeviceFeatures2()).push(vk::PhysicalDeviceVulkan11Features());
 
 	const auto primary = linked.get();
@@ -45,7 +45,7 @@ TEST_CASE("Push (Non-move)")
 
 TEST_CASE("Multi-construct")
 {
-	auto linked = vulkan::LinkedStruct(
+	auto linked = util::LinkedStruct(
 		vk::DeviceCreateInfo(),
 		vk::PhysicalDeviceFeatures2(),
 		vk::PhysicalDeviceVulkan11Features()
@@ -68,7 +68,7 @@ TEST_CASE("Pop")
 {
 	SUBCASE("Pop all")
 	{
-		auto linked = vulkan::LinkedStruct(
+		auto linked = util::LinkedStruct(
 			vk::DeviceCreateInfo(),
 			vk::PhysicalDeviceFeatures2(),
 			vk::PhysicalDeviceVulkan11Features()
@@ -85,7 +85,7 @@ TEST_CASE("Pop")
 
 	SUBCASE("Pop some")
 	{
-		auto linked = vulkan::LinkedStruct(
+		auto linked = util::LinkedStruct(
 			vk::DeviceCreateInfo(),
 			vk::PhysicalDeviceFeatures2(),
 			vk::PhysicalDeviceVulkan11Features()

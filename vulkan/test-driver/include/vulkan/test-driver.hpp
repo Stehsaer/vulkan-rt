@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan/context/device.hpp"
+#include "vulkan/platform/device.hpp"
 
 namespace vulkan
 {

@@ -1,11 +1,11 @@
 #include "resource/aux-resource.hpp"
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "image/common.hpp"
 #include "image/image.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/numeric/base-level.hpp"
-#include "vulkan/util/static-resource-creator.hpp"
-#include "vulkan/util/stbn.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/numeric/base-level.hpp"
+#include "vulkan/common/util/static-resource-creator.hpp"
+#include "vulkan/common/util/stbn.hpp"
 
 #include <cstddef>
 #include <expected>

@@ -1,6 +1,7 @@
 #include "render/pipeline/direct.hpp"
+#include "common/container/error.hpp"
+#include "common/container/linked-struct.hpp"
 #include "common/util/construct.hpp"
-#include "common/util/error.hpp"
 #include "render/interface/camera.hpp"
 #include "render/interface/direct-light.hpp"
 #include "render/pipeline/util/constant.hpp"
@@ -10,12 +11,11 @@
 #include "render/resource/shadow.hpp"
 #include "shader/direct.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/container/host/linked-struct.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/numeric/glm.hpp"
-#include "vulkan/numeric/pool-size.hpp"
-#include "vulkan/util/sampler.hpp"
-#include "vulkan/util/shader.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/numeric/glm.hpp"
+#include "vulkan/common/numeric/pool-size.hpp"
+#include "vulkan/common/numeric/sampler.hpp"
+#include "vulkan/common/util/shader.hpp"
 #include "vulkan/vulkan.hpp"
 
 #include <array>
@@ -155,7 +155,7 @@ namespace render
 		const auto pipeline_rendering_create_info =
 			vk::PipelineRenderingCreateInfo().setColorAttachmentFormats(HdrAttachment::HDR_FORMAT);
 
-		vulkan::LinkedStruct<vk::GraphicsPipelineCreateInfo> pipeline_create_info =
+		util::LinkedStruct<vk::GraphicsPipelineCreateInfo> pipeline_create_info =
 			vk::GraphicsPipelineCreateInfo()
 				.setStages(shader_stages)
 				.setPVertexInputState(&fullscreen::VERTEX_INPUT_STATE)

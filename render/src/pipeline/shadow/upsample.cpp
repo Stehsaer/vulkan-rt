@@ -1,16 +1,16 @@
 #include "render/pipeline/shadow/upsample.hpp"
+#include "common/container/error.hpp"
 #include "common/util/construct.hpp"
-#include "common/util/error.hpp"
 #include "render/interface/camera.hpp"
 #include "render/resource/deferred.hpp"
 #include "render/resource/shadow.hpp"
 #include "shader/shadow/upsample/gen.hpp"
 #include "shader/shadow/upsample/mask.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/numeric/base-level.hpp"
-#include "vulkan/util/sampler.hpp"
-#include "vulkan/util/trivial-descriptor-set.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/numeric/base-level.hpp"
+#include "vulkan/common/numeric/sampler.hpp"
+#include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 #include <cstdint>
 #include <expected>

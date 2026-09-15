@@ -4,12 +4,11 @@ target("main")
 	set_kind("binary")
 
 	add_deps(
-		"lib.common",
-		"lib.image",
-		"lib.scene",
-		"vulkan.util",
+		"common",
+		"image",
+		"scene",
 		"vulkan.alloc",
-		"vulkan.context",
+		"vulkan.platform",
 		"model.wavefront",
 		"model.gltf",
 		"render"

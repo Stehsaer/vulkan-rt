@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/util/async.hpp"
-#include "common/util/error.hpp"
-#include "common/util/tagged-type.hpp"
+#include "common/container/async.hpp"
+#include "common/container/error.hpp"
+#include "common/container/tagged-type.hpp"
 #include "model/material.hpp"
 #include "model/texture.hpp"
 #include "render/model/texture-list.hpp"
 #include "vulkan/alloc/buffer.hpp"
-#include "vulkan/interface/context.hpp"
+#include "vulkan/common/context.hpp"
 
 #include <coro/coro.hpp>
 #include <coro/task.hpp>

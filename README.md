@@ -47,7 +47,7 @@ Personal experimental vulkan ray-tracing project. Currently WIP.
 
 - Supports Vulkan 1.4+
 - Supports Vulkan hardware raytracing
-- See [`context.hpp`](vulkan/interface/include/vulkan/interface/context.hpp) for detailed requirements
+- See [`context.hpp`](vulkan/common/include/vulkan/common/context.hpp) for detailed requirements
 
 ### Building
 

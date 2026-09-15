@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "render/model/model.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/util/trivial-descriptor-set.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 #include <expected>
 #include <tuple>

@@ -1,9 +1,9 @@
 #include "render/model/mesh.hpp"
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "model/mesh.hpp"
 #include "vulkan/alloc/buffer.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/util/static-resource-creator.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/util/static-resource-creator.hpp"
 
 #include <algorithm>
 #include <cstdint>

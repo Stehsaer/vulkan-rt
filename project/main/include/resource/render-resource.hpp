@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "render/interface/auto-exposure.hpp"
 #include "render/interface/camera.hpp"
 #include "render/interface/direct-light.hpp"
@@ -13,7 +13,7 @@
 #include "render/resource/motion-vector.hpp"
 #include "render/resource/shadow.hpp"
 #include "render/util/per-render-state.hpp"
-#include "vulkan/interface/context.hpp"
+#include "vulkan/common/context.hpp"
 
 #include <expected>
 #include <glm/ext/matrix_float4x4.hpp>

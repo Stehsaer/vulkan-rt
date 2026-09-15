@@ -8,6 +8,6 @@ target("model.gltf")
 	add_includedirs("include", {public = true})
 	add_includedirs("impl")
 	
-	add_deps("lib.model", {public = true})
+	add_deps("model", {public = true})
 	add_packages("fastgltf", "mio")
 	add_packages("libcoro", {public = true})

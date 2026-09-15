@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/util/async.hpp"
-#include "common/util/error.hpp"
+#include "common/container/async.hpp"
+#include "common/container/error.hpp"
 #include "model/material.hpp"
 #include "model/texture.hpp"
 #include "render/model/texture.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/util/static-resource-creator.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/util/static-resource-creator.hpp"
 
 #include <coro/coro.hpp>
 #include <coro/task.hpp>

@@ -1,6 +1,6 @@
 #include "vulkan/test-driver.hpp"
-#include "vulkan/context/device.hpp"
-#include "vulkan/context/instance.hpp"
+#include "vulkan/platform/device.hpp"
+#include "vulkan/platform/instance.hpp"
 
 #include <cstdlib>
 #include <libassert/assert.hpp>

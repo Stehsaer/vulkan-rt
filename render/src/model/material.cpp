@@ -1,14 +1,14 @@
 #include "render/model/material.hpp"
-#include "common/util/async.hpp"
-#include "common/util/error.hpp"
+#include "common/container/async.hpp"
+#include "common/container/error.hpp"
 #include "common/util/unpack.hpp"
 #include "model/material-collector.hpp"
 #include "model/material.hpp"
 #include "render/model/texture-list.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/alloc/buffer.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/util/static-resource-creator.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/util/static-resource-creator.hpp"
 
 #include <array>
 #include <coro/task.hpp>

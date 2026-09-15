@@ -7,9 +7,8 @@ target("vulkan.container")
 
 	add_packages("glm", "vulkan-hpp", {public = true})
 	add_deps(
-		"lib.common",
-		"vulkan.interface",
-		"vulkan.numeric",
+		"common",
+		"vulkan.common",
 		{public = true}
 	)
 

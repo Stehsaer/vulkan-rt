@@ -13,12 +13,10 @@ target("render")
 
 	add_slang_deps("common", "render")
 	add_deps(
-		"lib.model",
+		"model",
 		"vulkan.alloc",
-		"vulkan.numeric",
 		"vulkan.container",
-		"vulkan.util",
-		"lib.scene",
+		"scene",
 		{public = true}
 	)
 	add_packages("libcoro", {public = true})

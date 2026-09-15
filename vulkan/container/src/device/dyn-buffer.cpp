@@ -1,6 +1,6 @@
-#include "vulkan/container/device/dyn-buffer.hpp"
-#include "common/util/error.hpp"
-#include "vulkan/interface/context.hpp"
+#include "vulkan/container/dyn-buffer.hpp"
+#include "common/container/error.hpp"
+#include "vulkan/common/context.hpp"
 
 #include <algorithm>
 #include <bit>

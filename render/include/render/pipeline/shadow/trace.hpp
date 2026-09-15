@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "render/interface/camera.hpp"
 #include "render/interface/direct-light.hpp"
 #include "render/model/material.hpp"
@@ -10,9 +10,9 @@
 #include "render/resource/shadow.hpp"
 #include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/alloc/buffer.hpp"
-#include "vulkan/interface/attachment.hpp"
-#include "vulkan/interface/context.hpp"
-#include "vulkan/util/trivial-descriptor-set.hpp"
+#include "vulkan/common/attachment.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 #include <cstdint>
 #include <expected>

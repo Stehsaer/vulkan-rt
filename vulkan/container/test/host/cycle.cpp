@@ -1,4 +1,4 @@
-#include "vulkan/container/host/cycle.hpp"
+#include "common/container/cycle.hpp"
 
 #include <array>
 #include <doctest.h>
@@ -39,7 +39,7 @@ TEST_CASE("Construction")
 	SUBCASE("From vector")
 	{
 		const std::vector<int> items = {1, 2, 3};
-		const auto cycle = vulkan::Cycle(items);
+		const auto cycle = util::Cycle(items);
 
 		CHECK_EQ(cycle.current(), 3);
 		CHECK_EQ(cycle.prev(), 1);
@@ -48,7 +48,7 @@ TEST_CASE("Construction")
 	SUBCASE("From array")
 	{
 		const std::array<int, 3> items = {1, 2, 3};
-		const auto cycle = vulkan::Cycle(items);
+		const auto cycle = util::Cycle(items);
 
 		CHECK_EQ(cycle.current(), 3);
 		CHECK_EQ(cycle.prev(), 1);
@@ -56,7 +56,7 @@ TEST_CASE("Construction")
 
 	SUBCASE("From range")
 	{
-		const auto cycle = vulkan::Cycle(std::views::iota(1, 4));
+		const auto cycle = util::Cycle(std::views::iota(1, 4));
 
 		CHECK_EQ(cycle.current(), 3);
 		CHECK_EQ(cycle.prev(), 1);
@@ -65,7 +65,7 @@ TEST_CASE("Construction")
 	SUBCASE("From transformed range")
 	{
 		const auto cycle =
-			vulkan::Cycle(std::views::iota(1, 4) | std::views::transform([](int x) { return x * 2; }));
+			util::Cycle(std::views::iota(1, 4) | std::views::transform([](int x) { return x * 2; }));
 
 		CHECK_EQ(cycle.current(), 6);
 		CHECK_EQ(cycle.prev(), 2);
@@ -79,7 +79,7 @@ TEST_CASE("Construction")
 		items.emplace_back(2);
 		items.emplace_back(3);
 
-		const auto cycle = vulkan::Cycle(std::move(items));
+		const auto cycle = util::Cycle(std::move(items));
 
 		CHECK_EQ(cycle.current().value, 3);
 		CHECK_EQ(cycle.prev().value, 1);
@@ -91,7 +91,7 @@ TEST_CASE("Construction")
 TEST_CASE("Cycle")
 {
 	const std::vector<int> items = {1, 2, 3};
-	auto cycle = vulkan::Cycle(items);
+	auto cycle = util::Cycle(items);
 
 	// [1, 2, 3]
 	CHECK_EQ(cycle.current(), 3);
@@ -115,7 +115,7 @@ TEST_CASE("Iterate")
 	SUBCASE("Iterate through items")
 	{
 		const std::vector<int> items = {1, 2, 3};
-		const auto cycle = vulkan::Cycle(items);
+		const auto cycle = util::Cycle(items);
 
 		const auto iterated_items = cycle.iterate() | std::ranges::to<std::vector>();
 
@@ -128,7 +128,7 @@ TEST_CASE("Iterate")
 	SUBCASE("Iterate through pairs")
 	{
 		const std::vector<int> items = {1, 2, 3};
-		const auto cycle = vulkan::Cycle(items);
+		const auto cycle = util::Cycle(items);
 
 		const auto iterated_pairs = cycle.iterate_pair() | std::ranges::to<std::vector>();
 

@@ -1,7 +1,7 @@
 #include "render/pipeline/util/fullscreen-pipeline.hpp"
-#include "common/util/error.hpp"
+#include "common/container/error.hpp"
 #include "shader/fullscreen.hpp"
-#include "vulkan/util/shader.hpp"
+#include "vulkan/common/util/shader.hpp"
 
 #include <expected>
 #include <vulkan/vulkan_raii.hpp>

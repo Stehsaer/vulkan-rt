@@ -1,0 +1,153 @@
+#pragma once
+
+#include <concepts>
+#include <cstddef>
+#include <memory>
+#include <ranges>
+#include <type_traits>
+#include <vector>
+
+namespace util
+{
+	///
+	/// @brief Helper class for cycling through a list of items, e.g. frame resources
+	/// @details
+	/// #### Creation
+	/// Create a `Cycle<T>` by directly supplying an input range into the constructor.
+	/// ```cpp
+	/// std::vector<vk::raii::Image> images = ...;
+	/// auto image_cycle = Cycle(images);
+	/// ```
+	///
+	/// Alternatively, a `Cycle<T>` can also be created in chained style.
+	/// ```cpp
+	/// auto image_cycle = foo()
+	/// 	| Error::collect()
+	/// 	| Error::unwrap()
+	/// 	| Cycle::into;
+	/// ```
+	///
+	/// #### Usage
+	/// - Call @p cycle to cycle the elements by 1 step. Typically called at the start of a new frame.
+	/// - Use @p current and @p prev to access the current item and the previous item.
+	///
+	/// @note The objects in the `Cycle` are stable in address, storing a reference to an item without
+	/// exceeding the lifetime of the `Cycle` is safe.
+	///
+	/// @tparam T Type of the items to cycle through
+	///
+	template <typename T>
+		requires(std::move_constructible<T>)
+	class Cycle
+	{
+		// `back()` for current frame, `front()` for previous frame
+		std::vector<std::unique_ptr<T>> items;
+
+	  public:
+
+		Cycle(const Cycle&) = delete;
+		Cycle(Cycle&&) = default;
+		Cycle& operator=(const Cycle&) = delete;
+		Cycle& operator=(Cycle&&) = default;
+
+		///
+		/// @brief Create a `Cycle` with the given items
+		///
+		/// @param items Items to cycle through
+		///
+		template <std::ranges::input_range Range>
+			requires std::is_constructible_v<T, std::ranges::range_value_t<Range>>
+		explicit Cycle(Range items) noexcept
+		{
+			this->items.reserve(items.size());
+			for (auto&& item : items) this->items.emplace_back(std::make_unique<T>(std::move(item)));
+		}
+
+		struct Creator
+		{
+			template <std::ranges::input_range Range>
+				requires std::is_constructible_v<T, std::ranges::range_value_t<Range>>
+			friend Cycle operator|(Range items, const Creator&) noexcept
+			{
+				return Cycle(std::forward<Range>(items));
+			}
+		};
+
+		///
+		/// @brief Converts a range of elements into a `Cycle`
+		///
+		/// @details
+		/// Used in chained-style creation:
+		///
+		/// ```cpp
+		/// auto image_cycle = foo()
+		/// 	| Error::collect()
+		/// 	| Error::unwrap()
+		/// 	| Cycle::into;
+		/// ```
+		///
+		static constexpr Creator into{};
+
+		///
+		/// @brief Item for current frame
+		///
+		/// @return Reference to the current item
+		///
+		[[nodiscard]]
+		auto&& current(this auto&& self) noexcept
+		{
+			return *self.items.back();
+		}
+
+		///
+		/// @brief Item for previous frame
+		///
+		/// @return Reference to the previous item
+		///
+		[[nodiscard]]
+		auto&& prev(this auto&& self) noexcept
+		{
+			return *self.items.front();
+		}
+
+		///
+		/// @brief Cycle to the next item, often called at the end of a frames
+		///
+		///
+		void cycle() noexcept
+		{
+			auto item = std::move(items.back());
+			items.pop_back();
+			items.insert(items.begin(), std::move(item));
+		}
+
+		///
+		/// @brief Iterate through the items in pairs of `(previous, current)`
+		///
+		/// @return Array of pairs of `(previous, current)`
+		///
+		[[nodiscard]]
+		auto iterate_pair(this auto&& self) noexcept
+		{
+			return std::views::iota(0zu, self.items.size()) | std::views::transform([&self](size_t i) {
+					   const auto& current_item = *self.items[i];
+					   const auto& prev_item = *self.items[(i + 1) % self.items.size()];
+					   return std::make_pair(std::ref(prev_item), std::ref(current_item));
+				   });
+		}
+
+		///
+		/// @brief Iterate through the items
+		///
+		/// @return Array of const references to the items
+		///
+		[[nodiscard]]
+		auto iterate(this auto&& self) noexcept
+		{
+			return self.items | std::views::transform([](const auto& item) -> auto& { return *item; });
+		}
+	};
+
+	template <std::ranges::input_range Range>
+	Cycle(Range&&) -> Cycle<std::remove_cvref_t<std::ranges::range_value_t<Range>>>;
+}
