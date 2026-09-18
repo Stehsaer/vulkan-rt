@@ -38,32 +38,39 @@ if is_plat("linux") then
 end
 
 -- Third-party packages
-includes("package/*.lua")
+
+-- > Utilities
 add_requires(
-	-- Utilities
-	"gzip-hpp v0.1.0",
 	"doctest 2.4.12",
 	"argparse v3.2",
-	"mio 2023.3.3",
 	"libassert[magic_enum=n] v2.2.1",
-	"nlohmann_json v3.12.0",
-
-	-- Graphics
+	"nlohmann_json v3.12.0"
+)
+-- > IO
+add_requires(
+	"mio 2023.3.3"
+)
+-- > Threading
+add_requires(
+	"libcoro v0.16.0"
+)
+-- > Graphics
+add_requires(
 	"libsdl3",
 	"glm 1.0.2",
-	"imgui[sdl3,freetype,vulkan_no_proto] v1.92.6-docking",
-
-	-- Vulkan
+	"imgui[sdl3,freetype,vulkan_no_proto] v1.92.6-docking"
+)
+-- > Vulkan
+add_requires(
 	"vulkan-headers",
 	"vulkan-hpp",
 	"vulkan-memory-allocator 3.3.0"
 )
 
+-- > Extra configurations
 add_requireconfs("**vulkan-headers", {version = "v1.4.351", override = true, system = false})
 add_requireconfs("**vulkan-hpp", {version = "v1.4.351", override = true, system = false})
 add_requireconfs("**libsdl3", {version = "3.4.2", override = true, system = false})
-
-add_requires("libcoro-alt v0.16.0", {alias = "libcoro"})
 
 -- Global defines
 add_defines(
