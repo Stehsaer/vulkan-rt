@@ -19,4 +19,4 @@ target("main")
 	add_includedirs("include")
 	add_headerfiles("include/**.hpp")
 
-	add_packages("tinyobjloader", "argparse")
+	add_packages("tinyobjloader", "argparse", "nlohmann_json")

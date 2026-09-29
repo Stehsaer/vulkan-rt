@@ -1,16 +1,19 @@
-#include <SDL3/SDL_events.h>
 #include <cstdlib>
 #include <iostream>
 #include <libassert/assert.hpp>
+#include <nlohmann/json.hpp>  // IWYU pragma: keep
+#include <nlohmann/json_fwd.hpp>
 #include <print>
+#include <ranges>
 #include <span>
 #include <string>
 #include <utility>
 
 #include "argument.hpp"
+#include "common/container/debug-trace.hpp"
+#include "common/container/debug-value.hpp"
 #include "common/container/error.hpp"
 #include "common/file.hpp"
-#include "common/json.hpp"
 #include "common/util/span.hpp"
 #include "page/init.hpp"
 #include "scene/page.hpp"
@@ -28,12 +31,16 @@ static Argument get_arguments(int argc, const char* argv[]) noexcept
 	return Argument{.model_path = std::move(model_path)};
 }
 
-static Json summarize_error(const Error& e) noexcept
+static nlohmann::json summarize_error(const Error& e) noexcept
 {
-	Json json = Json::array();
-	for (const auto& err : e.chain()) json.push_back(err.to_json());
+	using debug::operator""_key;
 
-	return json;
+	const debug::Trace trace = {
+		"errors"_key =
+			e.chain() | std::views::transform([](const auto& err) { return debug::value::Error(err); })
+	};
+
+	return trace.format<nlohmann::json>();
 }
 
 int main(int argc, const char* argv[]) noexcept

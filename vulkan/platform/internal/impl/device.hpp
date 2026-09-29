@@ -2,7 +2,6 @@
 
 #include "common/container/error.hpp"
 #include "common/container/linked-struct.hpp"
-#include "common/json.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/platform/device.hpp"
 #include "vulkan/platform/instance.hpp"
@@ -72,9 +71,6 @@ namespace vulkan::impl
 	{
 		vk::raii::PhysicalDevice phy_device;
 		Error error;
-
-		[[nodiscard]]
-		Json to_json() const noexcept;
 	};
 
 	///

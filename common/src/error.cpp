@@ -1,7 +1,7 @@
 
 #include "common/container/error.hpp"
+#include "common/container/debug-trace.hpp"
 #include "common/formatter.hpp"
-#include "common/json.hpp"
 
 #include <exception>
 #include <format>
@@ -13,27 +13,26 @@
 #include <system_error>
 #include <utility>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_to_string.hpp>  // Silent clang-tidy include cleaners
 
 Error::Error(
 	std::string message,
 	std::optional<std::string> detail,
-	Json diagnostics,
+	std::optional<debug::Trace> trace,
 	std::source_location location
 ) noexcept :
-	Error(std::move(message), std::move(detail), std::move(diagnostics), nullptr, location)
+	Error(std::move(message), std::move(detail), std::move(trace), nullptr, location)
 {}
 
 Error::Error(
 	std::string message,
 	std::optional<std::string> detail,
-	Json diagnostics,
+	std::optional<debug::Trace> trace,
 	std::shared_ptr<const Record> cause,
 	std::source_location location
 ) noexcept :
 	storage(
 		std::make_shared<Record>(
-			Record(std::move(message), std::move(detail), std::move(diagnostics), location, std::move(cause))
+			Record(std::move(message), std::move(detail), std::move(trace), location, std::move(cause))
 		)
 	)
 {}
@@ -47,13 +46,13 @@ Error::Error(std::shared_ptr<const Record> storage) :
 Error::Record::Record(
 	std::string message,
 	std::optional<std::string> detail,
-	Json diagnostics,
+	std::optional<debug::Trace> trace,
 	std::source_location location,
 	std::shared_ptr<const Record> cause
-) :
+) noexcept :
 	message(std::move(message)),
 	detail(std::move(detail)),
-	diagnostics(std::move(diagnostics)),
+	trace(std::move(trace)),
 	location(location),
 	cause(std::move(cause))
 {}
@@ -111,41 +110,42 @@ bool Error::Iterator::operator==(const Iterator& other) const noexcept
 	return current->storage.get() == other.current->storage.get();
 }
 
-Json Error::to_json() const noexcept
-{
-	return {
-		{"message",     storage->message             },
-		{"detail",      storage->detail              },
-		{"diagnostics", storage->diagnostics         },
-		{"file",        storage->location.file_name()},
-		{"line",        storage->location.line()     }
-	};
-}
-
 template <>
-Error Error::from(const vk::Result& e, Json diagnostics, std::source_location location) noexcept
+Error Error::from(
+	const vk::Result& e,
+	std::optional<debug::Trace> trace,
+	std::source_location location
+) noexcept
 {
 	return Error(
 		"Vulkan-related error occurred",
 		std::format("Error code: {}", e),
-		std::move(diagnostics),
+		std::move(trace),
 		location
 	);
 }
 
 template <>
-Error Error::from(const std::error_code& e, Json diagnostics, std::source_location location) noexcept
+Error Error::from(
+	const std::error_code& e,
+	std::optional<debug::Trace> trace,
+	std::source_location location
+) noexcept
 {
 	return Error(
 		"System error occurred",
 		std::format("Code: {} ({})", e.message(), e.value()),
-		std::move(diagnostics),
+		std::move(trace),
 		location
 	);
 }
 
 template <>
-Error Error::from(const std::exception& e, Json diagnostics, std::source_location location) noexcept
+Error Error::from(
+	const std::exception& e,
+	std::optional<debug::Trace> trace,
+	std::source_location location
+) noexcept
 {
-	return Error("Unknown error", std::format("Message: {}", e.what()), std::move(diagnostics), location);
+	return Error("Unknown error", std::format("Message: {}", e.what()), std::move(trace), location);
 }

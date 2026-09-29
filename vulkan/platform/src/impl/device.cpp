@@ -2,7 +2,6 @@
 #include "common/container/error.hpp"
 #include "common/container/linked-struct.hpp"
 #include "common/formatter.hpp"
-#include "common/json.hpp"
 #include "common/number-literals.hpp"
 #include "impl/common.hpp"
 #include "vulkan/common/context.hpp"
@@ -26,23 +25,9 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
-#include <vulkan/vulkan_to_string.hpp>
 
 namespace vulkan::impl
 {
-	Json FailInfo::to_json() const noexcept
-	{
-		const auto properties = phy_device.getProperties();
-
-		return Json{
-			{"id",          properties.deviceID                 },
-			{"device_name", properties.deviceName.data()        },
-			{"type",        vk::to_string(properties.deviceType)},
-			{"driver_ver",  properties.driverVersion            },
-			{"error",       error.to_json()                     }
-		};
-	}
-
 #define CHECK_FIELD(available, result, field)                                                                \
 	if ((available).field == vk::False)                                                                      \
 		return Error("Missing feature", "Required feature '" #field "' is not supported by the device");     \

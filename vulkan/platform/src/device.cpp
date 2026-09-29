@@ -1,29 +1,38 @@
 #include "vulkan/platform/device.hpp"
+#include "common/container/debug-trace.hpp"
+#include "common/container/debug-value.hpp"
 #include "common/container/error.hpp"
-#include "common/json.hpp"
 #include "impl/device.hpp"
 #include "vulkan/alloc/allocator.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/common/trace/phy-device.hpp"
 #include "vulkan/platform/instance.hpp"
 
 #include <algorithm>
 #include <expected>
 #include <libassert/assert.hpp>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <utility>
 #include <vector>
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace vulkan
 {
 	[[nodiscard]]
-	static Json fail_info_list_to_json(std::span<const impl::FailInfo> list) noexcept
+	static debug::Trace trace_fail(std::span<const impl::FailInfo> list) noexcept
 	{
-		auto json = Json::array({});
-		for (const auto& fail_info : list) json.push_back(fail_info.to_json());
-		return json;
+		using debug::operator""_key;
+
+		return {
+			"trace"_key = list | std::views::transform([](const impl::FailInfo& info) {
+							  return debug::Trace{
+								  "device-info"_key = trace_phy_device(info.phy_device),
+								  "error"_key = debug::value::Error(info.error)
+							  };
+						  }),
+		};
 	}
 
 	std::expected<HeadlessDeviceContext, Error> HeadlessDeviceContext::create(
@@ -52,7 +61,7 @@ namespace vulkan
 		}
 
 		if (pass_devices.empty())
-			return Error("No suitable device found", std::nullopt, fail_info_list_to_json(fail_devices));
+			return Error("No suitable device found", std::nullopt, trace_fail(fail_devices));
 
 		/* Find best device and create */
 
@@ -106,7 +115,7 @@ namespace vulkan
 		}
 
 		if (pass_devices.empty())
-			return Error("No suitable device found", std::nullopt, fail_info_list_to_json(fail_devices));
+			return Error("No suitable device found", std::nullopt, trace_fail(fail_devices));
 
 		/* Find best device and create */
 

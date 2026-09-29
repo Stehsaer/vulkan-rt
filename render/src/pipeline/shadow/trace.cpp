@@ -1,6 +1,5 @@
 #include "render/pipeline/shadow/trace.hpp"
 #include "common/container/error.hpp"
-#include "common/json.hpp"
 #include "common/number-literals.hpp"
 #include "common/util/align.hpp"
 #include "common/util/construct.hpp"
@@ -18,6 +17,7 @@
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/numeric/base-level.hpp"
 #include "vulkan/common/numeric/sampler.hpp"
+#include "vulkan/common/trace/phy-device.hpp"
 #include "vulkan/common/util/command-runner.hpp"
 #include "vulkan/common/util/shader.hpp"
 #include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
@@ -120,14 +120,14 @@ namespace render::shadow
 
 			if (properties.maxRayRecursionDepth < MAX_RECURSION_DEPTH)
 			{
-				Json diag = {
-					{"device", {"max_recursion_depth", properties.maxRayRecursionDepth}},
-				};
-
 				return Error(
 					"Physical device doesn't meet minimum requirements for raytracing pipeline",
-					std::format("Required minimum max recursion depth not met"),
-					std::move(diag)
+					std::format(
+						"Required minimum max recursion depth not met, requires {}, got {}",
+						MAX_RECURSION_DEPTH,
+						properties.maxRayRecursionDepth
+					),
+					vulkan::trace_phy_device(context.phy_device)
 				);
 			}
 

@@ -44,7 +44,8 @@ add_requires(
 	"doctest 2.4.12",
 	"argparse v3.2",
 	"libassert[magic_enum=n] v2.2.1",
-	"nlohmann_json v3.12.0"
+	"nlohmann_json v3.12.0",
+	"cppcodec 2022.09.07"
 )
 -- > IO
 add_requires(

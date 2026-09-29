@@ -1,7 +1,7 @@
 #include "common/container/error.hpp"
-#include "common/json.hpp"
+#include "common/container/debug-trace.hpp"
+#include "common/container/debug-value.hpp"
 
-#include <cstddef>
 #include <doctest.h>
 #include <expected>
 #include <format>
@@ -12,7 +12,6 @@
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_to_string.hpp>
 
 TEST_CASE("Error creation")
 {
@@ -50,9 +49,9 @@ namespace
 }
 
 template <>
-Error Error::from(const FooStruct&, Json diagnostics, std::source_location location) noexcept
+Error Error::from(const FooStruct&, std::optional<debug::Trace> trace, std::source_location location) noexcept
 {
-	return Error("FooStruct error", std::nullopt, std::move(diagnostics), location);
+	return Error("FooStruct error", std::nullopt, std::move(trace), location);
 }
 
 TEST_CASE("Error::from")
@@ -65,13 +64,15 @@ TEST_CASE("Error::from")
 
 	SUBCASE("Custom type specialization")
 	{
-		Json diagnostics = {
-			std::pair{"test", 123},
-			std::pair{"bar",  123},
+		using debug::operator""_key;
+
+		debug::Trace trace = {
+			"test"_key = debug::value::Number(123),
+			"foo"_key = debug::value::String("foo"),
 		};
 
 		const FooStruct foo;
-		const auto err = Error::from(foo, std::move(diagnostics));
+		const auto err = Error::from(foo, std::move(trace));
 
 		CHECK_EQ(err->message, "FooStruct error");
 	}

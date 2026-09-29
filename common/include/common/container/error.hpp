@@ -1,6 +1,7 @@
 #pragma once
 
-#include "common/json.hpp"
+#include "common/container/debug-trace.hpp"
+
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
@@ -9,7 +10,6 @@
 #include <iterator>
 #include <libassert/assert.hpp>
 #include <memory>
-#include <nlohmann/json_fwd.hpp>
 #include <optional>
 #include <ranges>
 #include <source_location>
@@ -166,7 +166,7 @@ class Error
 
 		std::string message;                // Primary message
 		std::optional<std::string> detail;  // Secondary / explanatory message
-		Json diagnostics;                   // Binary diagnostics
+		std::optional<debug::Trace> trace;  // Debug trace, not intended to be displayed
 		std::source_location location;      // Location of the error
 
 	  private:
@@ -178,10 +178,10 @@ class Error
 		Record(
 			std::string message,
 			std::optional<std::string> detail,
-			Json diagnostics,
+			std::optional<debug::Trace> trace,
 			std::source_location location,
 			std::shared_ptr<const Record> cause
-		);
+		) noexcept;
 
 	  public:
 
@@ -198,7 +198,7 @@ class Error
 	explicit Error(
 		std::string message,
 		std::optional<std::string> detail,
-		Json diagnostics,
+		std::optional<debug::Trace> trace,
 		std::shared_ptr<const Record> cause,
 		std::source_location location
 	) noexcept;
@@ -218,12 +218,14 @@ class Error
 	/// @brief Create an error with message
 	///
 	/// @param message Brief message describing the error
+	/// @param detail Detailed message, optional
+	/// @param trace Debug trace, optional
 	/// @param location Source location where the error is created (default: current location)
 	///
 	explicit Error(
 		std::string message,
 		std::optional<std::string> detail = std::nullopt,
-		Json diagnostics = {},
+		std::optional<debug::Trace> trace = std::nullopt,
 		std::source_location location = std::source_location::current()
 	) noexcept;
 
@@ -237,6 +239,7 @@ class Error
 	///
 	/// @tparam T The other error type
 	/// @param error The other error instance
+	/// @param trace Optional debug trace
 	/// @param location Source location where the error is created (default: current location)
 	/// @return Converted Error instance
 	///
@@ -245,7 +248,7 @@ class Error
 	[[nodiscard]]
 	static Error from(
 		const T& error,
-		Json diagnostics = {},
+		std::optional<debug::Trace> trace = std::nullopt,
 		std::source_location location = std::source_location::current()
 	) noexcept;
 
@@ -254,18 +257,20 @@ class Error
 	[[nodiscard]]
 	static Error from(
 		const std::expected<T, E>& error,
-		Json diagnostics = {},
+		std::optional<debug::Trace> trace = std::nullopt,
 		std::source_location location = std::source_location::current()
 	) noexcept
 	{
 		ASSUME(!error.has_value());
-		return from(error.error(), std::move(diagnostics), location);
+		return from(error.error(), std::move(trace), location);
 	}
 
 	///
 	/// @brief Forward the error with additional context
 	///
 	/// @param message Additional message describing the context
+	/// @param details Additional detail message
+	/// @param trace Optional debug trace
 	/// @param location Source location where the error is forwarded (default: current location)
 	/// @return New Error instance with forwarded context
 	///
@@ -274,11 +279,11 @@ class Error
 		this auto&& self,
 		std::string message,
 		std::optional<std::string> details = std::nullopt,
-		Json diagnostics = {},
+		std::optional<debug::Trace> trace = std::nullopt,
 		std::source_location location = std::source_location::current()
 	) noexcept
 	{
-		return Error(std::move(message), std::move(details), std::move(diagnostics), self.storage, location);
+		return Error(std::move(message), std::move(details), std::move(trace), self.storage, location);
 	}
 
 	operator std::unexpected<Error>() const noexcept { return std::unexpected(*this); }
@@ -459,9 +464,6 @@ class Error
 	{
 		return CollectFunctor(location);
 	}
-
-	[[nodiscard]]
-	Json to_json() const noexcept;
 };
 
 class Error::Iterator
