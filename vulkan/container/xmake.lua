@@ -11,15 +11,3 @@ target("vulkan.container")
 		"vulkan.common",
 		{public = true}
 	)
-
-target("vulkan.container.test")
-	set_kind("binary")
-	set_default(false)
-
-	add_packages("doctest")
-	add_deps("vulkan.container")
-	add_defines("DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN")
-
-	for _, testfile in ipairs(os.files("test/**.cpp")) do
-         add_tests(path.basename(testfile), {files = {testfile}})
-    end

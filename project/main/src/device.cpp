@@ -1,10 +1,10 @@
-#include "vulkan/platform/device.hpp"
+#include "vulkan/platform/windowed/device.hpp"
 #include "common/container/error.hpp"
 #include "resource/context.hpp"
 #include "vulkan/common/context.hpp"
-#include "vulkan/platform/imgui.hpp"
-#include "vulkan/platform/instance.hpp"
-#include "vulkan/platform/swapchain.hpp"
+#include "vulkan/platform/windowed/imgui.hpp"
+#include "vulkan/platform/windowed/instance.hpp"
+#include "vulkan/platform/windowed/swapchain.hpp"
 
 #include <expected>
 #include <utility>
@@ -14,21 +14,23 @@ namespace resource
 {
 	std::expected<Context, Error> Context::create() noexcept
 	{
-		const auto window_config = vulkan::WindowConfig{
+		const auto instance_property = vulkan::InstanceProperty{};
+		const auto instance_feature = vulkan::InstanceFeature{};
+		const auto window_config = vulkan::WindowProperty{
 			.title = "Vulkan-RT",
 			.initial_size = {1280, 720},
 			.resizable = true,
 			.initial_fullscreen = false
 		};
-		const auto instance_config = vulkan::InstanceConfig{};
-		auto instance_result = vulkan::SurfaceInstanceContext::create(window_config, instance_config);
+		auto instance_result =
+			vulkan::WindowedInstance::create(instance_property, instance_feature, window_config);
 		if (!instance_result) return instance_result.error().forward("Create instance context failed");
 		auto instance = std::move(*instance_result);
 
 		const auto device_option = vulkan::DeviceFeature{
 			.raytracing = true,
 		};
-		auto device_result = vulkan::SurfaceDeviceContext::create(instance, device_option);
+		auto device_result = vulkan::WindowedDevice::create(instance, device_option);
 		if (!device_result) return device_result.error().forward("Create device context failed");
 		auto device = std::move(*device_result);
 

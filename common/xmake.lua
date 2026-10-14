@@ -15,10 +15,7 @@ target("common.test")
 
 	add_deps("common")
 	add_packages("doctest", "vulkan-hpp")
-	add_defines("DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN")
 
 	set_runenv("TEMP_DIR", os.tmpdir())
-
-	for _, testfile in ipairs(os.files("test/*.cpp")) do
-		add_tests(path.basename(testfile), {files = {testfile}})
-    end
+	add_files("test/*.cpp")
+	set_group("test")

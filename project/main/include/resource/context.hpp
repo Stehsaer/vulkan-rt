@@ -1,10 +1,10 @@
 #pragma once
 
 #include "common/container/error.hpp"
-#include "vulkan/platform/device.hpp"
-#include "vulkan/platform/imgui.hpp"
-#include "vulkan/platform/instance.hpp"
-#include "vulkan/platform/swapchain.hpp"
+#include "vulkan/platform/windowed/device.hpp"
+#include "vulkan/platform/windowed/imgui.hpp"
+#include "vulkan/platform/windowed/instance.hpp"
+#include "vulkan/platform/windowed/swapchain.hpp"
 
 #include <expected>
 
@@ -15,8 +15,8 @@ namespace resource
 	///
 	struct Context
 	{
-		vulkan::SurfaceInstanceContext instance;
-		vulkan::SurfaceDeviceContext device;
+		vulkan::WindowedInstance instance;
+		vulkan::WindowedDevice device;
 		vulkan::SwapchainContext swapchain;
 		vulkan::ImGuiContext imgui;
 

@@ -16,7 +16,7 @@ namespace vulkan
 	{
 		auto command_pool_result = context.device.createCommandPool({
 			.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-			.queueFamilyIndex = context.family,
+			.queueFamilyIndex = context.queue.family,
 		});
 		if (!command_pool_result) return Error::from(command_pool_result);
 		auto command_pool = std::move(*command_pool_result);

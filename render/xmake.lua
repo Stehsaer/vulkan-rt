@@ -42,7 +42,5 @@ target("render.test.model")
 	add_deps("render", "vulkan.test-driver", "render.test.model.common")
 
 	set_runenv("TEMP_DIR", path.join(os.tmpdir()))
-
-	for _, testfile in ipairs(os.files("test/model/*.cpp")) do
-		add_tests(path.basename(testfile), {files = testfile})
-	end
+	add_files("test/model/*.cpp")
+	set_group("test")

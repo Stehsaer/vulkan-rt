@@ -1,6 +1,7 @@
 #include "vulkan/test-driver.hpp"
-#include "vulkan/platform/device.hpp"
-#include "vulkan/platform/instance.hpp"
+#include "vulkan/common/context.hpp"
+#include "vulkan/platform/headless/device.hpp"
+#include "vulkan/platform/headless/instance.hpp"
 
 #include <cstdlib>
 #include <libassert/assert.hpp>
@@ -12,9 +13,9 @@
 
 namespace vulkan
 {
-	static const vulkan::HeadlessDeviceContext* test_context = nullptr;
+	static const vulkan::HeadlessDevice* test_context = nullptr;
 
-	const vulkan::HeadlessDeviceContext& get_test_context() noexcept
+	const vulkan::HeadlessDevice& get_test_context() noexcept
 	{
 		ASSERT(test_context != nullptr);
 		return *test_context;
@@ -23,10 +24,10 @@ namespace vulkan
 
 int main(int argc, const char** argv) noexcept
 {
-	const vulkan::InstanceConfig instance_config = {.validation = true};
+	const vulkan::InstanceFeature instance_feature = {.validation = true};
 	const vulkan::DeviceFeature device_option = {};
 
-	auto instance_result = vulkan::HeadlessInstanceContext::create(instance_config);
+	auto instance_result = vulkan::HeadlessInstance::create(vulkan::InstanceProperty{}, instance_feature);
 	if (!instance_result)
 	{
 		std::println("Initialize vulkan instance failed: {}", instance_result.error().root());
@@ -34,7 +35,7 @@ int main(int argc, const char** argv) noexcept
 	}
 	auto instance = std::move(*instance_result);
 
-	auto device_result = vulkan::HeadlessDeviceContext::create(instance, device_option);
+	auto device_result = vulkan::HeadlessDevice::create(instance, device_option);
 	if (!device_result)
 	{
 		std::println("Initialize vulkan device failed: {}", device_result.error().root());

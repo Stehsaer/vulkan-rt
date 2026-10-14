@@ -28,25 +28,26 @@
 #include "test-asset.hpp"
 #include "vulkan/common/util/resource-readback.hpp"
 #include "vulkan/common/util/static-resource-creator.hpp"
-#include "vulkan/platform/device.hpp"
-#include "vulkan/platform/instance.hpp"
+#include "vulkan/platform/headless/device.hpp"
+#include "vulkan/platform/headless/instance.hpp"
 
 struct Context
 {
-	vulkan::HeadlessInstanceContext instance_context;
-	vulkan::HeadlessDeviceContext device_context;
+	vulkan::HeadlessInstance instance_context;
+	vulkan::HeadlessDevice device_context;
 
 	static std::expected<Context, Error> create() noexcept
 	{
-		const auto instance_config = vulkan::InstanceConfig{.validation = true};
+		const auto instance_feature = vulkan::InstanceFeature{.validation = true};
 		const auto device_config = vulkan::DeviceFeature();
 
-		auto instance_context_result = vulkan::HeadlessInstanceContext::create(instance_config);
+		auto instance_context_result =
+			vulkan::HeadlessInstance::create(vulkan::InstanceProperty{}, instance_feature);
 		if (!instance_context_result)
 			return instance_context_result.error().forward("Create instance context failed");
 		auto instance_context = std::move(*instance_context_result);
 
-		auto device_context_result = vulkan::HeadlessDeviceContext::create(instance_context, device_config);
+		auto device_context_result = vulkan::HeadlessDevice::create(instance_context, device_config);
 		if (!device_context_result)
 			return device_context_result.error().forward("Create device context failed");
 		auto device_context = std::move(*device_context_result);

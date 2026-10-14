@@ -8,7 +8,6 @@
 #include "render/model/model.hpp"
 #include "render/model/tlas.hpp"
 #include "render/resource/raytrace.hpp"
-#include "render/util/per-render-state.hpp"
 #include "resource/aux-resource.hpp"
 #include "resource/context.hpp"
 #include "resource/pipeline.hpp"
@@ -23,7 +22,6 @@
 #include <expected>
 #include <format>
 #include <glm/ext/matrix_float4x4.hpp>
-#include <glm/ext/vector_int2_sized.hpp>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
@@ -48,7 +46,7 @@ namespace page
 	{
 		auto command_pool_result = context->device->createCommandPool({
 			.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-			.queueFamilyIndex = context->device.get().family,
+			.queueFamilyIndex = context->device.get().queue.family,
 		});
 		if (!command_pool_result) return Error::from(command_pool_result);
 		auto command_pool = std::move(*command_pool_result);

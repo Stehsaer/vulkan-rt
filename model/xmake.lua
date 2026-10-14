@@ -18,11 +18,9 @@ target("model.test")
 
 	add_deps("model")
 	add_packages("doctest")
-	add_defines("DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN")
+	set_group("test")
 
-	for _, testfile in ipairs(os.files("test/*.cpp")) do
-		add_tests(path.basename(testfile), {files = {testfile}})
-	end
+	add_files("test/*.cpp")
 target_end()
 
 includes("*")

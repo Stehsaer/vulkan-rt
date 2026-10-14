@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan/platform/device.hpp"
+#include "vulkan/platform/headless/device.hpp"
 
 namespace vulkan
 {
@@ -10,5 +10,5 @@ namespace vulkan
 	/// @return Reference to the headless test context
 	///
 	[[nodiscard]]
-	const vulkan::HeadlessDeviceContext& get_test_context() noexcept;
+	const vulkan::HeadlessDevice& get_test_context() noexcept;
 }

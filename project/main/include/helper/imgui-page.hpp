@@ -6,7 +6,7 @@
 #include "resource/context.hpp"
 #include "resource/sync-primitive.hpp"
 #include "vulkan/common/context.hpp"
-#include "vulkan/platform/swapchain.hpp"
+#include "vulkan/platform/windowed/swapchain.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <cstddef>

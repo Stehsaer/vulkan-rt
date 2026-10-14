@@ -19,12 +19,11 @@
 #include "resource/render-resource.hpp"
 #include "resource/sync-primitive.hpp"
 #include "scene/page.hpp"
-#include "vulkan/platform/swapchain.hpp"
+#include "vulkan/platform/windowed/swapchain.hpp"
 
 #include <cstddef>
 #include <expected>
 #include <glm/ext/matrix_float4x4.hpp>
-#include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/vector_uint2_sized.hpp>
 #include <memory>
 #include <optional>

@@ -2,9 +2,13 @@
 
 #include <cstdint>
 #include <mutex>
+#include <string>
+#include <utility>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include "vulkan/alloc/allocator.hpp"
+#include "vulkan/common/config.hpp"
 
 namespace vulkan
 {
@@ -21,13 +25,32 @@ namespace vulkan
 	};
 
 	///
+	/// @brief Instance properties
+	///
+	struct InstanceProperty
+	{
+		std::string application_name = "Vulkan Application";
+		std::string engine_name = "No Engine";
+		uint32_t application_version = vk::makeVersion(0, 0, 0);
+		uint32_t engine_version = vk::makeVersion(0, 0, 0);
+	};
+
+	///
+	/// @brief Instance feature
+	/// @note Some layers and extensions are not controlled by this struct
+	///
+	struct InstanceFeature
+	{
+		bool validation = config::DEFAULT_VALIDATION_ENABLED;
+	};
+
+	///
 	/// @brief Device features
 	///
 	/// @details
 	/// ### Minimal Features
 	///
 	/// #### Vulkan 1.0
-	/// - Robust buffer access
 	/// - Sampler anisotropy
 	/// - BC textures
 	/// - Pipeline statistics
@@ -55,6 +78,15 @@ namespace vulkan
 		/* Required Features */
 		// "Support or fail"
 
+		///
+		/// @brief Robust buffer access
+		/// @note Enabled by default in debug, disabled by default in release. Beware of extra runtime cost
+		///
+		bool robust_buffer_access = config::DEFAULT_ROBUST_BUFFER_ACCESS_ENABLED;
+
+		///
+		/// @brief Descriptor indexing option
+		///
 		DescriptorIndexingOption descriptor_indexing = {};
 
 		///
@@ -71,6 +103,27 @@ namespace vulkan
 	};
 
 	///
+	/// @brief Device queue wrapper, containing a queue and its queue family
+	///
+	struct DeviceQueue : public vk::raii::Queue
+	{
+		///
+		/// @brief Queue family of the queue
+		///
+		uint32_t family;
+
+		explicit DeviceQueue(vk::raii::Queue queue, uint32_t family) :
+			vk::raii::Queue(std::move(queue)),
+			family(family)
+		{}
+
+		DeviceQueue(const DeviceQueue&) = default;
+		DeviceQueue(DeviceQueue&&) = default;
+		DeviceQueue& operator=(const DeviceQueue&) = default;
+		DeviceQueue& operator=(DeviceQueue&&) = default;
+	};
+
+	///
 	/// @brief Common context for rendering and transferring
 	/// @warning It's not a good idea to store these references!
 	///
@@ -81,13 +134,10 @@ namespace vulkan
 		const vulkan::Allocator& allocator;
 
 		// Main queue, available for compute, transfer and graphics
-		const vk::raii::Queue& queue;
+		const DeviceQueue& queue;
 
 		// Mutex for synchronizing queue submissions, use it only when multi-threading
 		std::mutex& submit_mutex;
-
-		// Queue family of the main queue
-		uint32_t family;
 
 		// Device Feature
 		DeviceFeature feature;

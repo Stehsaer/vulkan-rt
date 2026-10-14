@@ -7,7 +7,7 @@
 #include "resource/sync-primitive.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/numeric/base-level.hpp"
-#include "vulkan/platform/swapchain.hpp"
+#include "vulkan/platform/windowed/swapchain.hpp"
 
 #include <SDL3/SDL_events.h>
 #include <array>
@@ -32,7 +32,7 @@ namespace helper
 		auto command_pool_result = context.device.createCommandPool(
 			vk::CommandPoolCreateInfo{
 				.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-				.queueFamilyIndex = context.family,
+				.queueFamilyIndex = context.queue.family,
 			}
 		);
 		if (!command_pool_result) return Error::from(command_pool_result);
