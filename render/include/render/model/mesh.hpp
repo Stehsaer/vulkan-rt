@@ -2,9 +2,9 @@
 
 #include "common/container/error.hpp"
 #include "model/mesh.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/common/alloc/buffer.hpp"
 #include "vulkan/common/context.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 
 #include <cstdint>
 #include <expected>

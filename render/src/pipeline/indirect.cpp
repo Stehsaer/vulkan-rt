@@ -6,10 +6,10 @@
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "shader/indirect.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/numeric/pool-size.hpp"
 #include "vulkan/common/util/shader.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 
 #include <array>
 #include <cstdint>

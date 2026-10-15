@@ -21,9 +21,9 @@
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/common/attachment.hpp"
 #include "vulkan/common/context.hpp"
+#include "vulkan/common/view/attachment.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 #include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 namespace render

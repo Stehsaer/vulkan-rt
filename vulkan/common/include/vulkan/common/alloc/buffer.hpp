@@ -2,7 +2,7 @@
 
 #include "common/container/error.hpp"
 #include "common/util/span.hpp"
-#include "vulkan/alloc/wrapper.hpp"
+#include "vulkan/common/alloc/wrapper.hpp"
 
 #include <cstddef>
 #include <cstdint>

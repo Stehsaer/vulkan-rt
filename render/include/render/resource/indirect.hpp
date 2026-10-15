@@ -3,10 +3,10 @@
 #include "common/container/error.hpp"
 #include "render/interface/indirect-drawcall.hpp"
 #include "render/util/per-render-state.hpp"
-#include "vulkan/alloc/allocator.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
+#include "vulkan/common/alloc/allocator.hpp"
+#include "vulkan/common/container/dyn-buffer.hpp"
 #include "vulkan/common/context.hpp"
-#include "vulkan/container/dyn-buffer.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 
 #include <cstddef>
 #include <expected>

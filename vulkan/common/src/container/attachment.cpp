@@ -1,6 +1,6 @@
-#include "vulkan/container/attachment.hpp"
+#include "vulkan/common/container/attachment.hpp"
 #include "common/container/error.hpp"
-#include "vulkan/alloc/allocator.hpp"
+#include "vulkan/common/alloc/allocator.hpp"
 #include "vulkan/common/numeric/base-level.hpp"
 
 #include <cstdint>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan/alloc/wrapper.hpp"
+#include "vulkan/common/alloc/wrapper.hpp"
 
 #include <memory>
 #include <utility>

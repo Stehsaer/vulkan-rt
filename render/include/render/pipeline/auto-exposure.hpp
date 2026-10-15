@@ -4,8 +4,8 @@
 #include "render/interface/auto-exposure.hpp"
 #include "render/resource/auto-exposure.hpp"
 #include "render/resource/hdr.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/common/context.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 
 #include <cstdint>
 #include <expected>

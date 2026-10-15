@@ -6,9 +6,9 @@
 #include "render/interface/direct-light.hpp"
 #include "render/interface/primitive-drawcall.hpp"
 #include "render/util/per-render-state.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
+#include "vulkan/common/container/staged-buffer.hpp"
 #include "vulkan/common/context.hpp"
-#include "vulkan/container/staged-buffer.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 
 #include <array>
 #include <expected>

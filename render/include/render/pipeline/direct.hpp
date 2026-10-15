@@ -6,8 +6,8 @@
 #include "render/resource/deferred.hpp"
 #include "render/resource/hdr.hpp"
 #include "render/resource/shadow.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/common/context.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 
 #include <cstdint>
 #include <expected>

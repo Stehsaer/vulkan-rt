@@ -1,8 +1,8 @@
-#include "vulkan/alloc/allocator.hpp"
+#include "vulkan/common/alloc/allocator.hpp"
 #include "common/container/error.hpp"
-#include "vulkan/alloc/buffer.hpp"
-#include "vulkan/alloc/image.hpp"
-#include "vulkan/alloc/wrapper.hpp"
+#include "vulkan/common/alloc/buffer.hpp"
+#include "vulkan/common/alloc/image.hpp"
+#include "vulkan/common/alloc/wrapper.hpp"
 
 #include <expected>
 #include <memory>

@@ -12,14 +12,14 @@
 #include "render/resource/raytrace.hpp"
 #include "render/resource/shadow.hpp"
 #include "shader/shadow/trace.hpp"
-#include "vulkan/alloc/allocator.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
+#include "vulkan/common/alloc/allocator.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/numeric/base-level.hpp"
 #include "vulkan/common/numeric/sampler.hpp"
 #include "vulkan/common/trace/phy-device.hpp"
 #include "vulkan/common/util/command-runner.hpp"
 #include "vulkan/common/util/shader.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 #include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 #include <algorithm>

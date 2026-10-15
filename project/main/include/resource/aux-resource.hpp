@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/container/error.hpp"
-#include "vulkan/alloc/image.hpp"
+#include "vulkan/common/alloc/image.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/util/stbn.hpp"
 

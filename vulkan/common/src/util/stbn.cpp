@@ -1,7 +1,7 @@
 #include "vulkan/common/util/stbn.hpp"
 #include "common/container/error.hpp"
 #include "image/noise.hpp"
-#include "vulkan/alloc/allocator.hpp"
+#include "vulkan/common/alloc/allocator.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/numeric/base-level.hpp"
 #include "vulkan/common/util/command-runner.hpp"

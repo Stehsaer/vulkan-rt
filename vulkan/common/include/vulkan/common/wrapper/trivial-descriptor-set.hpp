@@ -4,9 +4,9 @@
 #include "common/container/pmr-unique-ptr.hpp"
 #include "common/util/construct.hpp"
 #include "common/util/tuple.hpp"
-#include "vulkan/common/attachment.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/numeric/pool-size.hpp"
+#include "vulkan/common/view/attachment.hpp"
 
 #include <array>
 #include <concepts>

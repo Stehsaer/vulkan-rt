@@ -15,8 +15,8 @@
 #include "render/resource/host.hpp"
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/common/context.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 
 namespace render
 {

@@ -9,11 +9,11 @@
 #include "shader/auto-exposure/clear.hpp"
 #include "shader/auto-exposure/histogram.hpp"
 #include "shader/auto-exposure/reduce.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/numeric/pool-size.hpp"
 #include "vulkan/common/numeric/sampler.hpp"
 #include "vulkan/common/util/shader.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 #include "vulkan/vulkan.hpp"
 
 #include <array>

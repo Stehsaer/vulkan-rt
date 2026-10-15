@@ -2,7 +2,7 @@
 
 #include "common/container/error.hpp"
 #include "render/model/model.hpp"
-#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/common/alloc/buffer.hpp"
 #include "vulkan/common/context.hpp"
 
 #include <expected>

@@ -7,7 +7,7 @@ target("main")
 		"common",
 		"image",
 		"scene",
-		"vulkan.alloc",
+		"vulkan.common",
 		"vulkan.platform.windowed",
 		"model.wavefront",
 		"model.gltf",

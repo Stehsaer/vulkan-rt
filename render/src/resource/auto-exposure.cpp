@@ -2,7 +2,7 @@
 #include "common/container/error.hpp"
 #include "render/interface/auto-exposure.hpp"
 #include "render/internal/auto-exposure.hpp"
-#include "vulkan/alloc/allocator.hpp"
+#include "vulkan/common/alloc/allocator.hpp"
 #include "vulkan/common/context.hpp"
 
 #include <expected>

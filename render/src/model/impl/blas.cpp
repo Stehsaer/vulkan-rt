@@ -5,8 +5,8 @@
 #include "model/mesh.hpp"
 #include "render/model/material.hpp"
 #include "render/model/mesh.hpp"
-#include "vulkan/alloc/allocator.hpp"
-#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/common/alloc/allocator.hpp"
+#include "vulkan/common/alloc/buffer.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/util/command-runner.hpp"
 #include <algorithm>

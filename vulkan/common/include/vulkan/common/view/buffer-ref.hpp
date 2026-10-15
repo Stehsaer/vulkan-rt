@@ -1,14 +1,11 @@
 #pragma once
 
-#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/common/alloc/buffer.hpp"
 
 #include <cstddef>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
-#include <vulkan/vulkan_raii.hpp>
-#include <vulkan/vulkan_structs.hpp>
 
 namespace vulkan
 {

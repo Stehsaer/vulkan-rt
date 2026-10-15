@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common/container/error.hpp"
-#include "vulkan/common/attachment.hpp"
+#include "vulkan/common/container/attachment.hpp"
 #include "vulkan/common/context.hpp"
-#include "vulkan/container/attachment.hpp"
+#include "vulkan/common/view/attachment.hpp"
 
 #include <expected>
 #include <glm/ext/vector_uint2_sized.hpp>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/container/error.hpp"
-#include "vulkan/alloc/allocator.hpp"
+#include "vulkan/common/alloc/allocator.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/platform/headless/instance.hpp"
 

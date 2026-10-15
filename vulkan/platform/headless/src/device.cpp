@@ -3,7 +3,7 @@
 #include "common/container/debug-value.hpp"
 #include "common/container/error.hpp"
 #include "common/container/linked-struct.hpp"
-#include "vulkan/alloc/allocator.hpp"
+#include "vulkan/common/alloc/allocator.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/trace/phy-device.hpp"
 #include "vulkan/platform/common/device.hpp"

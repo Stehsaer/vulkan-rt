@@ -3,7 +3,7 @@
 #include "common/container/error.hpp"
 #include "render/model/material.hpp"
 #include "render/model/mesh.hpp"
-#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/common/alloc/buffer.hpp"
 #include "vulkan/common/context.hpp"
 
 #include <expected>

@@ -1,8 +1,8 @@
 #include "vulkan/platform/windowed/swapchain.hpp"
 #include "common/container/error.hpp"
 #include "common/util/variant.hpp"
-#include "vulkan/common/attachment.hpp"
 #include "vulkan/common/numeric/glm.hpp"
+#include "vulkan/common/view/attachment.hpp"
 #include "vulkan/platform/windowed/device.hpp"
 #include "vulkan/platform/windowed/instance.hpp"
 

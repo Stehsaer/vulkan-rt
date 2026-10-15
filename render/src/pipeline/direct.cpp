@@ -10,12 +10,12 @@
 #include "render/resource/hdr.hpp"
 #include "render/resource/shadow.hpp"
 #include "shader/direct.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/numeric/glm.hpp"
 #include "vulkan/common/numeric/pool-size.hpp"
 #include "vulkan/common/numeric/sampler.hpp"
 #include "vulkan/common/util/shader.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 #include "vulkan/vulkan.hpp"
 
 #include <array>

@@ -3,8 +3,8 @@
 #include "common/container/error.hpp"
 #include "render/resource/motion-vector.hpp"
 #include "render/resource/shadow.hpp"
-#include "vulkan/common/attachment.hpp"
 #include "vulkan/common/context.hpp"
+#include "vulkan/common/view/attachment.hpp"
 #include "vulkan/common/wrapper/compute-pipeline.hpp"
 #include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 

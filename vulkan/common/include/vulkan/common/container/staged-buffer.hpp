@@ -2,10 +2,10 @@
 
 #include "common/container/error.hpp"
 #include "dyn-buffer.hpp"
-#include "vulkan/alloc/allocator.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/common/alloc/allocator.hpp"
+#include "vulkan/common/alloc/buffer.hpp"
 #include "vulkan/common/context.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 
 #include <expected>
 #include <span>

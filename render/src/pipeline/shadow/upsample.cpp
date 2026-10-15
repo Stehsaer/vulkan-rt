@@ -6,10 +6,10 @@
 #include "render/resource/shadow.hpp"
 #include "shader/shadow/upsample/gen.hpp"
 #include "shader/shadow/upsample/mask.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/numeric/base-level.hpp"
 #include "vulkan/common/numeric/sampler.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 #include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 #include <cstdint>

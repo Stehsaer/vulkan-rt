@@ -14,7 +14,7 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "common/container/error.hpp"
-#include "vulkan/common/attachment.hpp"
+#include "vulkan/common/view/attachment.hpp"
 #include "vulkan/platform/windowed/device.hpp"
 #include "vulkan/platform/windowed/instance.hpp"
 

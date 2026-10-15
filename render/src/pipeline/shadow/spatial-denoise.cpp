@@ -6,11 +6,11 @@
 #include "render/resource/deferred.hpp"
 #include "render/resource/shadow.hpp"
 #include "shader/shadow/spatial-denoise.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/common/attachment.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/numeric/base-level.hpp"
 #include "vulkan/common/numeric/sampler.hpp"
+#include "vulkan/common/view/attachment.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 #include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 #include "vulkan/vulkan.hpp"
 

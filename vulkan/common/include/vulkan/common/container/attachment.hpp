@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/container/error.hpp"
-#include "vulkan/alloc/image.hpp"
-#include "vulkan/common/attachment.hpp"
+#include "vulkan/common/alloc/image.hpp"
+#include "vulkan/common/view/attachment.hpp"
 
 #include <cstdint>
 #include <expected>

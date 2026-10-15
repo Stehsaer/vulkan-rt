@@ -5,7 +5,7 @@
 #include "image/common.hpp"
 #include "image/image.hpp"
 #include "model/texture.hpp"
-#include "vulkan/alloc/image.hpp"
+#include "vulkan/common/alloc/image.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/util/static-resource-creator.hpp"
 

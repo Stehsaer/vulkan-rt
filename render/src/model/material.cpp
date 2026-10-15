@@ -5,10 +5,10 @@
 #include "model/material-collector.hpp"
 #include "model/material.hpp"
 #include "render/model/texture-list.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/common/alloc/buffer.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/util/static-resource-creator.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 
 #include <array>
 #include <coro/task.hpp>

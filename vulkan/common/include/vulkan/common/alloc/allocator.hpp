@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common/container/error.hpp"
-#include "vulkan/alloc/buffer.hpp"
-#include "vulkan/alloc/image.hpp"
-#include "vulkan/alloc/wrapper.hpp"
+#include "vulkan/common/alloc/buffer.hpp"
+#include "vulkan/common/alloc/image.hpp"
+#include "vulkan/common/alloc/wrapper.hpp"
 
 #include <cstddef>
 #include <cstdint>

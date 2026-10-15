@@ -8,10 +8,10 @@
 #include "render/resource/deferred.hpp"
 #include "render/resource/raytrace.hpp"
 #include "render/resource/shadow.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/alloc/buffer.hpp"
-#include "vulkan/common/attachment.hpp"
+#include "vulkan/common/alloc/buffer.hpp"
 #include "vulkan/common/context.hpp"
+#include "vulkan/common/view/attachment.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 #include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 #include <cstdint>

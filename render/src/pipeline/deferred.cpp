@@ -16,12 +16,12 @@
 #include "render/resource/indirect.hpp"
 #include "render/util/per-render-state.hpp"
 #include "shader/deferred.hpp"
-#include "vulkan/alloc/buffer-ref.hpp"
-#include "vulkan/common/attachment.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/numeric/base-level.hpp"
 #include "vulkan/common/numeric/glm.hpp"
 #include "vulkan/common/util/shader.hpp"
+#include "vulkan/common/view/attachment.hpp"
+#include "vulkan/common/view/buffer-ref.hpp"
 #include "vulkan/common/wrapper/trivial-descriptor-set.hpp"
 
 #include <array>

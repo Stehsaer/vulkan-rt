@@ -14,8 +14,7 @@ target("render")
 	add_slang_deps("common", "render")
 	add_deps(
 		"model",
-		"vulkan.alloc",
-		"vulkan.container",
+		"vulkan.common",
 		"scene",
 		{public = true}
 	)

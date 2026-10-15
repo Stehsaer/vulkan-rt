@@ -1,7 +1,7 @@
 #include "render/model/mesh.hpp"
 #include "common/container/error.hpp"
 #include "model/mesh.hpp"
-#include "vulkan/alloc/buffer.hpp"
+#include "vulkan/common/alloc/buffer.hpp"
 #include "vulkan/common/context.hpp"
 #include "vulkan/common/util/static-resource-creator.hpp"
 
