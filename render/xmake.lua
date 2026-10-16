@@ -7,9 +7,10 @@ target("render")
 
 	add_files("src/**.cpp")
 	add_files("shader/program/**.slang", {base_dir = path.absolute("shader/program")})
-	add_includedirs("include", {public = true})
-	add_includedirs("impl", {public = false})
-	add_headerfiles("include/(**.hpp)")
+	add_includedirs("include/public", {public = true})
+	add_includedirs("include/private", {public = false})
+	add_headerfiles("include/public/(**.hpp)")
+	add_headerfiles("include/private/(**.hpp)")
 
 	add_slang_deps("common", "render")
 	add_deps(
